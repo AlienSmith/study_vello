@@ -48,8 +48,9 @@ let N_SLICE = 8u;
 //let N_SLICE = WG_SIZE / 32u;
 let N_SUBSLICE = 4u;
 
+//8*256 bins hence the max resolution is 4096*4096
 var<workgroup> sh_bitmaps: array<array<atomic<u32>, N_TILE>, N_SLICE>;
-// store count values packed two u16's to a u32
+// store count values packed two u16's to a u32 4*256 bins contains the accumulated(slice) drawobject count of each bin
 var<workgroup> sh_count: array<array<u32, N_TILE>, N_SUBSLICE>;
 var<workgroup> sh_chunk_offset: array<u32, N_TILE>;
 
@@ -66,10 +67,12 @@ fn main(
 
     // Read inputs and determine coverage of bins
     let element_ix = global_id.x;
+    //range in bin
     var x0 = 0;
     var y0 = 0;
     var x1 = 0;
     var y1 = 0;
+    //limits to 256 draw object
     if element_ix < config.n_drawobj {
         let draw_monoid = draw_monoids[element_ix];
         var clip_bbox = vec4(-1e9, -1e9, 1e9, 1e9);
@@ -135,6 +138,7 @@ fn main(
         sh_count[i][local_id.x] = element_count_packed;
     }
     // element_count is the number of draw objects covering this thread's bin
+    // aotmic add returns the original value stored. order doesn't matters?
     var chunk_offset = atomicAdd(&bump.binning, element_count);
     if chunk_offset + element_count > config.binning_size {
         chunk_offset = 0u;
@@ -145,7 +149,7 @@ fn main(
     bin_header[global_id.x].chunk_offset = chunk_offset;
     workgroupBarrier();
 
-    // loop over bbox of bins touched by this draw object
+    // loop over bbox of bins touched by this draw object and insert self index to the proper position of bin data
     x = x0;
     y = y0;
     while y < y1 {

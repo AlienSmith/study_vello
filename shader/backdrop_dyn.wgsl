@@ -49,6 +49,7 @@ fn main(
     let total_rows = sh_row_count[WG_SIZE - 1u];
     for (var row = local_id.x; row < total_rows; row += WG_SIZE) {
         var el_ix = 0u;
+        //0-7
         for (var i = 0u; i < firstTrailingBit(WG_SIZE); i += 1u) {
             let probe = el_ix + ((WG_SIZE / 2u) >> i);
             if row >= sh_row_count[probe - 1u] {

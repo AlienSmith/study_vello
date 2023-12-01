@@ -15,22 +15,22 @@ impl DrawTag {
     /// No operation.
     pub const NOP: Self = Self(0);
 
-    /// Color fill.
-    pub const COLOR: Self = Self(0x44);
+    /// Color fill.           0b 0001 0 001 0 0
+    pub const COLOR: Self = Self(0x44); 
 
-    /// Linear gradient fill.
+    /// Linear gradient fill. 0b 0100 0 101 0 0
     pub const LINEAR_GRADIENT: Self = Self(0x114);
 
-    /// Radial gradient fill.
+    /// Radial gradient fill. 0b 1010 0 111 0 0
     pub const RADIAL_GRADIENT: Self = Self(0x29c);
 
-    /// Image fill.
+    /// Image fill.           0b 1001 0 010 0 0
     pub const IMAGE: Self = Self(0x248);
 
-    /// Begin layer/clip.
+    /// Begin layer/clip.     0b        010 0 1
     pub const BEGIN_CLIP: Self = Self(0x9);
 
-    /// End layer/clip.
+    /// End layer/clip.       0b      1 000 0 1
     pub const END_CLIP: Self = Self(0x21);
 }
 

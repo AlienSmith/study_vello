@@ -40,10 +40,10 @@ fn combine_tag_monoid(a: TagMonoid, b: TagMonoid) -> TagMonoid {
 
 fn reduce_tag(tag_word: u32) -> TagMonoid {
     var c: TagMonoid;
-    let point_count = tag_word & 0x3030303u;
-    c.pathseg_ix = countOneBits((point_count * 7u) & 0x4040404u);
+    let point_count = tag_word & 0x3030303u; //total count of point for line(0x01) have 1, quad(0x02) has 2 and cubic(0x03) has 3
+    c.pathseg_ix = countOneBits((point_count * 7u) & 0x4040404u);// count of tag segments
     c.trans_ix = countOneBits(tag_word & (PATH_TAG_TRANSFORM * 0x1010101u));
-    let n_points = point_count + ((tag_word >> 2u) & 0x1010101u);
+    let n_points = point_count + ((tag_word >> 2u) & 0x1010101u); //count path segment end as has 1 point
     var a = n_points + (n_points & (((tag_word >> 3u) & 0x1010101u) * 15u));
     a += a >> 8u;
     a += a >> 16u;
