@@ -1,5 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
-    <g fill="none">
-        <path d="M96.737 65.19s-1.726-1.255-1.726-.392c0 0 1.412 1.726 1.726.392z" fill="#FFF"/>
-    </g>
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <path
+    fill="red"
+    stroke="none"
+    d="M 0,0
+       L 0,20
+       L 20,20
+       L 20,0
+       L 0,0 
+       z" />
 </svg>
