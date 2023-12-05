@@ -231,7 +231,7 @@ pub fn full_shaders(device: &Device, engine: &mut Engine) -> Result<FullShaders,
         &[
             BindType::Uniform,
             BindType::BufReadOnly,
-            BindType::BufReadOnly,
+            //BindType::BufReadOnly,
             BindType::BufReadOnly,
             BindType::BufReadOnly,
             BindType::Buffer,

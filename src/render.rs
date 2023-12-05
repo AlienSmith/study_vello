@@ -320,7 +320,7 @@ impl Render {
             [
                 config_buf,
                 scene_buf,
-                tagmonoid_buf,
+                //tagmonoid_buf,
                 cubic_buf,
                 path_buf,
                 bump_buf,

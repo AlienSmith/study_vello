@@ -15,13 +15,14 @@ var<uniform> config: Config;
 @group(0) @binding(1)
 var<storage> scene: array<u32>;
 
-@group(0) @binding(2)
-var<storage> tag_monoids: array<TagMonoid>;
+//this tag_monoids are never used then link cubics back to path
+// @group(0) @binding(2)
+// var<storage> tag_monoids: array<TagMonoid>;
 
-@group(0) @binding(3)
+@group(0) @binding(2)
 var<storage> cubics: array<Cubic>;
 
-@group(0) @binding(4)
+@group(0) @binding(3)
 var<storage> paths: array<Path>;
 
 // We don't get this from import as it's the atomic version
@@ -30,13 +31,13 @@ struct AtomicTile {
     segments: atomic<u32>,
 }
 
-@group(0) @binding(5)
+@group(0) @binding(4)
 var<storage, read_write> bump: BumpAllocators;
 
-@group(0) @binding(6)
+@group(0) @binding(5)
 var<storage, read_write> tiles: array<AtomicTile>;
 
-@group(0) @binding(7)
+@group(0) @binding(6)
 var<storage, read_write> segments: array<Segment>;
 
 struct SubdivResult {
