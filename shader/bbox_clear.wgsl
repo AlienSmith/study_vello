@@ -12,6 +12,7 @@ struct PathBbox {
     y1: i32,
     linewidth: f32,
     trans_ix: u32,
+    last_tag_ix: u32,
 }
 
 @group(0) @binding(1)

@@ -11,6 +11,7 @@ struct PathBbox {
     y1: i32,
     linewidth: f32,
     trans_ix: u32,
+    last_tag_ix: u32,
 }
 
 fn bbox_intersect(a: vec4<f32>, b: vec4<f32>) -> vec4<f32> {

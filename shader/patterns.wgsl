@@ -31,7 +31,7 @@ struct AtomicPathBbox {
     x1: atomic<i32>,
     y1: atomic<i32>,
     linewidth: f32,
-    trans_ix: u32, 
+    trans_ix: u32,
     last_tag_ix: u32,
 }
 
@@ -125,7 +125,6 @@ fn main(
     if (tag_byte & PATH_TAG_PATH) != 0u {
         (*out).linewidth = linewidth;
         (*out).trans_ix = tm.trans_ix;
-        (*out).last_tag_ix = ix;
     }
     // Decode path data
     let seg_type = tag_byte & PATH_TAG_SEG_TYPE;

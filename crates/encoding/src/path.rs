@@ -186,6 +186,8 @@ pub struct PathBbox {
     pub linewidth: f32,
     /// Index into the transform stream.
     pub trans_ix: u32,
+    /// index of last tag 
+    pub last_tag_ix: u32,
 }
 
 /// Tiled path object.
