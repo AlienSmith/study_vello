@@ -3,7 +3,7 @@
 
 use super::{DrawColor, DrawTag, PathEncoder, PathTag, Transform};
 
-use peniko::{kurbo::Shape, BlendMode, BrushRef, Color};
+use peniko::{kurbo::{Shape, Vec2}, BlendMode, BrushRef, Color};
 
 #[cfg(feature = "full")]
 use {
@@ -38,6 +38,8 @@ pub struct Encoding {
     pub n_clips: u32,
     /// Number of unclosed clips/layers.
     pub n_open_clips: u32,
+    /// Number of encoded pattern segments
+    pub n_patterns: u32,
 }
 
 impl Encoding {
@@ -332,6 +334,20 @@ impl Encoding {
                 xy: 0,
                 width_height: (image.width << 16) | (image.height & 0xFFFF),
             }));
+    }
+
+    ///Encode a begin of pattern command.
+    /// start pivot offset from path boundary
+    pub fn encode_begin_pattern(&mut self, _start: Vec2, _box_scale:Vec2, _rotaion: f32){
+        self.draw_tags.push(DrawTag::BEGIN_PATTERN);
+        self.n_patterns += 1;
+    }
+
+    ///Encode a end of pattern command.
+    /// start pivot offset from path boundary
+    pub fn encode_end_pattern(&mut self){
+        self.draw_tags.push(DrawTag::END_PATTERN);
+        self.n_patterns += 1;
     }
 
     /// Encodes a begin clip command.

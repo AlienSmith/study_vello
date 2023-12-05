@@ -101,7 +101,8 @@ impl Arguments {
             } else if let Some(svgs) = &self.svgs {
                 scene_from_files(svgs)
             } else {
-                default_scene(command)
+                Ok(test_scenes())
+                //default_scene(command)
             }
             .map(Some)
         }

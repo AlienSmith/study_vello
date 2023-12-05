@@ -41,6 +41,7 @@ pub fn test_scenes() -> SceneSet {
     let scenes = vec![
         splash_scene,
         mmark_scene,
+        scene!(clip_test: animated),
         scene!(funky_paths),
         scene!(cardioid_and_friends),
         scene!(animated_text: animated),
@@ -51,7 +52,6 @@ pub fn test_scenes() -> SceneSet {
         scene!(conflation_artifacts),
         scene!(labyrinth),
         scene!(base_color_test: animated),
-        scene!(clip_test: animated),
     ];
 
     SceneSet { scenes }
@@ -826,11 +826,11 @@ fn base_color_test(sb: &mut SceneBuilder, params: &mut SceneParams) {
 }
 
 fn clip_test(sb: &mut SceneBuilder, params: &mut SceneParams) {
-    let clip = {
-        const X0: f64 = 50.0;
-        const Y0: f64 = 0.0;
-        const X1: f64 = 200.0;
-        const Y1: f64 = 500.0;
+    let clip1 = {
+        const X0: f64 = 10.0;
+        const Y0: f64 = 10.0;
+        const X1: f64 = 100.0;
+        const Y1: f64 = 100.0;
         [
             PathEl::MoveTo((X0, Y0).into()),
             PathEl::LineTo((X1, Y0).into()),
@@ -840,78 +840,76 @@ fn clip_test(sb: &mut SceneBuilder, params: &mut SceneParams) {
             PathEl::ClosePath,
         ]
     };
-    sb.push_layer(Mix::Clip, 1.0, Affine::IDENTITY, &clip);
+    let clip2 = {
+        const X0: f64 = 5.0;
+        const Y0: f64 = 5.0;
+        const X1: f64 = 200.0;
+        const Y1: f64 = 200.0;
+        [
+            PathEl::MoveTo((X0, Y0).into()),
+            PathEl::LineTo((X1, Y0).into()),
+            PathEl::LineTo((X1, Y0 + (Y1 - Y0)).into()),
+            PathEl::LineTo((X1 + (X0 - X1), Y1).into()),
+            PathEl::LineTo((X0, Y1).into()),
+            PathEl::ClosePath,
+        ]
+    };
+    let clip3 = {
+        const X0: f64 = 0.0;
+        const Y0: f64 = 0.0;
+        const X1: f64 = 300.0;
+        const Y1: f64 = 300.0;
+        [
+            PathEl::MoveTo((X0, Y0).into()),
+            PathEl::LineTo((X1, Y0).into()),
+            PathEl::LineTo((X1, Y0 + (Y1 - Y0)).into()),
+            PathEl::LineTo((X1 + (X0 - X1), Y1).into()),
+            PathEl::LineTo((X0, Y1).into()),
+            PathEl::ClosePath,
+        ]
+    };
+    sb.push_layer(Mix::Clip, 1.0, Affine::IDENTITY, &clip1);
+    sb.pop_layer();
+    sb.push_layer(Mix::Clip, 1.0, Affine::IDENTITY, &clip2);
+    sb.push_layer(Mix::Clip, 1.0, Affine::IDENTITY, &clip3);
     {
-        let text_size = 60.0 + 40.0 * (params.time as f32).sin();
-        let s = "Some clipped text!";
-        params.text.add(
-            sb,
-            None,
-            text_size,
-            None,
-            Affine::translate((110.0, 100.0)),
-            s,
-        );
+        sb.fill(
+                peniko::Fill::NonZero,
+                kurbo::Affine::IDENTITY,
+                peniko::Color::rgb8(0, 0, 255),
+                None,
+                &kurbo::Rect::new(0.0, 0.0, 160.0, 160.0),
+            );
     }
     sb.pop_layer();
+    sb.pop_layer();
+}
 
-    let large_background_rect = kurbo::Rect::new(-1000.0, -1000.0, 2000.0, 2000.0);
-    let inside_clip_rect = kurbo::Rect::new(11.0, 13.399999999999999, 59.0, 56.6);
-    let outside_clip_rect = kurbo::Rect::new(
-        12.599999999999998,
-        12.599999999999998,
-        57.400000000000006,
-        57.400000000000006,
-    );
-    let clip_rect = kurbo::Rect::new(0.0, 0.0, 74.4, 339.20000000000005);
-    let scale = 2.0;
-
-    sb.push_layer(
-        BlendMode {
-            mix: peniko::Mix::Normal,
-            compose: peniko::Compose::SrcOver,
-        },
-        1.0,
-        Affine::new([scale, 0.0, 0.0, scale, 27.07470703125, 176.40660533027858]),
-        &clip_rect,
-    );
-
-    sb.fill(
-        peniko::Fill::NonZero,
-        kurbo::Affine::new([scale, 0.0, 0.0, scale, 27.07470703125, 176.40660533027858]),
-        peniko::Color::rgb8(0, 0, 255),
-        None,
-        &large_background_rect,
-    );
-    sb.fill(
-        peniko::Fill::NonZero,
-        kurbo::Affine::new([
-            scale,
-            0.0,
-            0.0,
-            scale,
-            29.027636718750003,
-            182.9755506427786,
-        ]),
-        peniko::Color::rgb8(0, 255, 0),
-        None,
-        &inside_clip_rect,
-    );
-    sb.fill(
-        peniko::Fill::NonZero,
-        kurbo::Affine::new([
-            scale,
-            0.0,
-            0.0,
-            scale,
-            29.027636718750003,
-            scale * 559.3583631427786,
-        ]),
-        peniko::Color::rgb8(255, 0, 0),
-        None,
-        &outside_clip_rect,
-    );
-
+fn pattern_test(sb: &mut SceneBuilder, params: &mut SceneParams) {
+    let clip1 = {
+        const X0: f64 = 10.0;
+        const Y0: f64 = 10.0;
+        const X1: f64 = 100.0;
+        const Y1: f64 = 100.0;
+        [
+            PathEl::MoveTo((X0, Y0).into()),
+            PathEl::LineTo((X1, Y0).into()),
+            PathEl::LineTo((X1, Y0 + (Y1 - Y0)).into()),
+            PathEl::LineTo((X1 + (X0 - X1), Y1).into()),
+            PathEl::LineTo((X0, Y1).into()),
+            PathEl::ClosePath,
+        ]
+    };
+    sb.push_layer(Mix::Clip, 1.0, Affine::IDENTITY, &clip1);
+    {
+        sb.fill(
+                peniko::Fill::NonZero,
+                kurbo::Affine::IDENTITY,
+                peniko::Color::rgb8(0, 0, 255),
+                None,
+                &kurbo::Rect::new(0.0, 0.0, 160.0, 160.0),
+            );
+    }
     sb.pop_layer();
 }
 
