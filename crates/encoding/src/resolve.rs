@@ -26,6 +26,8 @@ pub struct Layout {
     pub n_paths: u32,
     /// Number of clips.
     pub n_clips: u32,
+    /// Number of patterns
+    pub n_patterns: u32,
     /// Start of binning data.
     pub bin_data_start: u32,
     /// Start of path tag stream.
@@ -119,6 +121,7 @@ pub fn resolve_solid_paths_only(encoding: &Encoding, packed: &mut Vec<u8>) -> La
     let mut layout = Layout {
         n_paths: encoding.n_paths,
         n_clips: encoding.n_clips,
+        n_patterns: encoding.n_patterns,
         ..Layout::default()
     };
     let SceneBufferSizes {
@@ -153,7 +156,7 @@ pub fn resolve_solid_paths_only(encoding: &Encoding, packed: &mut Vec<u8>) -> La
     // Linewidth stream
     layout.linewidth_base = size_to_words(data.len());
     data.extend_from_slice(bytemuck::cast_slice(&encoding.linewidths));
-    layout.n_draw_objects = layout.n_paths;
+    layout.n_draw_objects = layout.n_paths + layout.n_patterns;
     assert_eq!(buffer_size, data.len());
     layout
 }
@@ -197,6 +200,7 @@ impl Resolver {
         let mut layout = Layout {
             n_paths: encoding.n_paths,
             n_clips: encoding.n_clips,
+            n_patterns: encoding.n_patterns,
             ..Layout::default()
         };
         let SceneBufferSizes {
@@ -382,7 +386,7 @@ impl Resolver {
                 data.extend_from_slice(bytemuck::cast_slice(&stream[pos..]));
             }
         }
-        layout.n_draw_objects = layout.n_paths;
+        layout.n_draw_objects = layout.n_paths + layout.n_patterns;
         assert_eq!(buffer_size, data.len());
         (layout, self.ramp_cache.ramps(), self.image_cache.images())
     }

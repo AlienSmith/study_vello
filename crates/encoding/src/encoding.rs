@@ -64,6 +64,7 @@ impl Encoding {
         self.n_paths = 0;
         self.n_path_segments = 0;
         self.n_clips = 0;
+        self.n_patterns = 0;
         self.n_open_clips = 0;
         #[cfg(feature = "full")]
         self.resources.reset();
@@ -139,6 +140,7 @@ impl Encoding {
         self.n_paths += other.n_paths;
         self.n_path_segments += other.n_path_segments;
         self.n_clips += other.n_clips;
+        self.n_patterns += other.n_patterns;
         self.n_open_clips += other.n_open_clips;
         if let Some(transform) = *transform {
             self.transforms

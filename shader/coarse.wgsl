@@ -49,7 +49,7 @@ let WG_SIZE = 256u;
 //let N_SLICE = WG_SIZE / 32u;
 let N_SLICE = 8u;
 
-var<workgroup> sh_bitmaps: array<array<atomic<u32>, N_TILE>, N_SLICE>;
+var<workgroup> sh_bitmaps: array<array<atomic<u32>, N_TILE>, N_SLICE>; // 8*256
 var<workgroup> sh_part_count: array<u32, WG_SIZE>;
 var<workgroup> sh_part_offsets: array<u32, WG_SIZE>;
 var<workgroup> sh_drawobj_ix: array<u32, WG_SIZE>;
@@ -280,7 +280,7 @@ fn main(
             // TODO: there's a write_tile_alloc here in the source, not sure what it's supposed to do
         }
 
-        // Prefix sum of tile counts
+        // Prefix sum of tile counts indexed on bin
         sh_tile_count[local_id.x] = tile_count;
         for (var i = 0u; i < firstTrailingBit(N_TILE); i += 1u) {
             workgroupBarrier();

@@ -1,5 +1,5 @@
 use crate::{ExampleScene, SceneConfig, SceneParams, SceneSet};
-use vello::kurbo::{Affine, BezPath, Ellipse, PathEl, Point, Rect};
+use vello::kurbo::{Affine, BezPath, Ellipse, PathEl, Point, Rect, Vec2};
 use vello::peniko::*;
 use vello::*;
 
@@ -41,6 +41,7 @@ pub fn test_scenes() -> SceneSet {
     let scenes = vec![
         splash_scene,
         mmark_scene,
+        scene!(pattern_test),
         scene!(clip_test: animated),
         scene!(funky_paths),
         scene!(cardioid_and_friends),
@@ -885,10 +886,10 @@ fn clip_test(sb: &mut SceneBuilder, params: &mut SceneParams) {
     sb.pop_layer();
 }
 
-fn pattern_test(sb: &mut SceneBuilder, params: &mut SceneParams) {
+fn pattern_test(sb: &mut SceneBuilder,params: &mut SceneParams) {
     let clip1 = {
-        const X0: f64 = 10.0;
-        const Y0: f64 = 10.0;
+        const X0: f64 = 0.0;
+        const Y0: f64 = 0.0;
         const X1: f64 = 100.0;
         const Y1: f64 = 100.0;
         [
@@ -902,13 +903,15 @@ fn pattern_test(sb: &mut SceneBuilder, params: &mut SceneParams) {
     };
     sb.push_layer(Mix::Clip, 1.0, Affine::IDENTITY, &clip1);
     {
+        sb.start_pattern(Vec2::new(0.0,0.0), Vec2::new(10.0,10.0), 0.0);
         sb.fill(
                 peniko::Fill::NonZero,
                 kurbo::Affine::IDENTITY,
-                peniko::Color::rgb8(0, 0, 255),
+                peniko::Color::rgb8(0, 255, 255),
                 None,
                 &kurbo::Rect::new(0.0, 0.0, 160.0, 160.0),
             );
+        sb.end_pattern();
     }
     sb.pop_layer();
 }

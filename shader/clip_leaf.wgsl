@@ -32,13 +32,16 @@ var<workgroup> sh_stack: array<u32, WG_SIZE>;
 var<workgroup> sh_stack_bbox: array<vec4<f32>, WG_SIZE>;
 var<workgroup> sh_bbox: array<vec4<f32>, WG_SIZE>;
 var<workgroup> sh_link: array<i32, WG_SIZE>;
-
+//return the parent index of current braces
+//if the previous is ( then the privious is its parent.
+//otherwise 
 fn search_link(bic: ptr<function, Bic>, ix_in: u32) -> i32 {
     var ix = ix_in;
     var j = 0u;
     while j < firstTrailingBit(WG_SIZE) {
         let base = 2u * WG_SIZE - (2u << (firstTrailingBit(WG_SIZE) - j));
         if ((ix >> j) & 1u) != 0u {
+            //combine the 
             let test = bic_combine(sh_bic[base + (ix >> j) - 1u], *bic);
             if test.b > 0u {
                 break;
@@ -139,6 +142,9 @@ fn main(
         bbox = vec4(-1e9, -1e9, 1e9, 1e9);
     }
     var inbase = 0u;
+    //a binary tree where root contains values of its children.
+    //[384] = combine [256] [257]...
+    //[256] = combine [0] [1], [257] = combine [2] [3]...
     for (var i = 0u; i < firstTrailingBit(WG_SIZE) - 1u; i += 1u) {
         let outbase = 2u * WG_SIZE - (1u << (firstTrailingBit(WG_SIZE) - i));
         workgroupBarrier();
@@ -163,7 +169,7 @@ fn main(
     } else {
         parent = -1;
     }
-    // bbox scan (intersect) across parent links
+    // bbox scan (intersect) across parent links // repeated computation 
     for (var i = 0u; i < firstTrailingBit(WG_SIZE); i += 1u) {
         if i != 0u {
             sh_link[local_id.x] = link;

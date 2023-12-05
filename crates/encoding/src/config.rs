@@ -257,6 +257,7 @@ impl BufferSizes {
         let n_paths = layout.n_paths;
         let n_draw_objects = layout.n_draw_objects;
         let n_clips = layout.n_clips;
+        let n_patterns = layout.n_patterns;
         let path_tag_wgs = workgroups.path_reduce.0;
         let reduced_size = if workgroups.use_large_path_scan {
             align_up(path_tag_wgs, PATH_REDUCE_WG)
