@@ -102,7 +102,7 @@ fn main(
     let di = m.info_offset;
     if tag_word == DRAWTAG_FILL_COLOR || tag_word == DRAWTAG_FILL_LIN_GRADIENT ||
         tag_word == DRAWTAG_FILL_RAD_GRADIENT || tag_word == DRAWTAG_FILL_IMAGE ||
-        tag_word == DRAWTAG_BEGIN_CLIP
+        tag_word == DRAWTAG_BEGIN_CLIP || tag_word == DRAWTAG_BEGIN_PATTERN || tag_word == DRAWTAG_END_PATTERN
     {
         let bbox = path_bbox[m.path_ix];
         // TODO: bbox is mostly yagni here, sort that out. Maybe clips?
@@ -124,7 +124,7 @@ fn main(
             let matrx = transform.matrx;
             linewidth *= sqrt(abs(matrx.x * matrx.w - matrx.y * matrx.z));
         }
-        let pattern_ix = select(0u, (ix - 1u) >> 1u, ix > 0u);
+        let pattern_ix = select(0u, (m.pattern_ix - 1u) >> 1u, m.pattern_ix > 0u);
         switch tag_word {
             // DRAWTAG_FILL_COLOR
             case 0x44u: {
@@ -244,11 +244,15 @@ fn main(
             }
             ///DRAWTAG_BEGIN_PATTERN
             case 0x400u: {
-                pattern_inp[pattern_ix].begin_path_ix = m.path_ix;
+                let out = &pattern_inp[pattern_ix];
+                (*out).begin_path_ix = m.path_ix;
+                (*out).clip_ix = min(m.clip_ix - 1u, config.n_clip - 1u);
             }
             ///DRAWTAG_END_PATTERN
             case 0xC00u: {
-                pattern_inp[pattern_ix].end_path_ix = m.path_ix;
+                let out = &pattern_inp[pattern_ix];
+                (*out).end_path_ix = m.path_ix;
+                (*out).clip_ix = min(m.clip_ix - 1u, config.n_clip - 1u);
             }
             default: {}
         }

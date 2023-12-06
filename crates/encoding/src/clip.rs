@@ -39,7 +39,8 @@ pub struct Clip {
 #[repr(C)]
 pub struct PatternRange {
     pub begin_path_ix: u32,
-    pub end_path_ix: i32,
+    pub end_path_ix: u32,
+    pub clip_ix: u32,
 }
 
 /// Clip bounding box.

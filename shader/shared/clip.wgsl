@@ -22,6 +22,7 @@ struct ClipInp {
 struct PatternInp{
     begin_path_ix: u32,
     end_path_ix: u32,
+    clip_ix: u32,
 }
 
 struct ClipEl {
