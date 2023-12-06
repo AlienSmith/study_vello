@@ -93,7 +93,7 @@ fn main(
             }
             workgroupBarrier();
         }
-        let cubic_offset = 512u + select(0u, sh_cubic_counts[local_id.x - 1u], local_id.x > 1u);
+        let cubic_offset = 128u + select(0u, sh_cubic_counts[local_id.x - 1u], local_id.x > 1u);
         var local_count = 0u;
         for (var i = pattern.begin_path_ix; i < pattern.end_path_ix; i += 1u) {
             let out = &path_bboxes[i];
@@ -101,6 +101,27 @@ fn main(
             (*out).y0 = i32(clip_bbox.y);
             (*out).x1 = i32(clip_bbox.z);
             (*out).y1 = i32(clip_bbox.w);
+        }
+        var local_offset = 0u;
+        for(var ix = min_x; ix < max_x; ix += 1){
+            for(var iy = min_y; iy < max_y; iy += 1){
+                let pivot_x = pox_x + f32(ix) * delta_x;
+                let pivot_y = pox_y +  f32(ix) * delta_y;
+                let pivot = vec2(pivot_x, pivot_y);
+                for (var i = pattern.begin_path_ix; i < pattern.end_path_ix; i += 1u) {
+                    let cubic_start = select(0u, path_bboxes[i - 1u].last_tag_ix, i > 0u);
+                    let cubic_end = path_bboxes[i].last_tag_ix;
+                    for(var cubic_ix = cubic_start; cubic_ix < cubic_end; cubic_ix += 1u){
+                        var instance = cubics[cubic_ix];
+                        instance.p0 += pivot;
+                        instance.p1 += pivot;
+                        instance.p2 += pivot;
+                        instance.p3 += pivot;
+                        cubics[cubic_offset + local_offset] = instance;
+                        local_offset += 1u;
+                    }
+                }
+            }
         }
     }
 }
