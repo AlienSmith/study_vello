@@ -102,24 +102,25 @@ fn main(
             }
             workgroupBarrier();
         }
-        //fow now just add the extra cubic at back
         let cubic_offset = 512u + select(0u, sh_cubic_counts[local_id.x - 1u], local_id.x > 1u);
-        var local_offset = 0u;
-        for(var ix = min_x; ix < max_x; ix += 1){
-            for(var iy = min_y; iy < max_y; iy += 1){
-                let pivot_x = pox_x + f32(ix) * delta_x;
-                let pivot_y = pox_y +  f32(ix) * delta_y;
-                let pivot = vec2(pivot_x, pivot_y);
-                // var instance = cubics[ix];
-                // instance.p0 += pivot;
-                // instance.p1 += pivot;
-                // instance.p2 += pivot;
-                // instance.p3 += pivot;
-                // //also would free here
-                // cubics[ix] = instance;
-                local_offset += 1;
-            }
-        }
+        //var local_offset = 0u;
+        sh_cubic_counts[local_id.x] = 0u;
+        //fow now just add the extra cubic at back
+        // for(var ix = min_x; ix < max_x; ix += 1){
+        //     for(var iy = min_y; iy < max_y; iy += 1){
+        //         let pivot_x = pox_x + f32(ix) * delta_x;
+        //         let pivot_y = pox_y +  f32(ix) * delta_y;
+        //         let pivot = vec2(pivot_x, pivot_y);
+        //         // var instance = cubics[ix];
+        //         // instance.p0 += pivot;
+        //         // instance.p1 += pivot;
+        //         // instance.p2 += pivot;
+        //         // instance.p3 += pivot;
+        //         // //also would free here
+        //         // cubics[ix] = instance;
+        //         local_offset += 1u;
+        //     }
+        // }
         // for(var ix = min_x; ix < max_x; ix += 1){
         //     for(var iy = min_y; iy < max_y; iy += 1){
         //         let pivot_x = pox_x + f32(ix) * delta_x;
