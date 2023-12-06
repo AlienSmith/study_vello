@@ -67,7 +67,6 @@ fn main(
 ) {
     let ix = global_id.x;
     if ix < (config.n_patterns >> 1u){
-        sh_cubic_counts[local_id.x] = 0u;
         let pattern = pattern_inp[ix];
         let clip_bbox = clip_bbox_buf[pattern.clip_ix];
         let pattern_des = read_pattern(config.pattern_base, ix);
@@ -95,7 +94,13 @@ fn main(
             workgroupBarrier();
         }
         let cubic_offset = 512u + select(0u, sh_cubic_counts[local_id.x - 1u], local_id.x > 1u);
+        var local_count = 0u;
         workgroupBarrier();
-        sh_cubic_counts[local_id.x] = 0u;
+        for(var ix = min_x; ix < max_x; ix += 1){
+            for(var iy = min_y; iy < max_y; iy += 1){
+                local_count += 1u;
+            }
+        }
+        sh_cubic_counts[local_id.x] = local_count;
     }
 }
