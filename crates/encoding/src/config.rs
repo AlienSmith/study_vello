@@ -18,6 +18,7 @@ pub(crate) const PATH_REDUCE_WG: u32 = 256;
 const PATH_BBOX_WG: u32 = 256;
 const PATH_COARSE_WG: u32 = 256;
 const CLIP_REDUCE_WG: u32 = 256;
+const CLIP_PATTERN_WG: u32 = 256;
 
 /// Counters for tracking dynamic allocation on the GPU.
 ///
@@ -121,6 +122,7 @@ pub struct WorkgroupCounts {
     pub draw_leaf: WorkgroupSize,
     pub clip_reduce: WorkgroupSize,
     pub clip_leaf: WorkgroupSize,
+    pub pattern: WorkgroupSize,
     pub binning: WorkgroupSize,
     pub tile_alloc: WorkgroupSize,
     pub path_coarse: WorkgroupSize,
@@ -139,6 +141,7 @@ impl WorkgroupCounts {
         let n_paths = layout.n_paths;
         let n_draw_objects = layout.n_draw_objects;
         let n_clips = layout.n_clips;
+        let n_patterns = layout.n_patterns;
         let path_tag_padded = align_up(n_path_tags, 4 * PATH_REDUCE_WG);
         let path_tag_wgs = path_tag_padded / (4 * PATH_REDUCE_WG);
         let use_large_path_scan = path_tag_wgs > PATH_REDUCE_WG;
@@ -151,6 +154,7 @@ impl WorkgroupCounts {
         let path_coarse_wgs = (n_path_tags + PATH_COARSE_WG - 1) / PATH_COARSE_WG;
         let clip_reduce_wgs = n_clips.saturating_sub(1) / CLIP_REDUCE_WG;
         let clip_wgs = (n_clips + CLIP_REDUCE_WG - 1) / CLIP_REDUCE_WG;
+        let pattern_wgs = (n_patterns + CLIP_PATTERN_WG - 1) / CLIP_PATTERN_WG;
         let path_wgs = (n_paths + PATH_BBOX_WG - 1) / PATH_BBOX_WG;
         let width_in_bins = (width_in_tiles + 15) / 16;
         let height_in_bins = (height_in_tiles + 15) / 16;
@@ -166,6 +170,7 @@ impl WorkgroupCounts {
             draw_leaf: (draw_object_wgs, 1, 1),
             clip_reduce: (clip_reduce_wgs, 1, 1),
             clip_leaf: (clip_wgs, 1, 1),
+            pattern:(pattern_wgs,1,1),
             binning: (draw_object_wgs, 1, 1),
             tile_alloc: (path_wgs, 1, 1),
             path_coarse: (path_coarse_wgs, 1, 1),

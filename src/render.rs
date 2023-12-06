@@ -273,6 +273,27 @@ impl Render {
         recording.free_resource(clip_el_buf);
 
         //add pattern_instancing here
+
+        let sh_cubic_count = ResourceProxy::new_buf(
+            1024,
+            "debug",
+        );
+
+        if wg_counts.pattern.0 > 0 {
+            recording.dispatch(
+                shaders.pattern,
+                wg_counts.pattern,
+                [
+                    config_buf,
+                    scene_buf,
+                    pattern_inp_buf,
+                    clip_bbox_buf,
+                    path_bbox_buf,
+                    cubic_buf,
+                    sh_cubic_count,
+                ],
+            );
+        }
         
         let draw_bbox_buf = ResourceProxy::new_buf(
             buffer_sizes.draw_bboxes.size_in_bytes().into(),
