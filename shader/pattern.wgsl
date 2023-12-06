@@ -66,7 +66,16 @@ fn main(
     @builtin(local_invocation_id) local_id: vec3<u32>,
 ) {
     let ix = global_id.x;
-    if ix < (config.n_patterns << 1u){
+    if ix < (config.n_patterns >> 1u){
+        // let pivot = vec2(0.0,0.0);
+        // var instance = cubics[ix];
+        // instance.p0 += pivot;
+        // instance.p1 += pivot;
+        // instance.p2 += pivot;
+        // instance.p3 += pivot;
+        // //also would free here
+        // cubics[ix] = instance;
+
         let pattern = pattern_inp[ix];
         let clip_bbox = clip_bbox_buf[pattern.clip_ix];
         let pattern_des = read_pattern(config.pattern_base, ix);
@@ -101,21 +110,37 @@ fn main(
                 let pivot_x = pox_x + f32(ix) * delta_x;
                 let pivot_y = pox_y +  f32(ix) * delta_y;
                 let pivot = vec2(pivot_x, pivot_y);
-                for (var i = pattern.begin_path_ix; i < pattern.end_path_ix; i += 1u) {
-                    let cubic_start = select(0u, path_bboxes[i - 1u].last_tag_ix, i > 0u);
-                    let cubic_end = path_bboxes[i - 1u].last_tag_ix;
-                    for(var cubic_ix = cubic_start; cubic_ix < cubic_end; cubic_ix += 1u){
-                        var instance = cubics[cubic_ix];
-                        instance.p0 += pivot;
-                        instance.p1 += pivot;
-                        instance.p2 += pivot;
-                        instance.p3 += pivot;
-                        cubics[cubic_offset + local_offset] = instance;
-                        local_offset += 1u;
-                    }
-                }
+                // var instance = cubics[ix];
+                // instance.p0 += pivot;
+                // instance.p1 += pivot;
+                // instance.p2 += pivot;
+                // instance.p3 += pivot;
+                // //also would free here
+                // cubics[ix] = instance;
+                local_offset += 1;
             }
         }
+        // for(var ix = min_x; ix < max_x; ix += 1){
+        //     for(var iy = min_y; iy < max_y; iy += 1){
+        //         let pivot_x = pox_x + f32(ix) * delta_x;
+        //         let pivot_y = pox_y +  f32(ix) * delta_y;
+        //         let pivot = vec2(0.0, 0.0);
+        //         for (var i = pattern.begin_path_ix; i < pattern.end_path_ix; i += 1u) {
+        //             let cubic_start = select(0u, path_bboxes[i - 1u].last_tag_ix, i > 0u);
+        //             let cubic_end = path_bboxes[i - 1u].last_tag_ix;
+        //             for(var cubic_ix = cubic_start; cubic_ix < cubic_end; cubic_ix += 1u){
+        //                 var instance = cubics[cubic_ix];
+        //                 instance.p0 += pivot;
+        //                 instance.p1 += pivot;
+        //                 instance.p2 += pivot;
+        //                 instance.p3 += pivot;
+        //                 //also would free here
+        //                 cubics[cubic_ix] = instance;
+        //                 //local_offset += 1u;
+        //             }
+        //         }
+        //     }
+        // }
 
         // for (var i = pattern.begin_path_ix; i < pattern.end_path_ix; i += 1u) {
 

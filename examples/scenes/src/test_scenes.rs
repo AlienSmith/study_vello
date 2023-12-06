@@ -903,7 +903,7 @@ fn pattern_test(sb: &mut SceneBuilder,params: &mut SceneParams) {
     };
     sb.push_layer(Mix::Clip, 1.0, Affine::IDENTITY, &clip1);
     {
-        sb.start_pattern(Vec2::new(0.0,0.0), Vec2::new(10.0,10.0), 0.0);
+        sb.start_pattern(Vec2::new(0.0,0.0), Vec2::new(100.0,100.0), 0.0);
         sb.fill(
                 peniko::Fill::NonZero,
                 kurbo::Affine::IDENTITY,
