@@ -42,6 +42,8 @@ pub struct Layout {
     pub transform_base: u32,
     /// Start of linewidth stream.
     pub linewidth_base: u32,
+    /// Start of pattern stream.
+    pub pattern_base: u32,
 }
 
 impl Layout {
@@ -156,6 +158,9 @@ pub fn resolve_solid_paths_only(encoding: &Encoding, packed: &mut Vec<u8>) -> La
     // Linewidth stream
     layout.linewidth_base = size_to_words(data.len());
     data.extend_from_slice(bytemuck::cast_slice(&encoding.linewidths));
+    // Pattern stream
+    layout.pattern_base = size_to_words(data.len());
+    data.extend_from_slice(bytemuck::cast_slice(&encoding.pattern_data));
     layout.n_draw_objects = layout.n_paths + layout.n_patterns;
     assert_eq!(buffer_size, data.len());
     layout
@@ -614,7 +619,8 @@ impl SceneBufferSizes {
             )
             + slice_size_in_bytes(&encoding.draw_data, patch_sizes.draw_data)
             + slice_size_in_bytes(&encoding.transforms, patch_sizes.transforms)
-            + slice_size_in_bytes(&encoding.linewidths, patch_sizes.linewidths);
+            + slice_size_in_bytes(&encoding.linewidths, patch_sizes.linewidths)
+            + slice_size_in_bytes(&encoding.pattern_data, patch_sizes.patterns);
         Self {
             buffer_size,
             path_tag_padded,

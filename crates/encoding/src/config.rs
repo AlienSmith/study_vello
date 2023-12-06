@@ -1,6 +1,8 @@
 // Copyright 2023 The Vello authors
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+use crate::{math::PatternData, clip::PatternRange};
+
 use super::{
     BinHeader, Clip, ClipBbox, ClipBic, ClipElement, Cubic, DrawBbox, DrawMonoid, Layout, Path,
     PathBbox, PathMonoid, PathSegment, Tile,
@@ -238,6 +240,7 @@ pub struct BufferSizes {
     pub draw_monoids: BufferSize<DrawMonoid>,
     pub info: BufferSize<u32>,
     pub clip_inps: BufferSize<Clip>,
+    pub pattern_inps: BufferSize<PatternRange>,
     pub clip_els: BufferSize<ClipElement>,
     pub clip_bics: BufferSize<ClipBic>,
     pub clip_bboxes: BufferSize<ClipBbox>,
@@ -275,6 +278,7 @@ impl BufferSizes {
         let draw_monoids = BufferSize::new(n_draw_objects);
         let info = BufferSize::new(layout.bin_data_start);
         let clip_inps = BufferSize::new(n_clips);
+        let pattern_inps = BufferSize::new(n_patterns);
         let clip_els = BufferSize::new(n_clips);
         let clip_bics = BufferSize::new(n_clips / CLIP_REDUCE_WG);
         let clip_bboxes = BufferSize::new(n_clips);
@@ -302,6 +306,7 @@ impl BufferSizes {
             draw_monoids,
             info,
             clip_inps,
+            pattern_inps,
             clip_els,
             clip_bics,
             clip_bboxes,

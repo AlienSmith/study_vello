@@ -29,6 +29,9 @@ var<storage, read_write> info: array<u32>;
 @group(0) @binding(6)
 var<storage, read_write> clip_inp: array<ClipInp>;
 
+@group(0) @binding(7)
+var<storage, read_write> pattern_inp: array<PatternInp>;
+
 #import util
 
 let WG_SIZE = 256u;
@@ -121,6 +124,7 @@ fn main(
             let matrx = transform.matrx;
             linewidth *= sqrt(abs(matrx.x * matrx.w - matrx.y * matrx.z));
         }
+        let pattern_ix = select(0u, (ix - 1u) >> 1u, ix > 0u);
         switch tag_word {
             // DRAWTAG_FILL_COLOR
             case 0x44u: {
@@ -238,6 +242,14 @@ fn main(
                 info[di + 7u] = scene[dd];
                 info[di + 8u] = scene[dd + 1u];
             }
+            ///DRAWTAG_BEGIN_PATTERN
+            case 0x400u: {
+                pattern_inp[pattern_ix].begin_path_ix = m.path_ix;
+            }
+            ///DRAWTAG_END_PATTERN
+            case 0xC00u: {
+                pattern_inp[pattern_ix].end_path_ix = m.path_ix;
+            }
             default: {}
         }
     }
@@ -248,6 +260,7 @@ fn main(
         }
         clip_inp[m.clip_ix] = ClipInp(ix, i32(path_ix));
     }
+
 }
 
 fn two_point_to_unit_line(p0: vec2<f32>, p1: vec2<f32>) -> Transform {

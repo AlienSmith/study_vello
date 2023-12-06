@@ -19,6 +19,11 @@ struct ClipInp {
     path_ix: i32,
 }
 
+struct PatternInp{
+    begin_path_ix: u32,
+    end_path_ix: u32,
+}
+
 struct ClipEl {
     parent_ix: u32,
     bbox: vec4<f32>,

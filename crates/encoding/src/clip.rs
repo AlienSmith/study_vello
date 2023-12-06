@@ -35,6 +35,13 @@ pub struct Clip {
     pub path_ix: i32,
 }
 
+#[derive(Copy, Clone, Pod, Zeroable, Debug, Default)]
+#[repr(C)]
+pub struct PatternRange {
+    pub begin_path_ix: u32,
+    pub end_path_ix: i32,
+}
+
 /// Clip bounding box.
 #[derive(Copy, Clone, Pod, Zeroable, Debug, Default)]
 #[repr(C)]

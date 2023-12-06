@@ -1,6 +1,8 @@
 // Copyright 2022 The Vello authors
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+use crate::math::PatternData;
+
 use super::{DrawColor, DrawTag, PathEncoder, PathTag, Transform};
 
 use peniko::{kurbo::{Shape, Vec2}, BlendMode, BrushRef, Color};
@@ -25,6 +27,8 @@ pub struct Encoding {
     pub draw_data: Vec<u8>,
     /// The transform stream.
     pub transforms: Vec<Transform>,
+    /// The pattern stream.
+    pub pattern_data: Vec<PatternData>,
     /// The line width stream.
     pub linewidths: Vec<f32>,
     /// Late bound resource data.
@@ -56,6 +60,7 @@ impl Encoding {
     /// Clears the encoding.
     pub fn reset(&mut self, is_fragment: bool) {
         self.transforms.clear();
+        self.pattern_data.clear();
         self.path_tags.clear();
         self.path_data.clear();
         self.linewidths.clear();
@@ -152,6 +157,7 @@ impl Encoding {
         } else {
             self.transforms.extend_from_slice(&other.transforms);
         }
+        self.pattern_data.extend_from_slice(&other.pattern_data);
         self.linewidths.extend_from_slice(&other.linewidths);
     }
 
@@ -164,6 +170,7 @@ impl Encoding {
             draw_data: self.draw_data.len(),
             transforms: self.transforms.len(),
             linewidths: self.linewidths.len(),
+            patterns: self.pattern_data.len(),
         }
     }
 
@@ -340,8 +347,9 @@ impl Encoding {
 
     ///Encode a begin of pattern command.
     /// start pivot offset from path boundary
-    pub fn encode_begin_pattern(&mut self, _start: Vec2, _box_scale:Vec2, _rotaion: f32){
+    pub fn encode_begin_pattern(&mut self, start: Vec2, box_scale:Vec2, rotation: f32){
         self.draw_tags.push(DrawTag::BEGIN_PATTERN);
+        self.pattern_data.push(PatternData { start: [start.x as f32, start.y as f32], box_scale: [box_scale.x as f32, box_scale.y as f32], rotate: rotation });
         self.n_patterns += 1;
     }
 
@@ -465,6 +473,8 @@ pub struct StreamOffsets {
     pub transforms: usize,
     /// Current length of linewidth stream.
     pub linewidths: usize,
+    /// current length of pattern_data stream.
+    pub patterns: usize,
 }
 
 impl StreamOffsets {
@@ -476,5 +486,6 @@ impl StreamOffsets {
         self.draw_data += other.draw_data;
         self.transforms += other.transforms;
         self.linewidths += other.linewidths;
+        self.patterns += other.patterns;
     }
 }

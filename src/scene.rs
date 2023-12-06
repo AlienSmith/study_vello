@@ -88,8 +88,8 @@ impl<'a> SceneBuilder<'a> {
         Self { scene }
     }
 
-    pub fn start_pattern(&mut self, start: Vec2, box_scale:Vec2, rotaion: f32){
-        self.scene.encode_begin_pattern( start, box_scale, rotaion);
+    pub fn start_pattern(&mut self, start: Vec2, box_scale:Vec2, rotation: f32){
+        self.scene.encode_begin_pattern( start, box_scale, rotation);
     }
 
     pub fn end_pattern(&mut self){

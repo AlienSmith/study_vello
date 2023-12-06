@@ -32,6 +32,7 @@ struct Config {
     transform_base: u32,
     linewidth_base: u32,
 
+    pattern_base: u32,
     // Sizes of bump allocated buffers (in element size units)
     binning_size: u32,
     tiles_size: u32,

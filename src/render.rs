@@ -214,6 +214,7 @@ impl Render {
             buffer_sizes.clip_inps.size_in_bytes().into(),
             "clip_inp_buf",
         );
+        let pattern_inp_buf = ResourceProxy::new_buf(buffer_sizes.pattern_inps.size_in_bytes().into(), "pattern_inp_buf");
         recording.dispatch(
             shaders.draw_leaf,
             wg_counts.draw_leaf,
@@ -225,6 +226,7 @@ impl Render {
                 draw_monoid_buf,
                 info_bin_data_buf,
                 clip_inp_buf,
+                pattern_inp_buf,
             ],
         );
         recording.free_resource(draw_reduced_buf);
@@ -269,6 +271,9 @@ impl Render {
         recording.free_resource(clip_inp_buf);
         recording.free_resource(clip_bic_buf);
         recording.free_resource(clip_el_buf);
+
+        //add pattern_instancing here
+        
         let draw_bbox_buf = ResourceProxy::new_buf(
             buffer_sizes.draw_bboxes.size_in_bytes().into(),
             "draw_bbox_buf",
