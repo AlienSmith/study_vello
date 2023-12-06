@@ -76,6 +76,12 @@ fn main(
         let min_y = round_down(pattern_des.start.y * -1.0 * SY);
         let max_x = round_up((clip_bbox.z - clip_bbox.x - pattern_des.start.x)* SX);
         let max_y = round_up((clip_bbox.w - clip_bbox.y - pattern_des.start.y)* SX);
+
+        let pox_x = clip_bbox.x + pattern_des.start.x;
+        let pox_y = clip_bbox.y + pattern_des.start.y;
+        let delta_x = pattern_des.box_scale.x;
+        let delta_y = pattern_des.box_scale.y;
+
         let previous_cubic_count = select(0u, path_bboxes[pattern.begin_path_ix - 1u].last_tag_ix, pattern.begin_path_ix > 0u);
         let finish_cubic_count = select(0u, path_bboxes[pattern.end_path_ix - 1u].last_tag_ix, pattern.end_path_ix > 0u);
         var cubic_count = (finish_cubic_count - previous_cubic_count - 1u) * u32(max_x - min_x) * u32(max_y - min_y);
@@ -87,14 +93,40 @@ fn main(
             }
             workgroupBarrier();
         }
-        let cubic_offset = select(0u, sh_cubic_counts[local_id.x - 1u], local_id.x > 1u);
-        for (var i = pattern.begin_path_ix; i < pattern.end_path_ix; i += 1u) {
-            //reset path bounding box to clip box
-            // let out = &path_bboxes[i];
-            // (*out).x0 = i32(clip_bbox.x);
-            // (*out).y0 = i32(clip_bbox.y);
-            // (*out).x1 = i32(clip_bbox.z);
-            // (*out).y1 = i32(clip_bbox.w);
+        //fow now just add the extra cubic at back
+        let cubic_offset = 512u + select(0u, sh_cubic_counts[local_id.x - 1u], local_id.x > 1u);
+        var local_offset = 0u;
+        for(var ix = min_x; ix < max_x; ix += 1){
+            for(var iy = min_y; iy < max_y; iy += 1){
+                let pivot_x = pox_x + f32(ix) * delta_x;
+                let pivot_y = pox_y +  f32(ix) * delta_y;
+                let pivot = vec2(pivot_x, pivot_y);
+                for (var i = pattern.begin_path_ix; i < pattern.end_path_ix; i += 1u) {
+                    let cubic_start = select(0u, path_bboxes[i - 1u].last_tag_ix, i > 0u);
+                    let cubic_end = path_bboxes[i - 1u].last_tag_ix;
+                    for(var cubic_ix = cubic_start; cubic_ix < cubic_end; cubic_ix += 1u){
+                        var instance = cubics[cubic_ix];
+                        instance.p0 += pivot;
+                        instance.p1 += pivot;
+                        instance.p2 += pivot;
+                        instance.p3 += pivot;
+                        cubics[cubic_offset + local_offset] = instance;
+                        local_offset += 1u;
+                    }
+                }
+            }
         }
+
+        // for (var i = pattern.begin_path_ix; i < pattern.end_path_ix; i += 1u) {
+
+        //     //these code leads to none responsive screen, could be deadlock?
+        //     //we use clip directly in binning for now
+        //     //reset path bounding box to clip box
+        //     // let out = &path_bboxes[i];
+        //     // (*out).x0 = i32(clip_bbox.x);
+        //     // (*out).y0 = i32(clip_bbox.y);
+        //     // (*out).x1 = i32(clip_bbox.z);
+        //     // (*out).y1 = i32(clip_bbox.w);
+        // }
     }
 }

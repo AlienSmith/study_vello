@@ -82,17 +82,18 @@ fn main(
                 // the bounds check in here for correctness but we should assert this condition instead
                 // once there is a debug-assertion mechanism.
                 clip_bbox = clip_bbox_buf[min(draw_monoid.clip_ix - 1u, config.n_clip - 1u)];
+            }else{
+                let path_bbox = path_bbox_buf[draw_monoid.path_ix];
+                clip_bbox = vec4<f32>(vec4(path_bbox.x0, path_bbox.y0, path_bbox.x1, path_bbox.y1));
             }
             // For clip elements, clip_box is the bbox of the clip path,
             // intersected with enclosing clips.
             // For other elements, it is the bbox of the enclosing clips.
             // TODO check this is true
 
-            let path_bbox = path_bbox_buf[draw_monoid.path_ix];
-            let pb = vec4<f32>(vec4(path_bbox.x0, path_bbox.y0, path_bbox.x1, path_bbox.y1));
-            let bbox = bbox_intersect(clip_bbox, pb);
-
-            intersected_bbox[element_ix] = bbox;
+            //let bbox = bbox_intersect(clip_bbox, pb);
+            let bbox = clip_bbox;
+            intersected_bbox[element_ix] = clip_bbox;
 
             // `bbox_intersect` can result in a zero or negative area intersection if the path bbox lies
             // outside the clip bbox. If that is the case, Don't round up the bottom-right corner of the

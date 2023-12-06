@@ -890,8 +890,8 @@ fn pattern_test(sb: &mut SceneBuilder,params: &mut SceneParams) {
     let clip1 = {
         const X0: f64 = 0.0;
         const Y0: f64 = 0.0;
-        const X1: f64 = 100.0;
-        const Y1: f64 = 100.0;
+        const X1: f64 = 400.0;
+        const Y1: f64 = 400.0;
         [
             PathEl::MoveTo((X0, Y0).into()),
             PathEl::LineTo((X1, Y0).into()),
