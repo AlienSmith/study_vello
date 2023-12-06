@@ -95,12 +95,12 @@ fn main(
         }
         let cubic_offset = 512u + select(0u, sh_cubic_counts[local_id.x - 1u], local_id.x > 1u);
         var local_count = 0u;
-        workgroupBarrier();
-        for(var ix = min_x; ix < max_x; ix += 1){
-            for(var iy = min_y; iy < max_y; iy += 1){
-                local_count += 1u;
-            }
+        for (var i = pattern.begin_path_ix; i < pattern.end_path_ix; i += 1u) {
+            let out = &path_bboxes[i];
+            (*out).x0 = i32(clip_bbox.x);
+            (*out).y0 = i32(clip_bbox.y);
+            (*out).x1 = i32(clip_bbox.z);
+            (*out).y1 = i32(clip_bbox.w);
         }
-        sh_cubic_counts[local_id.x] = local_count;
     }
 }
