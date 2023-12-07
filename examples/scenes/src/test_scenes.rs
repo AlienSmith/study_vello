@@ -910,13 +910,14 @@ fn pattern_test(sb: &mut SceneBuilder,params: &mut SceneParams) {
     );
     sb.push_layer(Mix::Clip, 1.0, Affine::IDENTITY, &clip1);
     {
-        sb.start_pattern(Vec2::new(0.0,0.0), Vec2::new(200.0,200.0), 0.0);
+        sb.start_pattern(Vec2::new(0.0,0.0), Vec2::new(50.0,50.0), 0.0);
         sb.fill(
                 peniko::Fill::NonZero,
                 kurbo::Affine::IDENTITY,
                 peniko::Color::rgb8(0, 255, 255),
                 None,
-                &kurbo::Rect::new(0.0, 0.0, 10.0, 10.0),
+                //&kurbo::Circle::new((0.0, 0.0),10.0),
+                &kurbo::Rect::new(0.0, 0.0,10.0,10.0),
             );
         sb.end_pattern();
     }

@@ -87,7 +87,7 @@ fn main(
 
         let previous_cubic_count = select(0u, path_bboxes[pattern.begin_path_ix - 1u].last_tag_ix, pattern.begin_path_ix > 0u);
         let finish_cubic_count = select(0u, path_bboxes[pattern.end_path_ix - 1u].last_tag_ix, pattern.end_path_ix > 0u);
-        var cubic_count = (finish_cubic_count - previous_cubic_count - 1u) * u32(max_x - min_x) * u32(max_y - min_y);
+        var cubic_count = (finish_cubic_count - previous_cubic_count) * u32(max_x - min_x) * u32(max_y - min_y);
         sh_cubic_counts[local_id.x] = cubic_count;
         for (var i = 0u; i < firstTrailingBit(WG_SIZE); i += 1u) {
             workgroupBarrier();
