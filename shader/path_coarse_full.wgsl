@@ -118,8 +118,8 @@ fn main(
     let tag_word = scene[config.pathtag_base + (ix >> 2u)];
     let shift = (ix & 3u) * 8u;
     var tag_byte = (tag_word >> shift) & 0xffu;
-
-    if (tag_byte & PATH_TAG_SEG_TYPE) != 0u {
+    
+    if ((tag_byte & PATH_TAG_SEG_TYPE) != 0u)||(global_id.x > PATTERN_CUBMIC_START && (global_id.x - PATTERN_CUBMIC_START) < bump.pattern_cubic) {
         // Discussion question: it might actually be cheaper to do the path segment
         // decoding & transform again rather than store the result in a buffer;
         // classic memory vs ALU tradeoff.

@@ -17,6 +17,7 @@
 #import clip
 #import transform
 #import bbox
+#import bump
 
 @group(0) @binding(0)
 var<uniform> config: Config;
@@ -36,9 +37,11 @@ var<storage, read_write> path_bboxes: array<PathBbox>;
 @group(0) @binding(5)
 var<storage, read_write> cubics: array<Cubic>;
 
-let WG_SIZE = 256u;
 @group(0) @binding(6)
-var<storage, read_write> sh_cubic_counts: array<u32, WG_SIZE>;
+var<storage, read_write> bump: BumpAllocators;
+
+let WG_SIZE = 256u;
+var<workgroup> sh_cubic_counts: array<u32, WG_SIZE>;
 
 fn read_pattern(pattern_base:u32, ix:u32) -> Pattern {
     let base = pattern_base + ix * 5u;
@@ -93,6 +96,10 @@ fn main(
             }
             workgroupBarrier();
         }
+        if (local_id.x == 0u){
+            let ix = min((config.n_patterns >> 1u) - 1u, WG_SIZE - 1u);
+            bump.pattern_cubic = sh_cubic_counts[ix];
+        }
         let cubic_offset = 128u + select(0u, sh_cubic_counts[local_id.x - 1u], local_id.x > 1u);
         var local_count = 0u;
         for (var i = pattern.begin_path_ix; i < pattern.end_path_ix; i += 1u) {
@@ -106,7 +113,7 @@ fn main(
         for(var ix = min_x; ix < max_x; ix += 1){
             for(var iy = min_y; iy < max_y; iy += 1){
                 let pivot_x = pox_x + f32(ix) * delta_x;
-                let pivot_y = pox_y +  f32(ix) * delta_y;
+                let pivot_y = pox_y +  f32(iy) * delta_y;
                 let pivot = vec2(pivot_x, pivot_y);
                 for (var i = pattern.begin_path_ix; i < pattern.end_path_ix; i += 1u) {
                     let cubic_start = select(0u, path_bboxes[i - 1u].last_tag_ix, i > 0u);

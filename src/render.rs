@@ -272,13 +272,10 @@ impl Render {
         recording.free_resource(clip_bic_buf);
         recording.free_resource(clip_el_buf);
 
-        //add pattern_instancing here
-
-        let sh_cubic_count = ResourceProxy::new_buf(
-            1024,
-            "debug",
-        );
-
+        //pattern_instancing
+        let bump_buf = BufProxy::new(buffer_sizes.bump_alloc.size_in_bytes().into(), "bump_buf");
+        recording.clear_all(bump_buf);
+        let bump_buf = ResourceProxy::Buf(bump_buf);
         if wg_counts.pattern.0 > 0 {
             recording.dispatch(
                 shaders.pattern,
@@ -290,7 +287,7 @@ impl Render {
                     clip_bbox_buf,
                     path_bbox_buf,
                     cubic_buf,
-                    sh_cubic_count,
+                    bump_buf,
                 ],
             );
         }
@@ -299,13 +296,10 @@ impl Render {
             buffer_sizes.draw_bboxes.size_in_bytes().into(),
             "draw_bbox_buf",
         );
-        let bump_buf = BufProxy::new(buffer_sizes.bump_alloc.size_in_bytes().into(), "bump_buf");
         let bin_header_buf = ResourceProxy::new_buf(
             buffer_sizes.bin_headers.size_in_bytes().into(),
             "bin_header_buf",
         );
-        recording.clear_all(bump_buf);
-        let bump_buf = ResourceProxy::Buf(bump_buf);
         recording.dispatch(
             shaders.binning,
             wg_counts.binning,

@@ -34,6 +34,7 @@ pub struct BumpAllocators {
     pub tile: u32,
     pub segments: u32,
     pub blend: u32,
+    pub pattern_cubic: u32,
 }
 
 /// Uniform render configuration data used by all GPU stages.
