@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use crate::{ExampleScene, SceneConfig, SceneParams, SceneSet};
 use vello::kurbo::{Affine, BezPath, Ellipse, PathEl, Point, Rect, Vec2};
 use vello::peniko::*;
@@ -889,8 +891,6 @@ fn clip_test(sb: &mut SceneBuilder, params: &mut SceneParams) {
 fn pattern_test(sb: &mut SceneBuilder,params: &mut SceneParams) {
     let transform = Affine::IDENTITY;
     let transform = transform.then_translate(Vec2 { x: 10.0, y: 10.0 });
-    let transform1 = Affine::IDENTITY;
-    let transform1 = transform.then_translate(Vec2 { x: 100.0, y: 100.0 });
     let clip1 = {
         const X0: f64 = 0.0;
         const Y0: f64 = 0.0;
@@ -914,18 +914,27 @@ fn pattern_test(sb: &mut SceneBuilder,params: &mut SceneParams) {
     );
     sb.push_layer(Mix::Clip, 1.0, transform, &clip1);
     {
-        sb.start_pattern(Vec2::new(0.0,0.0), Vec2::new(50.0,50.0), 0.0);
+        sb.start_pattern(Vec2::new(0.0,0.0), Vec2::new(50.0,50.0), 0.25 * PI);
         sb.fill(
                 peniko::Fill::NonZero,
                 Affine::IDENTITY,
                 peniko::Color::rgb8(0, 255, 255),
                 None,
-                //&kurbo::Circle::new((0.0, 0.0),10.0),
-                &kurbo::Rect::new(0.0, 0.0,10.0,10.0),
+                &kurbo::Ellipse::new((0.0, 0.0), Vec2::new(10.0,20.0), 0.0),
+                //&kurbo::Rect::new(0.0, 0.0,20.0,20.0),
             );
         sb.end_pattern();
     }
     sb.pop_layer();
+    sb.fill(
+        peniko::Fill::NonZero,
+        Affine::IDENTITY,
+        peniko::Color::rgb8(255, 0, 0),
+        None,
+        //&kurbo::Circle::new((0.0, 0.0),10.0),
+        &kurbo::Rect::new(0.0, 0.0, 150.0, 150.0),
+    );
+    
 }
 
 fn around_center(xform: Affine, center: Point) -> Affine {

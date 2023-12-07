@@ -40,8 +40,15 @@ var<storage, read_write> cubics: array<Cubic>;
 @group(0) @binding(6)
 var<storage, read_write> bump: BumpAllocators;
 
+@group(0) @binding(7)
+var<storage, read_write> debug: array<vec4<f32>>;
+
 let WG_SIZE = 256u;
 var<workgroup> sh_cubic_counts: array<u32, WG_SIZE>;
+
+var<private> bbox: vec4<f32>;
+var<private> to_world: Transform;
+var<private> to_pattern: Transform;
 
 fn read_pattern(pattern_base:u32, ix:u32) -> Pattern {
     let base = pattern_base + ix * 5u;
@@ -63,6 +70,20 @@ fn round_up(x: f32) -> i32 {
     return i32(ceil(x));
 }
 
+fn compare_bbox(point: vec2<f32>){
+    let p = transform_apply(to_pattern, point);
+    bbox.x = min(p.x, bbox.x);
+    bbox.y = min(p.y, bbox.y);
+    bbox.z = max(p.x, bbox.z);
+    bbox.w = max(p.y, bbox.w);
+}
+
+fn apply_offset(p: vec2<f32>, offset: vec2<f32>) -> vec2<f32>{
+    var pattern = p + offset;
+    pattern = transform_apply(to_world, pattern);
+    return pattern;
+}
+
 @compute @workgroup_size(256)
 fn main(
     @builtin(global_invocation_id) global_id: vec3<u32>,
@@ -71,15 +92,31 @@ fn main(
     let ix = global_id.x;
     //if ix < 0u {
     if ix < (config.n_patterns >> 1u){
+        bbox = vec4(1e9, 1e9, -1e9, -1e9);
         let pattern = pattern_inp[ix];
         let clip_bbox = clip_bbox_buf[pattern.clip_ix];
         let pattern_des = read_pattern(config.pattern_base, ix);
+        let sin_theta = sin(pattern_des.rotation);
+        let cos_theta = cos(pattern_des.rotation);
+        
+        to_world = Transform(vec4(cos_theta, sin_theta, -1.0 * sin_theta, cos_theta), vec2(0.0, 0.0));
+        let rotate = vec4(cos_theta, -1.0 * sin_theta, sin_theta, cos_theta);
+        let translated = rotate.xy * -1.0 * pattern_des.start.x + rotate.zw * -1.0 * pattern_des.start.y;
+        to_pattern = Transform(rotate, translated);
+
+        compare_bbox(clip_bbox.xy);
+        compare_bbox(clip_bbox.xw);
+        compare_bbox(clip_bbox.zy);
+        compare_bbox(clip_bbox.zw);
+
+        debug[local_id.x] = bbox;
+
         let SX = (1.0 / pattern_des.box_scale.x);
         let SY = (1.0 / pattern_des.box_scale.y);
-        let min_x = round_down(pattern_des.start.x * -1.0 * SX);
-        let min_y = round_down(pattern_des.start.y * -1.0 * SY);
-        let max_x = round_up((clip_bbox.z - clip_bbox.x - pattern_des.start.x)* SX);
-        let max_y = round_up((clip_bbox.w - clip_bbox.y - pattern_des.start.y)* SX);
+        let min_x = round_down(bbox.x * SX);
+        let min_y = round_down(bbox.y * SY);
+        let max_x = round_up(bbox.z * SX);
+        let max_y = round_up(bbox.w * SX);
 
         let pox_x = clip_bbox.x + pattern_des.start.x;
         let pox_y = clip_bbox.y + pattern_des.start.y;
@@ -121,10 +158,10 @@ fn main(
                     let cubic_end = path_bboxes[i].last_tag_ix;
                     for(var cubic_ix = cubic_start; cubic_ix < cubic_end; cubic_ix += 1u){
                         var instance = cubics[cubic_ix];
-                        instance.p0 += pivot;
-                        instance.p1 += pivot;
-                        instance.p2 += pivot;
-                        instance.p3 += pivot;
+                        instance.p0 = apply_offset(instance.p0, pivot);
+                        instance.p1 = apply_offset(instance.p1, pivot);
+                        instance.p2 = apply_offset(instance.p2, pivot);
+                        instance.p3 = apply_offset(instance.p3, pivot);
                         if(ix == max_x - 1 && iy == max_y - 1){
                             cubics[cubic_ix] = instance;
                         }else{

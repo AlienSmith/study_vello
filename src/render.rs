@@ -274,6 +274,7 @@ impl Render {
 
         //pattern_instancing
         let bump_buf = BufProxy::new(buffer_sizes.bump_alloc.size_in_bytes().into(), "bump_buf");
+        let debug = ResourceProxy::new_buf(1024, "debug");
         recording.clear_all(bump_buf);
         let bump_buf = ResourceProxy::Buf(bump_buf);
         if wg_counts.pattern.0 > 0 {
@@ -288,6 +289,7 @@ impl Render {
                     path_bbox_buf,
                     cubic_buf,
                     bump_buf,
+                    debug,
                 ],
             );
         }

@@ -92,7 +92,7 @@ fn main(
             let pb = vec4<f32>(vec4(path_bbox.x0, path_bbox.y0, path_bbox.x1, path_bbox.y1));
             let bbox = bbox_intersect(clip_bbox, pb);
 
-            intersected_bbox[element_ix] = bbox;
+            intersected_bbox[draw_monoid.path_ix] = bbox;
 
             // `bbox_intersect` can result in a zero or negative area intersection if the path bbox lies
             // outside the clip bbox. If that is the case, Don't round up the bottom-right corner of the
