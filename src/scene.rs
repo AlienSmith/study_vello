@@ -194,6 +194,8 @@ impl<'a> SceneBuilder<'a> {
 
     /// Appends a fragment to the scene.
     pub fn append(&mut self, fragment: &SceneFragment, transform: Option<Affine>) {
+        //todo we ignore transform now for it is not important
+        //let transform = Some(Affine::IDENTITY);
         self.scene.append(
             &fragment.data,
             &transform.map(|xform| Transform::from_kurbo(&xform)),

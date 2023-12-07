@@ -69,6 +69,7 @@ fn main(
     @builtin(local_invocation_id) local_id: vec3<u32>,
 ) {
     let ix = global_id.x;
+    //if ix < 0u {
     if ix < (config.n_patterns >> 1u){
         let pattern = pattern_inp[ix];
         let clip_bbox = clip_bbox_buf[pattern.clip_ix];
@@ -124,8 +125,12 @@ fn main(
                         instance.p1 += pivot;
                         instance.p2 += pivot;
                         instance.p3 += pivot;
-                        cubics[cubic_offset + local_offset] = instance;
-                        local_offset += 1u;
+                        if(ix == max_x - 1 && iy == max_y - 1){
+                            cubics[cubic_ix] = instance;
+                        }else{
+                            cubics[cubic_offset + local_offset] = instance;
+                            local_offset += 1u;
+                        }
                     }
                 }
             }
