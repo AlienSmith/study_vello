@@ -828,7 +828,7 @@ fn base_color_test(sb: &mut SceneBuilder, params: &mut SceneParams) {
     );
 }
 
-fn clip_test1(sb: &mut SceneBuilder, params: &mut SceneParams) {
+fn clip_test(sb: &mut SceneBuilder, params: &mut SceneParams) {
     let clip1 = {
         const X0: f64 = 10.0;
         const Y0: f64 = 10.0;
@@ -888,7 +888,7 @@ fn clip_test1(sb: &mut SceneBuilder, params: &mut SceneParams) {
     sb.pop_layer();
 }
 
-fn pattern_test(sb: &mut SceneBuilder,params: &mut SceneParams) {
+fn pattern_test1(sb: &mut SceneBuilder,params: &mut SceneParams) {
     let transform = Affine::IDENTITY;
     let transform = transform.then_translate(Vec2 { x: 10.0, y: 10.0 });
     let clip1 = {
@@ -943,7 +943,7 @@ fn pattern_test(sb: &mut SceneBuilder,params: &mut SceneParams) {
     
 }
 
-fn clip_test(sb: &mut SceneBuilder,params: &mut SceneParams) {
+fn pattern_test(sb: &mut SceneBuilder,params: &mut SceneParams) {
     let transform = Affine::IDENTITY;
     let transform = transform.then_translate(Vec2 { x: 10.0, y: 10.0 });
     let clip1 = {
@@ -976,13 +976,13 @@ fn clip_test(sb: &mut SceneBuilder,params: &mut SceneParams) {
             None,
             &kurbo::Rect::new(0.0, 0.0, 300.0, 300.0),
         );
-        sb.start_pattern(Vec2::new(0.0,0.0), Vec2::new(100.0,100.0), 0.25 * PI);
+        sb.start_pattern(Vec2::new(0.0,0.0), Vec2::new(50.0,50.0), 0.25 * PI);
             sb.fill(
                 peniko::Fill::NonZero,
                 Affine::IDENTITY,
                 peniko::Color::rgb8(0, 255, 255),
                 None,
-                &kurbo::Ellipse::new((0.0, 0.0), Vec2::new(20.0,40.0), 0.0),
+                &kurbo::Ellipse::new((0.0, 0.0), Vec2::new(10.0,20.0), 0.0),
                 //&kurbo::Rect::new(0.0, 0.0,20.0,20.0),
             );
             // sb.fill(
