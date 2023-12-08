@@ -133,9 +133,9 @@ fn run(
     if let Some(set_scene) = args.scene {
         scene_ix = set_scene;
     }
-    let mut profile_stored = None;
+    // let mut profile_stored = None;
     let mut prev_scene_ix = scene_ix - 1;
-    let mut profile_taken = Instant::now();
+    // let mut profile_taken = Instant::now();
     let mut modifiers = ModifiersState::default();
     // _event_loop is used on non-wasm platforms to create new windows
     event_loop.run(move |event, _event_loop, control_flow| match event {
@@ -189,27 +189,27 @@ fn run(
                                 };
                             }
                             Some(VirtualKeyCode::P) => {
-                                if let Some(renderer) = &renderers[render_state.surface.dev_id] {
-                                    if let Some(profile_result) = &renderer
-                                        .profile_result
-                                        .as_ref()
-                                        .or(profile_stored.as_ref())
-                                    {
-                                        // There can be empty results if the required features aren't supported
-                                        if !profile_result.is_empty() {
-                                            let path = std::path::Path::new("trace.json");
-                                            match wgpu_profiler::chrometrace::write_chrometrace(
-                                                path,
-                                                profile_result,
-                                            ) {
-                                                Ok(()) => {
-                                                    println!("Wrote trace to path {path:?}");
-                                                }
-                                                Err(e) => eprintln!("Failed to write trace {e}"),
-                                            }
-                                        }
-                                    }
-                                }
+                                // if let Some(renderer) = &renderers[render_state.surface.dev_id] {
+                                //     if let Some(profile_result) = &renderer
+                                //         .profile_result
+                                //         .as_ref()
+                                //         .or(profile_stored.as_ref())
+                                //     {
+                                //         // There can be empty results if the required features aren't supported
+                                //         if !profile_result.is_empty() {
+                                //             let path = std::path::Path::new("trace.json");
+                                //             match wgpu_profiler::chrometrace::write_chrometrace(
+                                //                 path,
+                                //                 profile_result,
+                                //             ) {
+                                //                 Ok(()) => {
+                                //                     println!("Wrote trace to path {path:?}");
+                                //                 }
+                                //                 Err(e) => eprintln!("Failed to write trace {e}"),
+                                //             }
+                                //         }
+                                //     }
+                                // }
                             }
                             Some(VirtualKeyCode::V) => {
                                 vsync_on = !vsync_on;
@@ -388,35 +388,35 @@ fn run(
             }
             builder.append(&fragment, Some(transform));
             if stats_shown {
-                snapshot.draw_layer(
-                    &mut builder,
-                    scene_params.text,
-                    width as f64,
-                    height as f64,
-                    stats.samples(),
-                    complexity_shown.then_some(scene_complexity).flatten(),
-                    vsync_on,
-                    antialiasing_method,
-                );
-                if let Some(profiling_result) = renderers[render_state.surface.dev_id]
-                    .as_mut()
-                    .and_then(|it| it.profile_result.take())
-                {
-                    if profile_stored.is_none() || profile_taken.elapsed() > Duration::from_secs(1)
-                    {
-                        profile_stored = Some(profiling_result);
-                        profile_taken = Instant::now();
-                    }
-                }
-                if let Some(profiling_result) = profile_stored.as_ref() {
-                    stats::draw_gpu_profiling(
-                        &mut builder,
-                        scene_params.text,
-                        width as f64,
-                        height as f64,
-                        profiling_result,
-                    );
-                }
+                // snapshot.draw_layer(
+                //     &mut builder,
+                //     scene_params.text,
+                //     width as f64,
+                //     height as f64,
+                //     stats.samples(),
+                //     complexity_shown.then_some(scene_complexity).flatten(),
+                //     vsync_on,
+                //     antialiasing_method,
+                // );
+                // if let Some(profiling_result) = renderers[render_state.surface.dev_id]
+                //     .as_mut()
+                //     .and_then(|it| it.profile_result.take())
+                // {
+                //     if profile_stored.is_none() || profile_taken.elapsed() > Duration::from_secs(1)
+                //     {
+                //         profile_stored = Some(profiling_result);
+                //         profile_taken = Instant::now();
+                //     }
+                // }
+                // if let Some(profiling_result) = profile_stored.as_ref() {
+                //     stats::draw_gpu_profiling(
+                //         &mut builder,
+                //         scene_params.text,
+                //         width as f64,
+                //         height as f64,
+                //         profiling_result,
+                //     );
+                // }
             }
             let surface_texture = render_state
                 .surface
