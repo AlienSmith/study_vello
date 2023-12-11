@@ -32,6 +32,13 @@ impl DrawTag {
 
     /// End layer/clip.
     pub const END_CLIP: Self = Self(0x21);
+
+    /// Begin pattern
+    pub const BEGIN_PATTERN: Self = Self(0x400);
+
+    /// End pattern
+    pub const END_PATTERN: Self = Self(0xC00);
+
 }
 
 impl DrawTag {
@@ -141,6 +148,8 @@ pub struct DrawMonoid {
     pub scene_offset: u32,
     // The offset of the associated info.
     pub info_offset: u32,
+    // The number of pattern operations preceding this draw object.
+    pub pattern_ix: u32,
 }
 
 impl Monoid for DrawMonoid {
@@ -152,6 +161,7 @@ impl Monoid for DrawMonoid {
             clip_ix: tag.0 & 1,
             scene_offset: (tag.0 >> 2) & 0x7,
             info_offset: (tag.0 >> 6) & 0xf,
+            pattern_ix: (tag.0 >> 10) & 1,
         }
     }
 
@@ -161,6 +171,7 @@ impl Monoid for DrawMonoid {
             clip_ix: self.clip_ix + other.clip_ix,
             scene_offset: self.scene_offset + other.scene_offset,
             info_offset: self.info_offset + other.info_offset,
+            pattern_ix: self.pattern_ix + other. pattern_ix,
         }
     }
 }

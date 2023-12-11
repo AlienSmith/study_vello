@@ -99,15 +99,15 @@ impl Arguments {
             #[cfg(any(target_arch = "wasm32", target_os = "android"))]
             return Ok(Some(test_scenes()));
             #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
-            //Ok(Some(test_scenes()))
-            if self.test_scenes {
-                Ok(test_scenes())
-            } else if let Some(svgs) = &self.svgs {
-                scene_from_files(svgs)
-            } else {
-                default_scene(command)
-            }
-            .map(Some)
+            Ok(Some(test_scenes()))
+            // if self.test_scenes {
+            //     Ok(test_scenes())
+            // } else if let Some(svgs) = &self.svgs {
+            //     scene_from_files(svgs)
+            // } else {
+            //     default_scene(command)
+            // }
+            // .map(Some)
         }
     }
 }

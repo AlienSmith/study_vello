@@ -8,6 +8,7 @@ use super::{
     Path, PathBbox, PathMonoid, PathSegment, Tile,
 };
 use bytemuck::{Pod, Zeroable};
+use fello::raw::tables::layout;
 use std::mem;
 
 const TILE_WIDTH: u32 = 16;
@@ -155,6 +156,7 @@ impl WorkgroupCounts {
         let n_paths = layout.n_paths;
         let n_draw_objects = layout.n_draw_objects;
         let n_clips = layout.n_clips;
+        let n_patterns = layout.n_patterns;
         let path_tag_padded = align_up(n_path_tags, 4 * PATH_REDUCE_WG);
         let path_tag_wgs = path_tag_padded / (4 * PATH_REDUCE_WG);
         let use_large_path_scan = path_tag_wgs > PATH_REDUCE_WG;

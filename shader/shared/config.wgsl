@@ -16,6 +16,7 @@ struct Config {
     n_drawobj: u32,
     n_path: u32,
     n_clip: u32,
+    n_patterns: u32,
 
     // To reduce the number of bindings, info and bin data are combined
     // into one buffer.
@@ -30,6 +31,8 @@ struct Config {
 
     transform_base: u32,
     style_base: u32,
+
+    pattern_base: u32,
 
     // Sizes of bump allocated buffers (in element size units)
     binning_size: u32,

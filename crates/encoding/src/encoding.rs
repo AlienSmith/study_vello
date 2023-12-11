@@ -1,10 +1,12 @@
 // Copyright 2022 The Vello authors
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+use crate::math::PatternData;
+
 use super::{DrawColor, DrawTag, PathEncoder, PathTag, Style, Transform};
 
 use peniko::{
-    kurbo::{Shape, Stroke},
+    kurbo::{Shape, Stroke, Vec2},
     BlendMode, BrushRef, Color, Fill,
 };
 
@@ -30,6 +32,8 @@ pub struct Encoding {
     pub transforms: Vec<Transform>,
     /// The style stream
     pub styles: Vec<Style>,
+    /// The pattern data stream.
+    pub pattern_data: Vec<PatternData>,
     /// Late bound resource data.
     #[cfg(feature = "full")]
     pub resources: Resources,
@@ -39,6 +43,8 @@ pub struct Encoding {
     pub n_path_segments: u32,
     /// Number of encoded clips/layers.
     pub n_clips: u32,
+    /// Number of patterns
+    pub n_patterns: u32,
     /// Number of unclosed clips/layers.
     pub n_open_clips: u32,
 }
@@ -56,6 +62,7 @@ impl Encoding {
 
     /// Clears the encoding.
     pub fn reset(&mut self, is_fragment: bool) {
+        self.pattern_data.clear();
         self.transforms.clear();
         self.path_tags.clear();
         self.path_data.clear();
@@ -65,6 +72,7 @@ impl Encoding {
         self.n_paths = 0;
         self.n_path_segments = 0;
         self.n_clips = 0;
+        self.n_patterns = 0;
         self.n_open_clips = 0;
         #[cfg(feature = "full")]
         self.resources.reset();
@@ -100,6 +108,7 @@ impl Encoding {
                     run.stream_offsets.draw_data += offsets.draw_data;
                     run.stream_offsets.transforms += offsets.transforms;
                     run.stream_offsets.styles += offsets.styles;
+                    run.stream_offsets.patterns += offsets.patterns;
                     run
                 }));
             self.resources
@@ -140,6 +149,7 @@ impl Encoding {
         self.n_paths += other.n_paths;
         self.n_path_segments += other.n_path_segments;
         self.n_clips += other.n_clips;
+        self.n_patterns += other.n_patterns;
         self.n_open_clips += other.n_open_clips;
         if let Some(transform) = *transform {
             self.transforms
@@ -151,6 +161,7 @@ impl Encoding {
         } else {
             self.transforms.extend_from_slice(&other.transforms);
         }
+        self.pattern_data.extend_from_slice(&other.pattern_data);
         self.styles.extend_from_slice(&other.styles);
     }
 
@@ -163,6 +174,7 @@ impl Encoding {
             draw_data: self.draw_data.len(),
             transforms: self.transforms.len(),
             styles: self.styles.len(),
+            patterns: self.pattern_data.len(),
         }
     }
 
@@ -359,6 +371,20 @@ impl Encoding {
             }));
     }
 
+    /// Encode start of pattern
+    /// start is pivot offset from clip boundary
+    pub fn encode_begin_pattern(&mut self, start: Vec2, box_scale:Vec2, rotation: f32){
+        self.draw_tags.push(DrawTag::BEGIN_PATTERN);
+        self.pattern_data.push(PatternData { start: [start.x as f32, start.y as f32], box_scale: [box_scale.x as f32, box_scale.y as f32], rotate: rotation });
+        self.n_patterns += 1;
+    }
+
+    ///Encode a end of pattern command.
+    pub fn encode_end_pattern(&mut self){
+        self.draw_tags.push(DrawTag::END_PATTERN);
+        self.n_patterns += 1;
+    }
+
     /// Encodes a begin clip command.
     pub fn encode_begin_clip(&mut self, blend_mode: BlendMode, alpha: f32) {
         use super::DrawBeginClip;
@@ -472,6 +498,8 @@ pub struct StreamOffsets {
     pub transforms: usize,
     /// Current length of style stream.
     pub styles: usize,
+    /// Current length of pattern stream.
+    pub patterns: usize,
 }
 
 impl StreamOffsets {
@@ -483,5 +511,6 @@ impl StreamOffsets {
         self.draw_data += other.draw_data;
         self.transforms += other.transforms;
         self.styles += other.styles;
+        self.patterns += other.patterns;
     }
 }
