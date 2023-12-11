@@ -186,6 +186,7 @@ pub fn full_shaders(
             Buffer,
             Buffer,
             Buffer,
+            Buffer,
         ],
         &empty
     );

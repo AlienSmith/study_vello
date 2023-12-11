@@ -287,13 +287,15 @@ fn draw_join(
     transform: Transform,
 ) {
     switch style_flags & STYLE_FLAGS_JOIN_MASK {
-        case /*STYLE_FLAGS_JOIN_BEVEL*/0u: {
+        //STYLE_FLAGS_JOIN_BEVEL
+        case 0u: {
             output_two_lines_with_transform(path_ix,
                                             p0 + n_prev, p0 + n_next,
                                             p0 - n_next, p0 - n_prev,
                                             transform);
         }
-        case /*STYLE_FLAGS_JOIN_MITER*/0x10000000u: {
+        //STYLE_FLAGS_JOIN_MITER
+        case 0x10000000u: {
             let c = tan_prev.x * tan_next.y - tan_prev.y * tan_next.x;
             let d = dot(tan_prev, tan_next);
             let hypot = length(vec2f(c, d));
@@ -330,7 +332,8 @@ fn draw_join(
             write_line_with_transform(line_ix, path_ix, front0, front1, transform);
             write_line_with_transform(line_ix + 1u, path_ix, back0, back1, transform);
         }
-        case /*STYLE_FLAGS_JOIN_ROUND*/0x20000000u: {
+        ///*STYLE_FLAGS_JOIN_ROUND*/
+        case 0x20000000u: {
             // TODO: round join
             output_two_lines_with_transform(path_ix,
                                             p0 + n_prev, p0 + n_next,

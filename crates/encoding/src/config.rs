@@ -262,6 +262,7 @@ pub struct BufferSizes {
     pub draw_reduced: BufferSize<DrawMonoid>,
     pub draw_monoids: BufferSize<DrawMonoid>,
     pub info: BufferSize<u32>,
+    pub path_to_pattern: BufferSize<u32>,
     pub clip_inps: BufferSize<Clip>,
     pub clip_els: BufferSize<ClipElement>,
     pub clip_bics: BufferSize<ClipBic>,
@@ -301,6 +302,7 @@ impl BufferSizes {
         let draw_reduced = BufferSize::new(draw_object_wgs);
         let draw_monoids = BufferSize::new(n_draw_objects);
         let info = BufferSize::new(layout.bin_data_start);
+        let path_to_pattern = BufferSize::new(layout.n_draw_objects);
         let clip_inps = BufferSize::new(n_clips);
         let clip_els = BufferSize::new(n_clips);
         let clip_bics = BufferSize::new(n_clips / CLIP_REDUCE_WG);
@@ -331,6 +333,7 @@ impl BufferSizes {
             draw_reduced,
             draw_monoids,
             info,
+            path_to_pattern,
             clip_inps,
             clip_els,
             clip_bics,

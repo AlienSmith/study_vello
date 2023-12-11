@@ -229,6 +229,10 @@ impl Render {
             buffer_sizes.clip_inps.size_in_bytes().into(),
             "clip_inp_buf",
         );
+        let path_to_pattern_buf = ResourceProxy::new_buf(
+            buffer_sizes.path_to_pattern.size_in_bytes().into(),
+            "path_to_pattern_buf",
+        );
         recording.dispatch(
             shaders.draw_leaf,
             wg_counts.draw_leaf,
@@ -240,6 +244,7 @@ impl Render {
                 draw_monoid_buf,
                 info_bin_data_buf,
                 clip_inp_buf,
+                path_to_pattern_buf,
             ],
         );
         recording.free_resource(draw_reduced_buf);

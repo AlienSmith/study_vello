@@ -29,6 +29,9 @@ var<storage, read_write> info: array<u32>;
 @group(0) @binding(6)
 var<storage, read_write> clip_inp: array<ClipInp>;
 
+@group(0) @binding(7)
+var<storage, read_write> path_to_pattern: array<atomic<u32>>;
+
 #import util
 
 let WG_SIZE = 256u;
@@ -102,6 +105,12 @@ fn main(
         tag_word == DRAWTAG_BEGIN_CLIP
     {
         let bbox = path_bbox[m.path_ix];
+        let out = &path_to_pattern[m.path_ix];
+        if (m.pattern_ix & 1u) != 0u {
+            atomicMax(out,(m.pattern_ix >> 1u) + 1u);
+        }else{
+            atomicMax(out,0u);
+        }
         // TODO: bbox is mostly yagni here, sort that out. Maybe clips?
         // let x0 = f32(bbox.x0);
         // let y0 = f32(bbox.y0);

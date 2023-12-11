@@ -1,4 +1,5 @@
 {
+  "editor.inlayHints.enabled": "on",
   "wgsl-analyzer.customImports": {
     "bbox": "${workspaceFolder}/shader/shared/bbox.wgsl",
     "blend": "${workspaceFolder}/shader/shared/blend.wgsl",
