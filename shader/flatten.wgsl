@@ -555,6 +555,7 @@ fn main(
     if seg_type != 0u {
         let is_stroke = (style_flags & STYLE_FLAGS_STYLE) != 0u;
         let transform = read_transform(config.transform_base, trans_ix);
+        //the old cubics
         let pts = read_path_segment(tag, is_stroke);
 
         var stroke = vec2(0.0, 0.0);

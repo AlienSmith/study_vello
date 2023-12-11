@@ -241,7 +241,7 @@ pub struct PathTag(pub u8);
 impl PathTag {
     /// 32-bit floating point line segment.
     ///
-    /// This is equivalent to `(PathSegmentType::LINE_TO | PathTag::F32_BIT)`.
+    /// This is equivalent to `(PathSegmentType::LINE_TO | PathTag::F32_BIT)` "\t".
     pub const LINE_TO_F32: Self = Self(0x9);
 
     /// 32-bit floating point quadratic segment.
