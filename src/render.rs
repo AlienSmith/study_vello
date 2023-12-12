@@ -283,6 +283,35 @@ impl Render {
         recording.free_resource(clip_inp_buf);
         recording.free_resource(clip_bic_buf);
         recording.free_resource(clip_el_buf);
+
+        let indirect_count_buf = BufProxy::new(
+            buffer_sizes.indirect_count.size_in_bytes().into(),
+            "indirect_count",
+        );
+
+        
+        if wg_counts.use_patterns{
+            recording.dispatch(
+                shaders.path_count_setup,
+                (1, 1, 1),
+                [bump_buf, indirect_count_buf.into()],
+            );
+            recording.dispatch_indirect(
+                shaders.pattern,
+                indirect_count_buf,
+                0,
+                [
+                    config_buf,
+                    scene_buf,
+                    clip_bbox_buf,
+                    path_to_pattern_buf,
+                    path_bbox_buf,
+                    bump_buf,
+                    lines_buf,
+                ],
+            );
+        }
+
         let draw_bbox_buf = ResourceProxy::new_buf(
             buffer_sizes.draw_bboxes.size_in_bytes().into(),
             "draw_bbox_buf",

@@ -70,6 +70,7 @@ pub struct FullShaders {
     pub draw_leaf: ShaderId,
     pub clip_reduce: ShaderId,
     pub clip_leaf: ShaderId,
+    pub pattern: ShaderId,
     pub binning: ShaderId,
     pub tile_alloc: ShaderId,
     pub backdrop: ShaderId,
@@ -208,6 +209,19 @@ pub fn full_shaders(
         ],
         &empty
     );
+    let pattern = add_shader!(
+        pattern,
+        [
+            Uniform,
+            BufReadOnly,
+            BufReadOnly,
+            BufReadOnly,
+            Buffer,
+            Buffer,
+            Buffer,
+        ],
+        &empty
+    );
     let binning = add_shader!(
         binning,
         [
@@ -316,6 +330,7 @@ pub fn full_shaders(
         draw_leaf,
         clip_reduce,
         clip_leaf,
+        pattern,
         binning,
         tile_alloc,
         path_count_setup,

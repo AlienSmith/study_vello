@@ -36,6 +36,7 @@ pub struct BumpAllocators {
     pub segments: u32,
     pub blend: u32,
     pub lines: u32,
+    pub lines_before: u32,
 }
 
 /// Storage of indirect dispatch size values.
@@ -128,6 +129,7 @@ pub type WorkgroupSize = (u32, u32, u32);
 #[derive(Copy, Clone, Debug, Default)]
 pub struct WorkgroupCounts {
     pub use_large_path_scan: bool,
+    pub use_patterns: bool,
     pub path_reduce: WorkgroupSize,
     pub path_reduce2: WorkgroupSize,
     pub path_scan1: WorkgroupSize,
@@ -174,6 +176,7 @@ impl WorkgroupCounts {
         let height_in_bins = (height_in_tiles + 15) / 16;
         Self {
             use_large_path_scan,
+            use_patterns: n_patterns > 0,
             path_reduce: (path_tag_wgs, 1, 1),
             path_reduce2: (PATH_REDUCE_WG, 1, 1),
             path_scan1: (reduced_size / PATH_REDUCE_WG, 1, 1),

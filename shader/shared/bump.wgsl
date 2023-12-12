@@ -17,6 +17,7 @@ struct BumpAllocators {
     segments: atomic<u32>,
     blend: atomic<u32>,
     lines: atomic<u32>,
+    lines_before: atomic<u32>,
 }
 
 struct IndirectCount {

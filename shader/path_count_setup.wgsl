@@ -19,4 +19,5 @@ fn main() {
     indirect.count_x = (lines + (WG_SIZE - 1u)) / WG_SIZE;
     indirect.count_y = 1u;
     indirect.count_z = 1u;
+    atomicStore(&bump.lines_before, lines);
 }
