@@ -8,7 +8,6 @@ use super::{
     Path, PathBbox, PathMonoid, PathSegment, Tile,
 };
 use bytemuck::{Pod, Zeroable};
-use fello::raw::tables::layout;
 use std::mem;
 
 const TILE_WIDTH: u32 = 16;

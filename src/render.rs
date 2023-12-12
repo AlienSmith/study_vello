@@ -311,6 +311,7 @@ impl Render {
                 ],
             );
         }
+        recording.free_resource(path_to_pattern_buf);
 
         let draw_bbox_buf = ResourceProxy::new_buf(
             buffer_sizes.draw_bboxes.size_in_bytes().into(),

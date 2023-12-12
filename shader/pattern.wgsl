@@ -70,11 +70,11 @@ fn main(
     @builtin(local_invocation_id) local_id: vec3<u32>,
 ) {
     let count = atomicLoad(&bump.lines_before);
-    let ix = global_id.x;
-    if(ix >= count){
+    let index = global_id.x;
+    if(index >= count){
         return;
     }
-    let soup = lines[ix];
+    let soup = lines[index];
     let info = path_to_pattern[soup.path_ix];
 
     if info.pattern_ix == 0u {
@@ -116,21 +116,22 @@ fn main(
     let max_x = round_up(bbox.z * SX);
     let max_y = round_up(bbox.w * SX);
 
-    var line_count =  u32(max_x - min_x) * u32(max_y - min_y);
+    var line_count =  u32(max_x - min_x) * u32(max_y - min_y) - 1u;
     let line_ix = atomicAdd(&bump.lines, line_count);
 
     var local_offset = 0u;
     for(var ix = min_x; ix < max_x; ix += 1){
         for(var iy = min_y; iy < max_y; iy += 1){
-            let pivot_x = pox_x + f32(ix) * delta_x;
-            let pivot_y = pox_y +  f32(iy) * delta_y;
+            let pivot_x = f32(ix) * delta_x;
+            let pivot_y = f32(iy) * delta_y;
             let pivot = vec2(pivot_x, pivot_y);
             let p0 = apply_offset(soup.p0, pivot);
             let p1 = apply_offset(soup.p1, pivot);
             let instance = LineSoup(soup.path_ix, p0, p1);
-            if(ix == max_x - 1 && iy == max_y - 1){
-                lines[ix] = instance;
-            }else{
+            if(ix == min_x && iy == min_y){
+                lines[index] = instance;
+            }
+            else{
                 lines[line_ix + local_offset] = instance;
                 local_offset += 1u;
             }

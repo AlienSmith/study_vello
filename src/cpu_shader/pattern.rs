@@ -1,5 +1,5 @@
 use crate::cpu_dispatch::CpuBinding;
 
-pub fn pattern(n_wg: u32, resources: &[CpuBinding]) {
+pub fn pattern(_n_wg: u32, _resources: &[CpuBinding]) {
 
 }

@@ -1302,7 +1302,7 @@ fn base_color_test(sb: &mut SceneBuilder, params: &mut SceneParams) {
     );
 }
 
-fn pattern_test(sb: &mut SceneBuilder,params: &mut SceneParams) {
+fn _pattern_test2(sb: &mut SceneBuilder,_params: &mut SceneParams) {
     let transform = Affine::IDENTITY;
     let transform = transform.then_translate(Vec2 { x: 100.0, y: 100.0 });
     let clip1 = {
@@ -1330,34 +1330,19 @@ fn pattern_test(sb: &mut SceneBuilder,params: &mut SceneParams) {
     {
         sb.fill(
             peniko::Fill::NonZero,
-            transform,
+            Affine::IDENTITY,
             peniko::Color::rgb8(255, 128, 128),
             None,
             &kurbo::Rect::new(0.0, 0.0, 500.0, 500.0),
         );
-        sb.fill(
-            peniko::Fill::NonZero,
-            transform,
-            peniko::Color::rgb8(128, 128, 128),
-            None,
-            &kurbo::Rect::new(0.0, 0.0, 400.0, 400.0),
-        );
-        sb.push_pattern(Vec2::new(0.0,0.0), Vec2::new(400.0,400.0), 0.0);
+        sb.push_pattern(Vec2::new(0.0,0.0), Vec2::new(50.0,50.0), 0.0);
             sb.fill(
                 peniko::Fill::NonZero,
                 Affine::IDENTITY,
-                peniko::Color::rgb8(0, 255, 255),
+                peniko::Color::rgb8(255, 255, 0),
                 None,
-                //&kurbo::Ellipse::new((0.0, 0.0), Vec2::new(10.0,20.0), 0.0),
-                &kurbo::Rect::new(0.0, 0.0,100.0,100.0),
+                &kurbo::Rect::new(0.0, 0.0,10.0,10.0),
             );
-            // sb.fill(
-            //     peniko::Fill::NonZero,
-            //     Affine::IDENTITY,
-            //     peniko::Color::rgb8(255, 255, 0),
-            //     None,
-            //     &kurbo::Rect::new(0.0, 0.0,10.0,10.0),
-            // );
         sb.pop_pattern();
 
         // sb.fill(
@@ -1380,7 +1365,7 @@ fn pattern_test(sb: &mut SceneBuilder,params: &mut SceneParams) {
     
 }
 
-fn pattern_test1(sb: &mut SceneBuilder,params: &mut SceneParams) {
+fn pattern_test(sb: &mut SceneBuilder,_params: &mut SceneParams) {
     let transform = Affine::IDENTITY;
     let transform = transform.then_translate(Vec2 { x: 10.0, y: 10.0 });
     let clip1 = {
@@ -1413,22 +1398,22 @@ fn pattern_test1(sb: &mut SceneBuilder,params: &mut SceneParams) {
             None,
             &kurbo::Rect::new(0.0, 0.0, 300.0, 300.0),
         );
-        sb.push_pattern(Vec2::new(0.0,0.0), Vec2::new(50.0,50.0), 0.25 * PI);
+        sb.push_pattern(Vec2::new(0.0,0.0), Vec2::new(25.0,25.0), 0.25 * PI);
             sb.fill(
                 peniko::Fill::NonZero,
                 Affine::IDENTITY,
                 peniko::Color::rgb8(0, 255, 255),
                 None,
-                //&kurbo::Ellipse::new((0.0, 0.0), Vec2::new(10.0,20.0), 0.0),
-                &kurbo::Rect::new(0.0, 0.0,20.0,20.0),
+                &kurbo::Ellipse::new((0.0, 0.0), Vec2::new(5.0,10.0), 0.0),
+                //&kurbo::Rect::new(0.0, 0.0,20.0,20.0),
             );
-            // sb.fill(
-            //     peniko::Fill::NonZero,
-            //     Affine::IDENTITY,
-            //     peniko::Color::rgb8(255, 255, 0),
-            //     None,
-            //     &kurbo::Rect::new(0.0, 0.0,10.0,10.0),
-            // );
+            sb.fill(
+                peniko::Fill::NonZero,
+                Affine::IDENTITY,
+                peniko::Color::rgb8(255, 255, 0),
+                None,
+                &kurbo::Rect::new(0.0, 0.0,5.0,5.0),
+            );
         sb.pop_pattern();
 
         sb.fill(
