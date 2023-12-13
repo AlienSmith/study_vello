@@ -60,7 +60,7 @@ fn read_pattern(pattern_base:u32, ix:u32) -> Pattern {
 }
 
 fn compare_bbox(point: vec2<f32>){
-    let p = transform_apply(world_to_pattern, point);
+    let p = transform_apply(screen_to_pattern, point);
     bbox.x = min(p.x, bbox.x);
     bbox.y = min(p.y, bbox.y);
     bbox.z = max(p.x, bbox.z);
@@ -76,8 +76,8 @@ fn round_up(x: f32) -> i32 {
 }
 
 fn apply_offset(p: vec2<f32>, offset: vec2<f32>) -> vec2<f32>{
-    var pattern = p + offset;
-    pattern = transform_apply(pattern_to_world, pattern);
+    var pattern = transform_apply(screen_to_world, p) + offset;
+    pattern = transform_apply(pattern_to_screen, pattern);
     return pattern;
 }
 
@@ -97,6 +97,9 @@ fn main(
     if info.pattern_ix == 0u {
         return;
     }
+    world_to_screen =Transform(vec4<f32>(camera.m1,camera.m2,camera.m3,camera.m4), vec2<f32>(camera.t1,camera.t2));
+    screen_to_world = transform_inverse(world_to_screen);
+
     bbox = vec4(1e9, 1e9, -1e9, -1e9);
     let pattern = read_pattern(config.pattern_base, info.pattern_ix - 1u);
     let clip_bbox = clip_bbox_buf[info.clip_ix - 1u];
@@ -107,12 +110,14 @@ fn main(
     (*out).y0 = i32(clip_bbox.y);
     (*out).x1 = i32(clip_bbox.z);
     (*out).y1 = i32(clip_bbox.w);
+    let center = vec2<f32>(0.5 * ( clip_bbox.x + clip_bbox.z), 0.5 * (clip_bbox.y + clip_bbox.w));
+    let world_center = transform_apply(screen_to_world, center);
 
     let sin_theta = sin(pattern.rotation);
     let cos_theta = cos(pattern.rotation);
         
-    let pox_x = clip_bbox.x + pattern.start.x;
-    let pox_y = clip_bbox.y + pattern.start.y;
+    let pox_x = world_center.x + pattern.start.x;
+    let pox_y = world_center.y + pattern.start.y;
     let delta_x = pattern.box_scale.x;
     let delta_y = pattern.box_scale.y;
 
@@ -121,8 +126,6 @@ fn main(
     let translated = rotate.xy * -1.0 * pox_x + rotate.zw * -1.0 * pox_y;
     world_to_pattern = Transform(rotate, translated);
 
-    world_to_screen =Transform(vec4<f32>(camera.m1,camera.m2,camera.m3,camera.m4), vec2<f32>(camera.t1,camera.t2));
-    screen_to_world = transform_inverse(world_to_screen);
     pattern_to_screen = transform_mul(world_to_screen, pattern_to_world);
     screen_to_pattern = transform_mul(world_to_pattern,screen_to_world);
 
