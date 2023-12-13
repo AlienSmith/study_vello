@@ -38,10 +38,8 @@ var<storage, read_write> bump: BumpAllocators;
 @group(0) @binding(7)
 var<storage, read_write> lines: array<LineSoup>;
 
-
+var<private> is_in_screen_space: bool;
 var<private> bbox: vec4<f32>;
-var<private> pattern_to_world: Transform;
-var<private> world_to_pattern: Transform;
 var<private> screen_to_world: Transform;
 var<private> world_to_screen: Transform;
 var<private> screen_to_pattern: Transform;
@@ -110,24 +108,35 @@ fn main(
     (*out).y0 = i32(clip_bbox.y);
     (*out).x1 = i32(clip_bbox.z);
     (*out).y1 = i32(clip_bbox.w);
-    let center = vec2<f32>(0.5 * ( clip_bbox.x + clip_bbox.z), 0.5 * (clip_bbox.y + clip_bbox.w));
-    let world_center = transform_apply(screen_to_world, center);
+    var center = vec2<f32>(0.5 * ( clip_bbox.x + clip_bbox.z), 0.5 * (clip_bbox.y + clip_bbox.w));
 
-    let sin_theta = sin(pattern.rotation);
-    let cos_theta = cos(pattern.rotation);
+    let radians = abs(pattern.rotation);
+
+    let sin_theta = sin(radians);
+    let cos_theta = cos(radians);
+
+    is_in_screen_space = sign(pattern.rotation) < 0.0;
+    if(!is_in_screen_space){
+        center = transform_apply(screen_to_world, center);
+    }
         
-    let pox_x = world_center.x + pattern.start.x;
-    let pox_y = world_center.y + pattern.start.y;
+    let pox_x = center.x + pattern.start.x;
+    let pox_y = center.y + pattern.start.y;
     let delta_x = pattern.box_scale.x;
     let delta_y = pattern.box_scale.y;
 
-    pattern_to_world = Transform(vec4(cos_theta, sin_theta, -1.0 * sin_theta, cos_theta), vec2(pox_x, pox_y));
+    let pattern_to_world_or_screen = Transform(vec4(cos_theta, sin_theta, -1.0 * sin_theta, cos_theta), vec2(pox_x, pox_y));
     let rotate = vec4(cos_theta, -1.0 * sin_theta, sin_theta, cos_theta);
     let translated = rotate.xy * -1.0 * pox_x + rotate.zw * -1.0 * pox_y;
-    world_to_pattern = Transform(rotate, translated);
+    let screen_or_world_to_pattern = Transform(rotate, translated);
 
-    pattern_to_screen = transform_mul(world_to_screen, pattern_to_world);
-    screen_to_pattern = transform_mul(world_to_pattern,screen_to_world);
+    if(is_in_screen_space){
+        pattern_to_screen = pattern_to_world_or_screen;
+        screen_to_pattern = screen_or_world_to_pattern;
+    }else{
+        pattern_to_screen = transform_mul(world_to_screen, pattern_to_world_or_screen);
+        screen_to_pattern = transform_mul(screen_or_world_to_pattern,screen_to_world);
+    }    
 
     compare_bbox(clip_bbox.xy);
     compare_bbox(clip_bbox.xw);
