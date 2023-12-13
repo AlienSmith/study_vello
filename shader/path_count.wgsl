@@ -59,6 +59,7 @@ fn main(
         let is_down = line.p1.y >= line.p0.y;
         let xy0 = select(line.p1, line.p0, is_down);
         let xy1 = select(line.p0, line.p1, is_down);
+        //position in tile space
         let s0 = xy0 * TILE_SCALE;
         let s1 = xy1 * TILE_SCALE;
         let count_x = span(s0.x, s1.x) - 1u;
@@ -81,7 +82,7 @@ fn main(
         let is_positive_slope = s1.x >= s0.x;
         let x_sign = select(-1.0, 1.0, is_positive_slope);
         let xt0 = floor(s0.x * x_sign);
-        let c = s0.x * x_sign - xt0;
+        let c = s0.x * x_sign - xt0;// delta to t0
         let y0 = floor(s0.y);
         let ytop = select(y0 + 1.0, ceil(s0.y), s0.y == s1.y);
         let b = min((dy * c + dx * (ytop - s0.y)) * idxdy, ONE_MINUS_ULP);

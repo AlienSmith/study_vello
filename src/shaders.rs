@@ -213,6 +213,7 @@ pub fn full_shaders(
         pattern,
         [
             Uniform,
+            Uniform,
             BufReadOnly,
             BufReadOnly,
             BufReadOnly,

@@ -1,6 +1,8 @@
 // Copyright 2022 The Vello authors
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+use std::f32::consts::PI;
+
 use crate::math::PatternData;
 
 use super::{DrawColor, DrawTag, PathEncoder, PathTag, Style, Transform};
@@ -47,6 +49,13 @@ pub struct Encoding {
     pub n_patterns: u32,
     /// Number of unclosed clips/layers.
     pub n_open_clips: u32,
+    /// camera_transform
+    pub camera_transform: Option<Transform>,
+}
+
+fn angle_to_radians(angle: f32) -> f32{
+    let angle = angle - 360.0*(angle / 360.0).floor();
+    PI * angle/180.0 
 }
 
 impl Encoding {
@@ -158,8 +167,10 @@ impl Encoding {
             for run in &mut self.resources.glyph_runs[glyph_runs_base..] {
                 run.transform = transform * run.transform;
             }
+            self.camera_transform = Some(transform);
         } else {
             self.transforms.extend_from_slice(&other.transforms);
+            self.camera_transform = None;
         }
         self.pattern_data.extend_from_slice(&other.pattern_data);
         self.styles.extend_from_slice(&other.styles);
@@ -373,9 +384,13 @@ impl Encoding {
 
     /// Encode start of pattern
     /// start is pivot offset from clip boundary
-    pub fn encode_begin_pattern(&mut self, start: Vec2, box_scale:Vec2, rotation: f32){
+    pub fn encode_begin_pattern(&mut self, start: Vec2, box_scale:Vec2, rotation: f32, is_screen_space: bool){
+        let mut radians  = angle_to_radians(rotation);
+        if is_screen_space{
+            radians *= -1.0;
+        }
         self.draw_tags.push(DrawTag::BEGIN_PATTERN);
-        self.pattern_data.push(PatternData { start: [start.x as f32, start.y as f32], box_scale: [box_scale.x as f32, box_scale.y as f32], rotate: rotation });
+        self.pattern_data.push(PatternData { start: [start.x as f32, start.y as f32], box_scale: [box_scale.x as f32, box_scale.y as f32], rotate: radians });
         self.n_patterns += 1;
     }
 

@@ -1,13 +1,14 @@
 // Copyright 2023 The Vello authors
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use crate::SegmentCount;
+use crate::{SegmentCount, math};
 
 use super::{
     BinHeader, Clip, ClipBbox, ClipBic, ClipElement, Cubic, DrawBbox, DrawMonoid, Layout, LineSoup,
     Path, PathBbox, PathMonoid, PathSegment, Tile,
 };
 use bytemuck::{Pod, Zeroable};
+use fello::raw::tables::glyf::Transform;
 use std::mem;
 
 const TILE_WIDTH: u32 = 16;
@@ -90,10 +91,12 @@ pub struct RenderConfig {
     pub workgroup_counts: WorkgroupCounts,
     /// Sizes of all buffer resources.
     pub buffer_sizes: BufferSizes,
+    ///camera matrix
+    pub camera_transform: math::Transform,
 }
 
 impl RenderConfig {
-    pub fn new(layout: &Layout, width: u32, height: u32, base_color: &peniko::Color) -> Self {
+    pub fn new(layout: &Layout, width: u32, height: u32, base_color: &peniko::Color, camera_transform: Option<math::Transform>) -> Self {
         let new_width = next_multiple_of(width, TILE_WIDTH);
         let new_height = next_multiple_of(height, TILE_HEIGHT);
         let width_in_tiles = new_width / TILE_WIDTH;
@@ -117,6 +120,8 @@ impl RenderConfig {
             },
             workgroup_counts,
             buffer_sizes,
+            camera_transform: camera_transform.unwrap_or(math::Transform::default())
+            
         }
     }
 }

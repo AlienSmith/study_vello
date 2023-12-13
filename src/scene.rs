@@ -89,8 +89,8 @@ impl<'a> SceneBuilder<'a> {
         Self { scene }
     }
 
-    pub fn push_pattern(&mut self,start: Vec2, box_scale:Vec2, rotation: f32){
-        self.scene.encode_begin_pattern(start, box_scale, rotation);
+    pub fn push_pattern(&mut self,start: Vec2, box_scale:Vec2, rotation: f32, is_screen_space:bool){
+        self.scene.encode_begin_pattern(start, box_scale, rotation, is_screen_space);
     }
 
     pub fn pop_pattern(&mut self){

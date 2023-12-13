@@ -112,9 +112,8 @@ impl Render {
                 image.0.data.data(),
             );
         }
-
         let cpu_config =
-            RenderConfig::new(&layout, params.width, params.height, &params.base_color);
+            RenderConfig::new(&layout, params.width, params.height, &params.base_color, encoding.camera_transform);
         let buffer_sizes = &cpu_config.buffer_sizes;
         let wg_counts = &cpu_config.workgroup_counts;
 
@@ -291,6 +290,9 @@ impl Render {
 
         
         if wg_counts.use_patterns{
+            let camera_buf = ResourceProxy::Buf(
+                recording.upload_uniform("camera", bytemuck::bytes_of(&cpu_config.camera_transform)),
+            );
             recording.dispatch(
                 shaders.path_count_setup,
                 (1, 1, 1),
@@ -302,6 +304,7 @@ impl Render {
                 0,
                 [
                     config_buf,
+                    camera_buf,
                     scene_buf,
                     clip_bbox_buf,
                     path_to_pattern_buf,

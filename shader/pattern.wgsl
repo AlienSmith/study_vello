@@ -5,30 +5,47 @@
 #import segment
 #import transform
 
+struct InputTransform {
+   m1:f32,
+   m2:f32,
+   m3:f32,
+   m4:f32,
+   t1:f32,
+   t2:f32,
+}
+
 @group(0) @binding(0)
 var<uniform> config: Config;
 
 @group(0) @binding(1)
-var<storage> scene: array<u32>;
+var<uniform> camera: InputTransform;
 
 @group(0) @binding(2)
-var<storage> clip_bbox_buf: array<vec4<f32>>;
+var<storage> scene: array<u32>;
 
 @group(0) @binding(3)
-var<storage> path_to_pattern: array<PathtoDraw>;
+var<storage> clip_bbox_buf: array<vec4<f32>>;
 
 @group(0) @binding(4)
-var<storage, read_write> path_bbox: array<PathBbox>;
+var<storage> path_to_pattern: array<PathtoDraw>;
 
 @group(0) @binding(5)
-var<storage, read_write> bump: BumpAllocators;
+var<storage, read_write> path_bbox: array<PathBbox>;
 
 @group(0) @binding(6)
+var<storage, read_write> bump: BumpAllocators;
+
+@group(0) @binding(7)
 var<storage, read_write> lines: array<LineSoup>;
 
+
 var<private> bbox: vec4<f32>;
-var<private> to_world: Transform;
-var<private> to_pattern: Transform;
+var<private> pattern_to_world: Transform;
+var<private> world_to_pattern: Transform;
+var<private> screen_to_world: Transform;
+var<private> world_to_screen: Transform;
+var<private> screen_to_pattern: Transform;
+var<private> pattern_to_screen: Transform;
 
 fn read_pattern(pattern_base:u32, ix:u32) -> Pattern {
     let base = pattern_base + ix * 5u;
@@ -43,7 +60,7 @@ fn read_pattern(pattern_base:u32, ix:u32) -> Pattern {
 }
 
 fn compare_bbox(point: vec2<f32>){
-    let p = transform_apply(to_pattern, point);
+    let p = transform_apply(world_to_pattern, point);
     bbox.x = min(p.x, bbox.x);
     bbox.y = min(p.y, bbox.y);
     bbox.z = max(p.x, bbox.z);
@@ -60,7 +77,7 @@ fn round_up(x: f32) -> i32 {
 
 fn apply_offset(p: vec2<f32>, offset: vec2<f32>) -> vec2<f32>{
     var pattern = p + offset;
-    pattern = transform_apply(to_world, pattern);
+    pattern = transform_apply(pattern_to_world, pattern);
     return pattern;
 }
 
@@ -99,10 +116,15 @@ fn main(
     let delta_x = pattern.box_scale.x;
     let delta_y = pattern.box_scale.y;
 
-    to_world = Transform(vec4(cos_theta, sin_theta, -1.0 * sin_theta, cos_theta), vec2(0.0, 0.0));
+    pattern_to_world = Transform(vec4(cos_theta, sin_theta, -1.0 * sin_theta, cos_theta), vec2(pox_x, pox_y));
     let rotate = vec4(cos_theta, -1.0 * sin_theta, sin_theta, cos_theta);
-    let translated = rotate.xy * -1.0 * pattern.start.x + rotate.zw * -1.0 * pattern.start.y;
-    to_pattern = Transform(rotate, translated);
+    let translated = rotate.xy * -1.0 * pox_x + rotate.zw * -1.0 * pox_y;
+    world_to_pattern = Transform(rotate, translated);
+
+    world_to_screen =Transform(vec4<f32>(camera.m1,camera.m2,camera.m3,camera.m4), vec2<f32>(camera.t1,camera.t2));
+    screen_to_world = transform_inverse(world_to_screen);
+    pattern_to_screen = transform_mul(world_to_screen, pattern_to_world);
+    screen_to_pattern = transform_mul(world_to_pattern,screen_to_world);
 
     compare_bbox(clip_bbox.xy);
     compare_bbox(clip_bbox.xw);

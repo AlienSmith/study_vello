@@ -24,6 +24,12 @@ pub struct Transform {
     pub translation: [f32; 2],
 }
 
+impl Default for Transform{
+    fn default() -> Self {
+        Self { matrix: [1.0,0.0,0.0,1.0], translation: [0.0,0.0] }
+    }
+}
+
 impl Transform {
     /// Identity transform.
     pub const IDENTITY: Self = Self {
