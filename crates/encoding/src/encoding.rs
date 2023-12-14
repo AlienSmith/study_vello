@@ -92,6 +92,7 @@ impl Encoding {
         self.resources.reset();
         if !is_fragment {
             self.transforms.push(Transform::IDENTITY);
+            self.should_ignore_camera_transforms.push(false);
             self.styles.push(Style::from_fill(Fill::NonZero));
         }
     }
