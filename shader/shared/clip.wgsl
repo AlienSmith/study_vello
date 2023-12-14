@@ -25,6 +25,6 @@ struct ClipEl {
 }
 
 struct PathtoDraw{
-    clip_ix: u32,
     pattern_ix: u32,
+    clip_ix: u32,
 }

@@ -33,9 +33,9 @@ macro_rules! scene {
 
 pub fn test_scenes() -> SceneSet {
     let scenes = vec![
+        //scene!(rectangle_test,"rectangle_test",false),
         scene!(pattern_test,"pattern_test",false),
         scene!(stroke_test, "stroke_test", false),
-        scene!(rectangle_test,"rectangle_test",false),
         scene!(splash_with_tiger(), "splash_with_tiger", false),
         scene!(funky_paths),
         scene!(stroke_styles(Affine::IDENTITY), "stroke_styles", false),
@@ -1359,7 +1359,7 @@ fn pattern_test(sb: &mut SceneBuilder,_params: &mut SceneParams) {
             None,
             &kurbo::Rect::new(0.0, 0.0, 300.0, 300.0),
         );
-        sb.push_pattern(Vec2::new(0.0,0.0), Vec2::new(25.0,25.0), 45.0,true);
+        sb.push_pattern(Vec2::new(0.0,0.0), Vec2::new(25.0,25.0), 0.0,false);
             sb.fill(
                 peniko::Fill::NonZero,
                 Affine::IDENTITY,
@@ -1396,14 +1396,6 @@ fn rectangle_test(sb: &mut SceneBuilder,_params: &mut SceneParams){
         peniko::Color::rgb8(255, 255, 255),
         None,
         &kurbo::Rect::new(0.0, 0.0, 100.0, 100.0),
-    );
-
-    sb.fill(
-        peniko::Fill::NonZero,
-        Affine::IDENTITY,
-        peniko::Color::rgb8(255, 255, 255),
-        None,
-        &kurbo::Rect::new(200.0, 200.0, 300.0, 300.0),
     );
 }
 // fn pattern_test1(sb: &mut SceneBuilder,_params: &mut SceneParams) {

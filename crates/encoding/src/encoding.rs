@@ -385,12 +385,15 @@ impl Encoding {
     /// Encode start of pattern
     /// start is pivot offset from clip boundary
     pub fn encode_begin_pattern(&mut self, start: Vec2, box_scale:Vec2, rotation: f32, is_screen_space: bool){
-        let mut radians  = angle_to_radians(rotation);
+        let radians  = angle_to_radians(rotation);
+        let is_screen_space:u32 = 
         if is_screen_space{
-            radians *= -1.0;
-        }
+            1
+        }else{
+            0
+        };
         self.draw_tags.push(DrawTag::BEGIN_PATTERN);
-        self.pattern_data.push(PatternData { start: [start.x as f32, start.y as f32], box_scale: [box_scale.x as f32, box_scale.y as f32], rotate: radians });
+        self.pattern_data.push(PatternData { start: [start.x as f32, start.y as f32], box_scale: [box_scale.x as f32, box_scale.y as f32], rotate: radians, is_screen_space });
         self.n_patterns += 1;
     }
 

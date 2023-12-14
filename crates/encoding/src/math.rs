@@ -12,6 +12,7 @@ pub struct PatternData {
     pub start: [f32;2],
     pub box_scale : [f32;2],
     pub rotate: f32,
+    pub is_screen_space: u32,
 }
 
 /// Affine transformation matrix.
@@ -24,11 +25,7 @@ pub struct Transform {
     pub translation: [f32; 2],
 }
 
-impl Default for Transform{
-    fn default() -> Self {
-        Self { matrix: [1.0,0.0,0.0,1.0], translation: [0.0,0.0] }
-    }
-}
+
 
 impl Transform {
     /// Identity transform.

@@ -82,6 +82,22 @@ pub struct ConfigUniform {
     pub ptcl_size: u32,
 }
 
+#[derive(Clone, Copy, Debug, Zeroable, Pod)]
+#[repr(C)]
+pub struct TransformUniform {
+    /// 2x2 matrix.
+    pub matrix: [f32; 4],
+    /// Translation.
+    pub translation: [f32; 2],
+    padding: [f32; 2],
+}
+
+impl Default for TransformUniform{
+    fn default() -> Self {
+        Self { matrix: [1.0,0.0,0.0,1.0], translation: [0.0,0.0], padding: Default::default() }
+    }
+}
+
 /// CPU side setup and configuration.
 #[derive(Default)]
 pub struct RenderConfig {
@@ -92,7 +108,7 @@ pub struct RenderConfig {
     /// Sizes of all buffer resources.
     pub buffer_sizes: BufferSizes,
     ///camera matrix
-    pub camera_transform: math::Transform,
+    pub camera_transform: TransformUniform,
 }
 
 impl RenderConfig {
@@ -105,6 +121,15 @@ impl RenderConfig {
         let workgroup_counts =
             WorkgroupCounts::new(layout, width_in_tiles, height_in_tiles, n_path_tags);
         let buffer_sizes = BufferSizes::new(layout, &workgroup_counts, n_path_tags);
+        let transform = if let Some(t) = camera_transform{
+            TransformUniform{
+                matrix: t.matrix,
+                translation: t.translation,
+                ..Default::default()
+            }
+        }else{
+            TransformUniform::default()
+        };
         Self {
             gpu: ConfigUniform {
                 width_in_tiles,
@@ -120,7 +145,7 @@ impl RenderConfig {
             },
             workgroup_counts,
             buffer_sizes,
-            camera_transform: camera_transform.unwrap_or(math::Transform::default())
+            camera_transform: transform
             
         }
     }

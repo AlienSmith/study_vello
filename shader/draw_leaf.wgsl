@@ -9,8 +9,8 @@
 #import transform
 
 struct AtomicPathtoDraw{
-    clip_ix: u32,
     pattern_ix: atomic<u32>,
+    clip_ix: u32,
 }
 
 @group(0) @binding(0)

@@ -6,12 +6,9 @@
 #import transform
 
 struct InputTransform {
-   m1:f32,
-   m2:f32,
-   m3:f32,
-   m4:f32,
-   t1:f32,
-   t2:f32,
+    matrx: vec4<f32>,
+    translate: vec2<f32>,
+    padding: vec2<f32>,
 }
 
 @group(0) @binding(0)
@@ -46,15 +43,16 @@ var<private> screen_to_pattern: Transform;
 var<private> pattern_to_screen: Transform;
 
 fn read_pattern(pattern_base:u32, ix:u32) -> Pattern {
-    let base = pattern_base + ix * 5u;
+    let base = pattern_base + ix * 6u;
     let c0 = bitcast<f32>(scene[base]);
     let c1 = bitcast<f32>(scene[base + 1u]);
     let c2 = bitcast<f32>(scene[base + 2u]);
     let c3 = bitcast<f32>(scene[base + 3u]);
     let c4 = bitcast<f32>(scene[base + 4u]);
+    let c5 = bitcast<u32>(scene[base + 5u]);
     let start = vec2(c0, c1);
     let box_scale = vec2(c2, c3);
-    return Pattern(start, box_scale, c4);
+    return Pattern(start, box_scale, c4, c5);
 }
 
 fn compare_bbox(point: vec2<f32>){
@@ -95,7 +93,7 @@ fn main(
     if info.pattern_ix == 0u {
         return;
     }
-    world_to_screen =Transform(vec4<f32>(camera.m1,camera.m2,camera.m3,camera.m4), vec2<f32>(camera.t1,camera.t2));
+    world_to_screen =Transform(camera.matrx, camera.translate);
     screen_to_world = transform_inverse(world_to_screen);
 
     bbox = vec4(1e9, 1e9, -1e9, -1e9);
@@ -110,12 +108,12 @@ fn main(
     (*out).y1 = i32(clip_bbox.w);
     var center = vec2<f32>(0.5 * ( clip_bbox.x + clip_bbox.z), 0.5 * (clip_bbox.y + clip_bbox.w));
 
-    let radians = abs(pattern.rotation);
+    let radians = pattern.rotation;
 
     let sin_theta = sin(radians);
     let cos_theta = cos(radians);
 
-    is_in_screen_space = sign(pattern.rotation) < 0.0;
+    is_in_screen_space = pattern.is_screen_space > 0u;
     if(!is_in_screen_space){
         center = transform_apply(screen_to_world, center);
     }
