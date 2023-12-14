@@ -136,11 +136,9 @@ fn main(
         screen_to_pattern = transform_mul(screen_or_world_to_pattern,screen_to_world);
     }    
     ///camera culling
-    //if is_in_screen_space{
-        let width = config.width_in_tiles * TILE_WIDTH;
-        let height = config.height_in_tiles * TILE_HEIGHT;
-        clip_bbox = bbox_intersect(clip_bbox, vec4<f32>(0.0, 0.0, f32(width), f32(height)));
-    //}
+    let width = config.width_in_tiles * TILE_WIDTH;
+    let height = config.height_in_tiles * TILE_HEIGHT;
+    clip_bbox = bbox_intersect(clip_bbox, vec4<f32>(0.0, 0.0, f32(width), f32(height)));
     
 
     //We don't care which thread does the write it will be the same

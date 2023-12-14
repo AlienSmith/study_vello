@@ -1409,11 +1409,11 @@ fn pattern_test(sb: &mut SceneBuilder,_params: &mut SceneParams) {
         sb.push_pattern(Vec2::new(20.0,0.0), Vec2::new(25.0,25.0), 45.0,false);
             sb.fill(
                 peniko::Fill::NonZero,
-                Affine::IDENTITY,
+                transform,
                 peniko::Color::rgb8(0, 128, 128),
                 None,
-                //&kurbo::Ellipse::new((0.0, 0.0), Vec2::new(5.0,10.0), 0.0),
-                &kurbo::Rect::new(0.0, 0.0,20.0,20.0),
+                &kurbo::Ellipse::new((0.0, 0.0), Vec2::new(5.0,10.0), 0.0),
+                //&kurbo::Rect::new(0.0, 0.0,20.0,20.0),
             );
         sb.pop_pattern();
         // sb.push_pattern(Vec2::new(0.0,20.0), Vec2::new(25.0,25.0), -45.0,false);
