@@ -24,7 +24,7 @@ var<storage> scene: array<u32>;
 var<storage> clip_bbox_buf: array<vec4<f32>>;
 
 @group(0) @binding(4)
-var<storage> path_to_pattern: array<PathtoDraw>;
+var<storage> path_to_pattern: array<PatternInp>;
 
 @group(0) @binding(5)
 var<storage, read_write> path_bbox: array<PathBbox>;

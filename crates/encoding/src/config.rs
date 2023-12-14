@@ -1,7 +1,7 @@
 // Copyright 2023 The Vello authors
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use crate::{SegmentCount, math};
+use crate::{SegmentCount, math, clip::PatternInp};
 
 use super::{
     BinHeader, Clip, ClipBbox, ClipBic, ClipElement, Cubic, DrawBbox, DrawMonoid, Layout, LineSoup,
@@ -294,7 +294,7 @@ pub struct BufferSizes {
     pub draw_reduced: BufferSize<DrawMonoid>,
     pub draw_monoids: BufferSize<DrawMonoid>,
     pub info: BufferSize<u32>,
-    pub path_to_pattern: BufferSize<u32>,
+    pub path_to_pattern: BufferSize<PatternInp>,
     pub clip_inps: BufferSize<Clip>,
     pub clip_els: BufferSize<ClipElement>,
     pub clip_bics: BufferSize<ClipBic>,

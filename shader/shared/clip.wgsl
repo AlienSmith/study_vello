@@ -24,7 +24,7 @@ struct ClipEl {
     bbox: vec4<f32>,
 }
 
-struct PathtoDraw{
+struct PatternInp{
     pattern_ix: u32,
     clip_ix: u32,
 }

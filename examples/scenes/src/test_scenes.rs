@@ -33,7 +33,7 @@ macro_rules! scene {
 
 pub fn test_scenes() -> SceneSet {
     let scenes = vec![
-        //scene!(rectangle_test,"rectangle_test",false),
+        scene!(rectangle_test,"rectangle_test",false),
         scene!(pattern_test,"pattern_test",false),
         scene!(stroke_test, "stroke_test", false),
         scene!(splash_with_tiger(), "splash_with_tiger", false),

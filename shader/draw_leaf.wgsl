@@ -8,7 +8,7 @@
 #import bbox
 #import transform
 
-struct AtomicPathtoDraw{
+struct AtomicPatternInp{
     pattern_ix: atomic<u32>,
     clip_ix: u32,
 }
@@ -35,7 +35,7 @@ var<storage, read_write> info: array<u32>;
 var<storage, read_write> clip_inp: array<ClipInp>;
 
 @group(0) @binding(7)
-var<storage, read_write> path_to_pattern: array<AtomicPathtoDraw>;
+var<storage, read_write> path_to_pattern: array<AtomicPatternInp>;
 
 #import util
 
