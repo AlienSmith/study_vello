@@ -1,7 +1,6 @@
 // Copyright 2022 The Vello authors
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use std::f32::consts::PI;
 
 use crate::{ExampleScene, SceneConfig, SceneParams, SceneSet};
 use vello::kurbo::{Affine, BezPath, Cap, Ellipse, Join, PathEl, Point, Rect, Stroke, Vec2};
@@ -1417,16 +1416,16 @@ fn pattern_test(sb: &mut SceneBuilder,_params: &mut SceneParams) {
                 //&kurbo::Rect::new(0.0, 0.0,20.0,20.0),
             );
         sb.pop_pattern();
-        sb.push_pattern(Vec2::new(0.0,20.0), Vec2::new(25.0,25.0), -45.0,false);
-            sb.fill(
-                peniko::Fill::NonZero,
-                Affine::IDENTITY,
-                peniko::Color::rgb8(128, 128, 0),
-                None,
-                &kurbo::Ellipse::new((0.0, 0.0), Vec2::new(5.0,10.0), 0.0),
-                //&kurbo::Rect::new(0.0, 0.0,20.0,20.0),
-            );
-        sb.pop_pattern();
+        // sb.push_pattern(Vec2::new(0.0,20.0), Vec2::new(25.0,25.0), -45.0,false);
+        //     sb.fill(
+        //         peniko::Fill::NonZero,
+        //         Affine::IDENTITY,
+        //         peniko::Color::rgb8(128, 128, 0),
+        //         None,
+        //         &kurbo::Ellipse::new((0.0, 0.0), Vec2::new(5.0,10.0), 0.0),
+        //         //&kurbo::Rect::new(0.0, 0.0,20.0,20.0),
+        //     );
+        // sb.pop_pattern();
     }
     sb.pop_layer();
     

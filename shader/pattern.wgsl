@@ -72,7 +72,12 @@ fn round_up(x: f32) -> i32 {
 }
 
 fn apply_offset(p: vec2<f32>, offset: vec2<f32>) -> vec2<f32>{
-    var pattern = transform_apply(screen_to_world, p) + offset;
+    var pattern = offset;
+    if is_in_screen_space{
+        pattern += p;
+    }else{
+        pattern += transform_apply(screen_to_world, p);
+    }
     pattern = transform_apply(pattern_to_screen, pattern);
     return pattern;
 }
@@ -131,9 +136,11 @@ fn main(
         screen_to_pattern = transform_mul(screen_or_world_to_pattern,screen_to_world);
     }    
     ///camera culling
-    let width = config.width_in_tiles * TILE_WIDTH;
-    let height = config.height_in_tiles * TILE_HEIGHT;
-    clip_bbox = bbox_intersect(clip_bbox, vec4<f32>(0.0, 0.0, f32(width), f32(height)));
+    //if is_in_screen_space{
+        let width = config.width_in_tiles * TILE_WIDTH;
+        let height = config.height_in_tiles * TILE_HEIGHT;
+        clip_bbox = bbox_intersect(clip_bbox, vec4<f32>(0.0, 0.0, f32(width), f32(height)));
+    //}
     
 
     //We don't care which thread does the write it will be the same

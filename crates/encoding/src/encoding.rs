@@ -32,6 +32,10 @@ pub struct Encoding {
     pub draw_data: Vec<u8>,
     /// The transform stream.
     pub transforms: Vec<Transform>,
+    /// the following transform would be in screen space
+    pub encoding_screen_space_pattern: bool,
+    /// whether the corresponding transform is in screen space
+    pub should_ignore_camera_transforms:Vec<bool>, 
     /// The style stream
     pub styles: Vec<Style>,
     /// The pattern data stream.
@@ -73,6 +77,7 @@ impl Encoding {
     pub fn reset(&mut self, is_fragment: bool) {
         self.pattern_data.clear();
         self.transforms.clear();
+        self.should_ignore_camera_transforms.clear();
         self.path_tags.clear();
         self.path_data.clear();
         self.styles.clear();
@@ -155,6 +160,7 @@ impl Encoding {
         self.path_data.extend_from_slice(&other.path_data);
         self.draw_tags.extend_from_slice(&other.draw_tags);
         self.draw_data.extend_from_slice(&other.draw_data);
+        self.should_ignore_camera_transforms.extend_from_slice(&other.should_ignore_camera_transforms);
         self.n_paths += other.n_paths;
         self.n_path_segments += other.n_path_segments;
         self.n_clips += other.n_clips;
@@ -162,7 +168,13 @@ impl Encoding {
         self.n_open_clips += other.n_open_clips;
         if let Some(transform) = *transform {
             self.transforms
-                .extend(other.transforms.iter().map(|x| transform * *x));
+                .extend(other.transforms.iter().enumerate().map(|(index,x)| {
+                    if !other.should_ignore_camera_transforms[index] {
+                        transform * *x
+                    }else{
+                        *x
+                    }
+                    }));
             #[cfg(feature = "full")]
             for run in &mut self.resources.glyph_runs[glyph_runs_base..] {
                 run.transform = transform * run.transform;
@@ -212,9 +224,10 @@ impl Encoding {
     /// If the given transform is different from the current one, encodes it and
     /// returns true. Otherwise, encodes nothing and returns false.
     pub fn encode_transform(&mut self, transform: Transform) -> bool {
-        if self.transforms.last() != Some(&transform) {
+        if self.transforms.last() != Some(&transform) || self.should_ignore_camera_transforms.last() != Some(&self.encoding_screen_space_pattern){
             self.path_tags.push(PathTag::TRANSFORM);
             self.transforms.push(transform);
+            self.should_ignore_camera_transforms.push(self.encoding_screen_space_pattern);
             true
         } else {
             false
@@ -385,6 +398,7 @@ impl Encoding {
     /// Encode start of pattern
     /// start is pivot offset from clip boundary
     pub fn encode_begin_pattern(&mut self, start: Vec2, box_scale:Vec2, rotation: f32, is_screen_space: bool){
+        self.encoding_screen_space_pattern = is_screen_space;
         let radians  = angle_to_radians(rotation);
         let is_screen_space:u32 = 
         if is_screen_space{
@@ -399,6 +413,7 @@ impl Encoding {
 
     ///Encode a end of pattern command.
     pub fn encode_end_pattern(&mut self){
+        self.encoding_screen_space_pattern = false;
         self.draw_tags.push(DrawTag::END_PATTERN);
         self.n_patterns += 1;
     }
