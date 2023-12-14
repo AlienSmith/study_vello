@@ -1359,7 +1359,7 @@ fn pattern_test(sb: &mut SceneBuilder,_params: &mut SceneParams) {
             None,
             &kurbo::Rect::new(0.0, 0.0, 300.0, 300.0),
         );
-        sb.push_pattern(Vec2::new(0.0,0.0), Vec2::new(25.0,25.0), 0.0,false);
+        sb.push_pattern(Vec2::new(0.0,0.0), Vec2::new(25.0,25.0), 0.0,true);
             sb.fill(
                 peniko::Fill::NonZero,
                 Affine::IDENTITY,
