@@ -98,14 +98,10 @@ fn main(
 
     bbox = vec4(1e9, 1e9, -1e9, -1e9);
     let pattern = read_pattern(config.pattern_base, info.pattern_ix - 1u);
-    let clip_bbox = clip_bbox_buf[info.clip_ix - 1u];
+    var clip_bbox = clip_bbox_buf[info.clip_ix - 1u];
 
-    //We don't care which thread does the write it will be the same
-    let out = &path_bbox[soup.path_ix];
-    (*out).x0 = i32(clip_bbox.x);
-    (*out).y0 = i32(clip_bbox.y);
-    (*out).x1 = i32(clip_bbox.z);
-    (*out).y1 = i32(clip_bbox.w);
+    is_in_screen_space = pattern.is_screen_space > 0u;
+        
     var center = vec2<f32>(0.5 * ( clip_bbox.x + clip_bbox.z), 0.5 * (clip_bbox.y + clip_bbox.w));
 
     let radians = pattern.rotation;
@@ -113,7 +109,6 @@ fn main(
     let sin_theta = sin(radians);
     let cos_theta = cos(radians);
 
-    is_in_screen_space = pattern.is_screen_space > 0u;
     if(!is_in_screen_space){
         center = transform_apply(screen_to_world, center);
     }
@@ -135,6 +130,18 @@ fn main(
         pattern_to_screen = transform_mul(world_to_screen, pattern_to_world_or_screen);
         screen_to_pattern = transform_mul(screen_or_world_to_pattern,screen_to_world);
     }    
+    ///camera culling
+    let width = config.width_in_tiles * TILE_WIDTH;
+    let height = config.height_in_tiles * TILE_HEIGHT;
+    clip_bbox = bbox_intersect(clip_bbox, vec4<f32>(0.0, 0.0, f32(width), f32(height)));
+    
+
+    //We don't care which thread does the write it will be the same
+    let out = &path_bbox[soup.path_ix];
+    (*out).x0 = i32(clip_bbox.x);
+    (*out).y0 = i32(clip_bbox.y);
+    (*out).x1 = i32(clip_bbox.z);
+    (*out).y1 = i32(clip_bbox.w);
 
     compare_bbox(clip_bbox.xy);
     compare_bbox(clip_bbox.xw);
