@@ -1406,7 +1406,7 @@ fn pattern_test(sb: &mut SceneBuilder,_params: &mut SceneParams) {
             );
     sb.push_layer(Mix::Clip, 1.0, transform, &clip1);
     {
-        sb.push_pattern(Vec2::new(20.0,0.0), Vec2::new(25.0,25.0), 45.0,false);
+        sb.push_pattern(Vec2::new(20.0,0.0), Vec2::new(25.0,25.0), 45.0);
             sb.fill(
                 peniko::Fill::NonZero,
                 transform,

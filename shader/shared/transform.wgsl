@@ -6,7 +6,6 @@ struct Pattern{
     start: vec2<f32>,
     box_scale: vec2<f32>,
     rotation: f32,
-    is_screen_space: u32,
 }
 
 struct Transform {

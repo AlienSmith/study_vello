@@ -35,7 +35,6 @@ var<storage, read_write> bump: BumpAllocators;
 @group(0) @binding(7)
 var<storage, read_write> lines: array<LineSoup>;
 
-var<private> is_in_screen_space: bool;
 var<private> bbox: vec4<f32>;
 var<private> screen_to_world: Transform;
 var<private> world_to_screen: Transform;
@@ -43,16 +42,15 @@ var<private> screen_to_pattern: Transform;
 var<private> pattern_to_screen: Transform;
 
 fn read_pattern(pattern_base:u32, ix:u32) -> Pattern {
-    let base = pattern_base + ix * 6u;
+    let base = pattern_base + ix * 5u;
     let c0 = bitcast<f32>(scene[base]);
     let c1 = bitcast<f32>(scene[base + 1u]);
     let c2 = bitcast<f32>(scene[base + 2u]);
     let c3 = bitcast<f32>(scene[base + 3u]);
     let c4 = bitcast<f32>(scene[base + 4u]);
-    let c5 = bitcast<u32>(scene[base + 5u]);
     let start = vec2(c0, c1);
     let box_scale = vec2(c2, c3);
-    return Pattern(start, box_scale, c4, c5);
+    return Pattern(start, box_scale, c4);
 }
 
 fn compare_bbox(point: vec2<f32>){
@@ -73,11 +71,7 @@ fn round_up(x: f32) -> i32 {
 
 fn apply_offset(p: vec2<f32>, offset: vec2<f32>) -> vec2<f32>{
     var pattern = offset;
-    if is_in_screen_space{
-        pattern += p;
-    }else{
-        pattern += transform_apply(screen_to_world, p);
-    }
+    pattern += transform_apply(screen_to_world, p);
     pattern = transform_apply(pattern_to_screen, pattern);
     return pattern;
 }
@@ -105,36 +99,27 @@ fn main(
     let pattern = read_pattern(config.pattern_base, info.pattern_ix - 1u);
     var clip_bbox = clip_bbox_buf[info.clip_ix - 1u];
 
-    is_in_screen_space = pattern.is_screen_space > 0u;
         
     var center = vec2<f32>(0.5 * ( clip_bbox.x + clip_bbox.z), 0.5 * (clip_bbox.y + clip_bbox.w));
+    center = transform_apply(screen_to_world, center);
 
     let radians = pattern.rotation;
 
     let sin_theta = sin(radians);
     let cos_theta = cos(radians);
-
-    if(!is_in_screen_space){
-        center = transform_apply(screen_to_world, center);
-    }
         
     let pox_x = center.x + pattern.start.x;
     let pox_y = center.y + pattern.start.y;
     let delta_x = pattern.box_scale.x;
     let delta_y = pattern.box_scale.y;
 
-    let pattern_to_world_or_screen = Transform(vec4(cos_theta, sin_theta, -1.0 * sin_theta, cos_theta), vec2(pox_x, pox_y));
+    let pattern_to_world = Transform(vec4(cos_theta, sin_theta, -1.0 * sin_theta, cos_theta), vec2(pox_x, pox_y));
     let rotate = vec4(cos_theta, -1.0 * sin_theta, sin_theta, cos_theta);
     let translated = rotate.xy * -1.0 * pox_x + rotate.zw * -1.0 * pox_y;
-    let screen_or_world_to_pattern = Transform(rotate, translated);
-
-    if(is_in_screen_space){
-        pattern_to_screen = pattern_to_world_or_screen;
-        screen_to_pattern = screen_or_world_to_pattern;
-    }else{
-        pattern_to_screen = transform_mul(world_to_screen, pattern_to_world_or_screen);
-        screen_to_pattern = transform_mul(screen_or_world_to_pattern,screen_to_world);
-    }    
+    let world_to_pattern = Transform(rotate, translated);
+    pattern_to_screen = transform_mul(world_to_screen, pattern_to_world);
+    screen_to_pattern = transform_mul(world_to_pattern,screen_to_world);
+    
     ///camera culling
     let width = config.width_in_tiles * TILE_WIDTH;
     let height = config.height_in_tiles * TILE_HEIGHT;
