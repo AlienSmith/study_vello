@@ -77,6 +77,7 @@ fn apply_offset(p: vec2<f32>, offset: vec2<f32>) -> vec2<f32>{
         pattern += p;
     }else{
         pattern += transform_apply_vector(screen_to_world, p);
+        //pattern += p;
     }
     pattern = transform_apply(pattern_to_screen, pattern);
     return pattern;
@@ -128,8 +129,14 @@ fn main(
         pattern_y_in_clip_space = transform_apply_vector(world_to_screen, pattern_y_in_clip_space);
     }
 
-    let projection_x = round_down(dot(delta_center, pattern_x_in_clip_space) / pattern.box_scale.x);
-    let projection_y = round_down(dot(delta_center, pattern_y_in_clip_space) / pattern.box_scale.y);
+    let pattern_x_in_clip_space_normalized = normalize(pattern_x_in_clip_space);
+    let pattern_x_length = length(pattern_x_in_clip_space);
+
+    let pattern_y_in_clip_space_normalized = normalize(pattern_y_in_clip_space);
+    let pattern_y_length = length(pattern_y_in_clip_space);
+
+    let projection_x = round_down(dot(delta_center, pattern_x_in_clip_space_normalized)*(pattern_x_length / pattern.box_scale.x));
+    let projection_y = round_down(dot(delta_center, pattern_y_in_clip_space_normalized)*(pattern_y_length / pattern.box_scale.y));
     center -= f32(projection_x)* pattern_x_in_clip_space * pattern.box_scale.x + f32(projection_y) * pattern_y_in_clip_space * pattern.box_scale.y;
 
     if(!is_in_screen_space){
