@@ -2,12 +2,6 @@
 
 // Helpers for working with transforms.
 
-struct Pattern{
-    start: vec2<f32>,
-    box_scale: vec2<f32>,
-    rotation: f32,
-}
-
 struct Transform {
     matrx: vec4<f32>,
     translate: vec2<f32>,

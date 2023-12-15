@@ -23,8 +23,3 @@ struct ClipEl {
     parent_ix: u32,
     bbox: vec4<f32>,
 }
-
-struct PatternInp{
-    pattern_ix: u32,
-    clip_ix: u32,
-}

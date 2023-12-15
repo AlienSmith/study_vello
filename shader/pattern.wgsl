@@ -11,6 +11,17 @@ struct InputTransform {
     padding: vec2<f32>,
 }
 
+struct PatternInp{
+    pattern_ix: u32,
+    clip_ix: u32,
+}
+
+struct Pattern{
+    start: vec2<f32>,
+    box_scale: vec2<f32>,
+    rotation: f32,
+}
+
 @group(0) @binding(0)
 var<uniform> config: Config;
 
