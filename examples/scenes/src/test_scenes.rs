@@ -1381,7 +1381,7 @@ fn base_color_test(sb: &mut SceneBuilder, params: &mut SceneParams) {
 
 fn pattern_test(sb: &mut SceneBuilder,_params: &mut SceneParams) {
     let transform = Affine::IDENTITY;
-    let transform = transform.then_translate(Vec2 { x: 10.0, y: 10.0 });
+    //let transform = transform.then_translate(Vec2 { x: 100.0, y: 100.0 });
     let clip1 = {
         const X0: f64 = 0.0;
         const Y0: f64 = 0.0;

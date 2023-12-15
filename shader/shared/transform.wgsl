@@ -18,6 +18,10 @@ fn transform_apply(transform: Transform, p: vec2<f32>) -> vec2<f32> {
     return transform.matrx.xy * p.x + transform.matrx.zw * p.y + transform.translate;
 }
 
+fn transform_apply_vector(transform: Transform, p: vec2<f32>) -> vec2<f32>{
+    return transform.matrx.xy * p.x + transform.matrx.zw * p.y;
+}
+
 fn transform_inverse(transform: Transform) -> Transform {
     let inv_det = 1.0 / (transform.matrx.x * transform.matrx.w - transform.matrx.y * transform.matrx.z);
     let inv_mat = inv_det * vec4(transform.matrx.w, -transform.matrx.y, -transform.matrx.z, transform.matrx.x);

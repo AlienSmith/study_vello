@@ -399,7 +399,7 @@ impl Encoding {
     /// Encode start of pattern
     /// start is pivot offset from clip boundary
     pub fn encode_begin_pattern(&mut self, start: Vec2, box_scale:Vec2, rotation: f32, is_screen_space: bool){
-        self.encoding_screen_space_pattern = is_screen_space;
+        self.encoding_screen_space_pattern = true;
         let radians  = angle_to_radians(rotation);
         let is_screen_space:u32 = 
         if is_screen_space{
