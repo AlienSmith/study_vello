@@ -19,6 +19,29 @@ use {
     peniko::{ColorStop, Extend, GradientKind, Image},
 };
 
+pub struct TransformState(pub u8);
+impl TransformState{
+    pub const Default: Self = Self(0x0);
+    pub const IGNORED: Self = Self(0x1);
+    pub const IGNORETRANSLATE: Self = Self(0x2);
+}
+
+impl Default for TransformState{
+    fn default() -> Self {
+        TransformState::Default
+    }
+}
+impl Clone for TransformState{
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
+impl PartialEq for TransformState{
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
 /// Encoded data streams for a scene.
 #[derive(Clone, Default)]
 pub struct Encoding {
@@ -33,9 +56,9 @@ pub struct Encoding {
     /// The transform stream.
     pub transforms: Vec<Transform>,
     /// the following transform would be in screen space
-    pub encoding_screen_space_pattern: bool,
+    pub transform_state: TransformState,
     /// whether the corresponding transform is in screen space
-    pub should_ignore_camera_transforms:Vec<bool>, 
+    pub should_ignore_camera_transforms:Vec<TransformState>, 
     /// The style stream
     pub styles: Vec<Style>,
     /// The pattern data stream.
@@ -92,7 +115,7 @@ impl Encoding {
         self.resources.reset();
         if !is_fragment {
             self.transforms.push(Transform::IDENTITY);
-            self.should_ignore_camera_transforms.push(false);
+            self.should_ignore_camera_transforms.push(TransformState::Default);
             self.styles.push(Style::from_fill(Fill::NonZero));
         }
     }
@@ -168,12 +191,16 @@ impl Encoding {
         self.n_patterns += other.n_patterns;
         self.n_open_clips += other.n_open_clips;
         if let Some(transform) = *transform {
+            let mut ignore_translate = transform;
+            ignore_translate.translation = [0.0,0.0];
             self.transforms
                 .extend(other.transforms.iter().enumerate().map(|(index,x)| {
-                    if !other.should_ignore_camera_transforms[index] {
+                    if other.should_ignore_camera_transforms[index] == TransformState::Default {
                         transform * *x
-                    }else{
+                    }else if other.should_ignore_camera_transforms[index] == TransformState::IGNORED{
                         *x
+                    }else{
+                        ignore_translate * *x
                     }
                     }));
             #[cfg(feature = "full")]
@@ -225,10 +252,10 @@ impl Encoding {
     /// If the given transform is different from the current one, encodes it and
     /// returns true. Otherwise, encodes nothing and returns false.
     pub fn encode_transform(&mut self, transform: Transform) -> bool {
-        if self.transforms.last() != Some(&transform) || self.should_ignore_camera_transforms.last() != Some(&self.encoding_screen_space_pattern){
+        if self.transforms.last() != Some(&transform) || self.should_ignore_camera_transforms.last() != Some(&self.transform_state){
             self.path_tags.push(PathTag::TRANSFORM);
             self.transforms.push(transform);
-            self.should_ignore_camera_transforms.push(self.encoding_screen_space_pattern);
+            self.should_ignore_camera_transforms.push(self.transform_state.clone());
             true
         } else {
             false
@@ -399,7 +426,11 @@ impl Encoding {
     /// Encode start of pattern
     /// start is pivot offset from clip boundary
     pub fn encode_begin_pattern(&mut self, start: Vec2, box_scale:Vec2, rotation: f32, is_screen_space: bool){
-        self.encoding_screen_space_pattern = true;
+        self.transform_state = if is_screen_space{
+            TransformState::IGNORED
+        }else{
+            TransformState::IGNORETRANSLATE
+        };
         let radians  = angle_to_radians(rotation);
         let is_screen_space:u32 = 
         if is_screen_space{
@@ -414,7 +445,7 @@ impl Encoding {
 
     ///Encode a end of pattern command.
     pub fn encode_end_pattern(&mut self){
-        self.encoding_screen_space_pattern = false;
+        self.transform_state = TransformState::Default;
         self.draw_tags.push(DrawTag::END_PATTERN);
         self.n_patterns += 1;
     }
