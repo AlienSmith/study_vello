@@ -123,23 +123,20 @@ fn main(
     let delta_x = pattern.box_scale.x;
     let delta_y = pattern.box_scale.y;
 
-    let pattern_to_world_or_screen = Transform(vec4(cos_theta, sin_theta, -1.0 * sin_theta, cos_theta), vec2(pox_x, pox_y));
+    ///camera culling
+    let width = config.width_in_tiles * TILE_WIDTH;
+    let height = config.height_in_tiles * TILE_HEIGHT;
+    clip_bbox = bbox_intersect(clip_bbox, vec4<f32>(0.0, 0.0, f32(width), f32(height)));
+
     let rotate = vec4(cos_theta, -1.0 * sin_theta, sin_theta, cos_theta);
     let translated = rotate.xy * -1.0 * pox_x + rotate.zw * -1.0 * pox_y;
     let screen_or_world_to_pattern = Transform(rotate, translated);
 
     if(is_in_screen_space){
-        pattern_to_screen = pattern_to_world_or_screen;
         screen_to_pattern = screen_or_world_to_pattern;
     }else{
-        pattern_to_screen = transform_mul(world_to_screen, pattern_to_world_or_screen);
         screen_to_pattern = transform_mul(screen_or_world_to_pattern,screen_to_world);
-    }    
-    ///camera culling
-    let width = config.width_in_tiles * TILE_WIDTH;
-    let height = config.height_in_tiles * TILE_HEIGHT;
-    clip_bbox = bbox_intersect(clip_bbox, vec4<f32>(0.0, 0.0, f32(width), f32(height)));
-    
+    }        
 
     //We don't care which thread does the write it will be the same
     let out = &path_bbox[soup.path_ix];
@@ -155,10 +152,31 @@ fn main(
 
     let SX = (1.0 / pattern.box_scale.x);
     let SY = (1.0 / pattern.box_scale.y);
-    let min_x = round_down(bbox.x * SX);
-    let min_y = round_down(bbox.y * SY);
-    let max_x = round_up(bbox.z * SX);
-    let max_y = round_up(bbox.w * SX);
+    var min_x = round_down(bbox.x * SX);
+    var min_y = round_down(bbox.y * SY);
+    var max_x = round_up(bbox.z * SX);
+    var max_y = round_up(bbox.w * SX);
+
+    let pattern_to_world_or_screen = Transform(vec4(cos_theta, sin_theta, -1.0 * sin_theta, cos_theta), vec2(pox_x, pox_y));
+
+    if(is_in_screen_space){
+        let rebase_x = min_x;
+        let rebase_y = min_y;
+        min_x = 0;
+        min_y = 0;
+        max_x -= rebase_x;
+        max_y -= rebase_y;
+
+        let rebase = vec2<f32>(f32(rebase_x) * pattern.box_scale.x ,f32(rebase_y) * pattern.box_scale.y);
+
+    
+        var matrix = Transform(vec4<f32>(1.0,0.0,0.0,1.0),rebase);
+        matrix = transform_mul(pattern_to_world_or_screen, matrix);
+    
+        pattern_to_screen = matrix;
+    }else{
+        pattern_to_screen = transform_mul(world_to_screen, pattern_to_world_or_screen);
+    }    
 
     var line_count =  u32(max_x - min_x) * u32(max_y - min_y) - 1u;
     let line_ix = atomicAdd(&bump.lines, line_count);
