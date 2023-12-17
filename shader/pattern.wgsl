@@ -4,6 +4,105 @@
 #import bump
 #import segment
 #import transform
+// Whitepaper: https://andrewthall.org/papers/dfp64_qf128.pdf
+// WGSL port of https://github.com/visgl/luma.gl/blob/291a2fdfb1cfdb15405032b3dcbfbe55133ead61/modules/shadertools/src/modules/math/fp64/fp64-arithmetic.glsl.ts
+
+const one: f32 = 1.0;
+
+struct fp64 {
+	high: f32,
+	low: f32,
+}
+
+fn to_f32(a: fp64) -> f32{
+	return a.high + a.low;
+}
+
+fn floor_fp64(a: fp64) -> fp64{
+	return fp64(floor(a.high), floor(a.low));
+}
+
+// Divide float number to high and low floats to extend fraction bits
+fn split64(a: f32) -> fp64 {
+	let c = (f32(1u << 12u) + 1.0) * a;
+	let a_big = c - a;
+	let a_hi = c * one - a_big;
+	let a_lo = a * one - a_hi;
+	return fp64(a_hi, a_lo);
+}
+
+// Special sum operation when a > b
+fn quickTwoSum(a: f32, b: f32) -> fp64 {
+	let x = (a + b) * one;
+	let b_virt = (x - a) * one;
+	let y = b - b_virt;
+	return fp64(x, y);
+}
+
+fn twoSum(a: f32, b: f32) -> fp64 {
+	let x = (a + b);
+	let b_virt = (x - a) * one;
+	let a_virt = (x - b_virt) * one;
+	let b_err = b - b_virt;
+	let a_err = a - a_virt;
+	let y = a_err + b_err;
+	return fp64(x, y);
+}
+
+fn twoSub(a: f32, b: f32) -> fp64 {
+	let s = (a - b);
+	let v = (s * one - a) * one;
+	let err = (a - (s - v) * one) * one - (b + v);
+	return fp64(s, err);
+}
+
+fn twoProd(a: f32, b: f32) -> fp64 {
+	let x = a * b;
+	let a2 = split64(a);
+	let b2 = split64(b);
+	let err1 = x - (a2.high * b2.high * one) * one;
+	let err2 = err1 - (a2.low * b2.high * one) * one;
+	let err3 = err2 - (a2.high * b2.low * one) * one;
+	let y = a2.low * b2.low - err3;
+	return fp64(x, y);
+}
+
+fn sum64(a: fp64, b: fp64) -> fp64 {
+	var s = twoSum(a.high, b.high);
+	var t = twoSum(a.low, b.low);
+	s.low += t.high;
+	s = quickTwoSum(s.high, s.low);
+	s.low += t.low;
+	s = quickTwoSum(s.high, s.low);
+	return s;
+}
+
+fn sub64(a: fp64, b: fp64) -> fp64 {
+	var s = twoSub(a.high, b.high);
+	var t = twoSub(a.low, b.low);
+	s.low += t.high;
+	s = quickTwoSum(s.high, s.low);
+	s.low += t.low;
+	s = quickTwoSum(s.high, s.low);
+	return fp64(s.high, s.low);
+}
+
+fn mul64(a: fp64, b: fp64) -> fp64 {
+	var p = twoProd(a.high, b.high);
+	p.low += a.high * b.low;
+	p.low += a.low * b.high;
+	p = quickTwoSum(p.high, p.low);
+	return p;
+}
+
+fn vec2_dot64(a: array<fp64, 2>, b: array<fp64, 2>) -> fp64{
+	var v = array<fp64, 2>();
+
+	v[0] = mul64(a[0], b[0]);
+	v[1] = mul64(a[1], b[1]);
+
+	return sum64(v[0], v[1]);
+} 
 
 struct InputTransform {
     matrx: vec4<f32>,
@@ -122,22 +221,47 @@ fn main(
     let pattern_rotation = vec4(cos_theta, sin_theta, -1.0 * sin_theta, cos_theta);
 
     let delta_center = center - clip_center;
-    var pattern_x_in_clip_space = pattern_rotation.xy;
-    var pattern_y_in_clip_space = pattern_rotation.zw;
+    var pattern_x_in_clip_space = pattern_rotation.xy * pattern.box_scale.x;
+    var pattern_y_in_clip_space = pattern_rotation.zw * pattern.box_scale.y;
     if(!is_in_screen_space){
         pattern_x_in_clip_space = transform_apply_vector(world_to_screen, pattern_x_in_clip_space);
         pattern_y_in_clip_space = transform_apply_vector(world_to_screen, pattern_y_in_clip_space);
     }
 
-    let pattern_x_in_clip_space_normalized = normalize(pattern_x_in_clip_space);
-    let pattern_x_length = length(pattern_x_in_clip_space);
+    let pattern_x_in_clip_space_dir = normalize(pattern_x_in_clip_space);
+    let pattern_x_in_clip_space_length = length(pattern_x_in_clip_space);
+    let pattern_y_in_clip_space_dir = normalize(pattern_y_in_clip_space);
+    let pattern_y_in_clip_space_length = length(pattern_y_in_clip_space);
+    let x_projection = dot(delta_center, pattern_x_in_clip_space_dir);
+    let floor_x = floor(x_projection / pattern_x_in_clip_space_length);
+    let y_projection = dot(delta_center, pattern_y_in_clip_space_dir);
+    let floor_y = floor(y_projection / pattern_y_in_clip_space_length);
+    let floor = floor_x * pattern_x_in_clip_space + floor_y * pattern_y_in_clip_space;
+    center -= floor;
+     
 
-    let pattern_y_in_clip_space_normalized = normalize(pattern_y_in_clip_space);
-    let pattern_y_length = length(pattern_y_in_clip_space);
-
-    let projection_x = round_down(dot(delta_center, pattern_x_in_clip_space_normalized)*(pattern_x_length / pattern.box_scale.x));
-    let projection_y = round_down(dot(delta_center, pattern_y_in_clip_space_normalized)*(pattern_y_length / pattern.box_scale.y));
-    center -= f32(projection_x)* pattern_x_in_clip_space * pattern.box_scale.x + f32(projection_y) * pattern_y_in_clip_space * pattern.box_scale.y;
+    // let delta_center_64 = array<fp64, 2>(split64(delta_center.x), split64(delta_center.y));
+    // let pattern_x_64 = array<fp64, 2>(split64(pattern_x_in_clip_space.x), split64(pattern_x_in_clip_space.y));
+    // let pattern_y_64 = array<fp64, 2>(split64(pattern_y_in_clip_space.x), split64(pattern_y_in_clip_space.y));
+    // let scale_x_64 = split64(pattern.box_scale.x);
+    // let scale_y_64 = split64(pattern.box_scale.y);
+    // let scale_x1_64 = split64(1.0/pattern.box_scale.x);
+    // let scale_y1_64 = split64(1.0/pattern.box_scale.y);
+    // var projection_x = vec2_dot64(delta_center_64, pattern_x_64);
+    // projection_x = mul64(projection_x, scale_x1_64);
+    // projection_x = floor_fp64(projection_x);
+    // var projection_y = vec2_dot64(delta_center_64, pattern_y_64);
+    // projection_y = mul64(projection_y, scale_y1_64);
+    // projection_y = floor_fp64(projection_y);
+    // var delta_x_64 = mul64(mul64(projection_x , pattern_x_64[0]), scale_x_64);
+    // delta_x_64 = sum64(delta_x_64,mul64(mul64(projection_y , pattern_y_64[0]), scale_y_64)); 
+    
+    // var delta_y_64 = mul64(mul64(projection_x , pattern_x_64[1]), scale_x_64); 
+    // delta_y_64 =sum64(delta_y_64, mul64(mul64(projection_y , pattern_y_64[1]), scale_x_64));
+    
+    //center -= vec2<f32>(to_f32(delta_x_64),to_f32(delta_y_64));
+    // let delta_y_64 = projection_x * pattern_x_64
+    //center -= f32(projection_x)* pattern_x_in_clip_space * pattern.box_scale.x + f32(projection_y) * pattern_y_in_clip_space * pattern.box_scale.y;
 
     if(!is_in_screen_space){
         center = transform_apply(screen_to_world, center);

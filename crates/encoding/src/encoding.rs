@@ -201,6 +201,7 @@ impl Encoding {
                         *x
                     }else{
                         ignore_translate * *x
+                        //*x
                     }
                     }));
             #[cfg(feature = "full")]
