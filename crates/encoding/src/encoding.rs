@@ -23,7 +23,6 @@ pub struct TransformState(pub u8);
 impl TransformState{
     pub const Default: Self = Self(0x0);
     pub const IGNORED: Self = Self(0x1);
-    pub const IGNORETRANSLATE: Self = Self(0x2);
 }
 
 impl Default for TransformState{
@@ -197,11 +196,8 @@ impl Encoding {
                 .extend(other.transforms.iter().enumerate().map(|(index,x)| {
                     if other.should_ignore_camera_transforms[index] == TransformState::Default {
                         transform * *x
-                    }else if other.should_ignore_camera_transforms[index] == TransformState::IGNORED{
+                    }else {
                         *x
-                    }else{
-                        ignore_translate * *x
-                        //*x
                     }
                     }));
             #[cfg(feature = "full")]
@@ -430,7 +426,7 @@ impl Encoding {
         self.transform_state = if is_screen_space{
             TransformState::IGNORED
         }else{
-            TransformState::IGNORETRANSLATE
+            TransformState::Default
         };
         let radians  = angle_to_radians(rotation);
         let is_screen_space:u32 = 
