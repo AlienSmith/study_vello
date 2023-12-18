@@ -188,7 +188,7 @@ fn main(
 
     let blend_offset = cmd_offset;
     cmd_offset += 1u;
-
+    //find drawobjects/Path in range of this bin
     while true {
         for (var i = 0u; i < N_SLICE; i += 1u) {
             atomicStore(&sh_bitmaps[i][local_id.x], 0u);
@@ -246,6 +246,7 @@ fn main(
 
         var tile_count = 0u;
         // I think this predicate is the same as the last, maybe they can be combined
+        // find tiles of Path withen range of this bin
         if tag != DRAWTAG_NOP {
             let path_ix = draw_monoids[drawobj_ix].path_ix;
             let path = paths[path_ix];
