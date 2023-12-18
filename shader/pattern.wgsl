@@ -162,8 +162,8 @@ fn main(
     var local_offset = 0u;
     for(var ix = min_x; ix < max_x; ix += 1){
         for(var iy = min_y; iy < max_y; iy += 1){
-            let pivot_x = f32(ix) * delta_x;
-            let pivot_y = f32(iy) * delta_y;
+            let pivot_x = (f32(ix) + 0.5) * delta_x;
+            let pivot_y = (f32(iy) + 0.5) * delta_y;
             let pivot = vec2(pivot_x, pivot_y);
             let p0 = apply_offset(soup.p0, pivot);
             let p1 = apply_offset(soup.p1, pivot);
