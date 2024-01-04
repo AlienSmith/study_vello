@@ -32,6 +32,7 @@ macro_rules! scene {
 
 pub fn test_scenes() -> SceneSet {
     let scenes = vec![
+        scene!(stroke_fill, "pattern_fill", false),
         scene!(pattern_test,"pattern_test",false),
         scene!(stroke_test, "stroke_test", false),
         scene!(rectangle_test,"rectangle_test",false),
@@ -1313,6 +1314,78 @@ fn base_color_test(sb: &mut SceneBuilder, params: &mut SceneParams) {
         None,
         &Rect::new(50.0, 50.0, 500.0, 500.0),
     );
+}
+
+fn stroke_fill(sb: &mut SceneBuilder,_params: &mut SceneParams) {
+    let transform = Affine::IDENTITY;
+    let transform = transform.then_translate(Vec2 { x: 10.0, y: 10.0 });
+    use PathEl::*;
+    
+    let clip1 = {
+        const X0: f64 = 0.0;
+        const Y0: f64 = 0.0;
+        const X1: f64 = 400.0;
+        const Y1: f64 = 400.0;
+        [
+            PathEl::MoveTo((X0, Y0).into()),
+            PathEl::LineTo((X1, Y0).into()),
+            PathEl::LineTo((X1, Y0 + (Y1 - Y0)).into()),
+            PathEl::LineTo((X1 + (X0 - X1), Y1).into()),
+            PathEl::LineTo((X0, Y1).into()),
+            PathEl::ClosePath,
+        ]
+    };
+    fn push_storke(sb: &mut SceneBuilder, angle:f32, x_o: f64, y_o:f64, delta_x:f64, delta_y:f64,dashes:&[f64], color: Color){
+        let mut length = 0.0;
+        for i in dashes{
+            length += i;
+        }
+        length = length.max(10.0);
+        length *= 2.0;
+        let simple_stroke = [MoveTo((-delta_x, 0.).into()), LineTo((length, 0.).into())];
+        sb.push_pattern(Vec2::new(x_o,y_o), Vec2::new(length, delta_y), angle);
+        sb.stroke(
+            &Stroke::new(1.).with_dashes(0.0, dashes),
+            Affine::IDENTITY,
+            color,//Color::rgb8(140, 181, 236),
+            None,
+            &simple_stroke,
+        );
+        sb.pop_pattern();
+    }
+    
+    sb.push_layer(Mix::Clip, 1.0, transform, &clip1);
+    {
+        sb.fill(
+            peniko::Fill::NonZero,
+            transform,
+            peniko::Color::rgb8(255, 255, 255),
+            None,
+            &kurbo::Rect::new(0.0, 0.0, 400.0, 400.0),
+        );
+        push_storke(sb, 0.0, 0.0, 0.0, 0.0, 8.0, &[], Color::rgb8(140, 0, 0));
+        push_storke(sb, 90.0, 0.0, 0.0, 8.0, 8.0, &[8.0,8.0], Color::rgb8(0, 181, 0));
+        // sb.push_pattern(Vec2::new(0.0,0.0), Vec2::new(20.0,20.0), 0.0);
+        // sb.stroke(
+        //     &Stroke::new(1.).with_start_cap(Cap::Round).with_end_cap(Cap::Round),
+        //     Affine::IDENTITY,
+        //     Color::rgb8(140, 181, 236),
+        //     None,
+        //     &simple_stroke,
+        // );
+        // sb.pop_pattern();
+        // sb.push_pattern(Vec2::new(0.0,0.0), Vec2::new(20.0,20.0), 0.0);
+        // sb.stroke(
+        //     &Stroke::new(1.).with_start_cap(Cap::Round).with_end_cap(Cap::Round),
+        //     Affine::IDENTITY,
+        //     Color::rgb8(140, 181, 236),
+        //     None,
+        //     &simple_stroke,
+        // );
+        // sb.pop_pattern();
+    }
+    sb.pop_layer();
+    
 }
 
 fn pattern_test(sb: &mut SceneBuilder,_params: &mut SceneParams) {

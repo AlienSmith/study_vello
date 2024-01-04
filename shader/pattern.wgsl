@@ -154,7 +154,7 @@ fn main(
     let min_x = round_down(bbox.x * SX);
     let min_y = round_down(bbox.y * SY);
     let max_x = round_up(bbox.z * SX);
-    let max_y = round_up(bbox.w * SX);
+    let max_y = round_up(bbox.w * SY);
 
     var line_count =  u32(max_x - min_x) * u32(max_y - min_y) - 1u;
     let line_ix = atomicAdd(&bump.lines, line_count);
@@ -162,8 +162,8 @@ fn main(
     var local_offset = 0u;
     for(var ix = min_x; ix < max_x; ix += 1){
         for(var iy = min_y; iy < max_y; iy += 1){
-            let pivot_x = (f32(ix) + 0.5) * delta_x;
-            let pivot_y = (f32(iy) + 0.5) * delta_y;
+            let pivot_x = f32(ix) * delta_x;
+            let pivot_y = f32(iy) * delta_y;
             let pivot = vec2(pivot_x, pivot_y);
             let p0 = apply_offset(soup.p0, pivot);
             let p1 = apply_offset(soup.p1, pivot);
