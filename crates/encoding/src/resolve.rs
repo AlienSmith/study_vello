@@ -161,7 +161,7 @@ pub fn resolve_solid_paths_only(encoding: &Encoding, packed: &mut Vec<u8>) -> La
     // Pattern stream
     layout.pattern_base = size_to_words(data.len());
     data.extend_from_slice(bytemuck::cast_slice(&encoding.pattern_data));
-    layout.n_draw_objects = layout.n_paths + layout.n_patterns;
+    layout.n_draw_objects = layout.n_paths;
     assert_eq!(buffer_size, data.len());
     layout
 }
@@ -395,7 +395,7 @@ impl Resolver {
         layout.pattern_base = size_to_words(data.len());
         data.extend_from_slice(bytemuck::cast_slice(&encoding.pattern_data));
 
-        layout.n_draw_objects = layout.n_paths + layout.n_patterns;
+        layout.n_draw_objects = layout.n_paths;
         assert_eq!(buffer_size, data.len());
         (layout, self.ramp_cache.ramps(), self.image_cache.images())
     }

@@ -438,6 +438,8 @@ impl Encoding {
         self.draw_tags.push(DrawTag::BEGIN_PATTERN);
         self.pattern_data.push(PatternData { start: [start.x as f32, start.y as f32], box_scale: [box_scale.x as f32, box_scale.y as f32], rotate: radians, is_screen_space });
         self.n_patterns += 1;
+        self.path_tags.push(PathTag::PATH);
+        self.n_paths += 1;
     }
 
     ///Encode a end of pattern command.
@@ -445,6 +447,8 @@ impl Encoding {
         self.transform_state = TransformState::Default;
         self.draw_tags.push(DrawTag::END_PATTERN);
         self.n_patterns += 1;
+        self.path_tags.push(PathTag::PATH);
+        self.n_paths += 1;
     }
 
     /// Encodes a begin clip command.

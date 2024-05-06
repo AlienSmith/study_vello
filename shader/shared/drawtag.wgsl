@@ -47,7 +47,7 @@ fn combine_draw_monoid(a: DrawMonoid, b: DrawMonoid) -> DrawMonoid {
 fn map_draw_tag(tag_word: u32) -> DrawMonoid {
     var c: DrawMonoid;
     var pattern_bit = (tag_word >> 10u) & 1u;
-    c.path_ix = u32(tag_word != DRAWTAG_NOP) & ~pattern_bit;
+    c.path_ix = u32(tag_word != DRAWTAG_NOP);
     c.clip_ix = tag_word & 1u;
     c.scene_offset = (tag_word >> 2u) & 0x07u;
     c.info_offset = (tag_word >> 6u) & 0x0fu;
