@@ -45,9 +45,9 @@ fn main(
     }
     workgroupBarrier();
     let size = sh_bic[0].b;
-    bic = Bic();
-    if is_push && bic.a == 0u {
-        let local_ix = size - bic.b - 1u;
+    let b = select( sh_bic[local_id.x + 1u].b ,0u, local_id.x == 255u);
+    if is_push && bic.a == 0u && sh_bic[local_id.x].b > b{
+        let local_ix = size - bic.b;
         sh_parent[local_ix] = local_id.x;
         sh_path_ix[local_ix] = u32(inp);
     }
