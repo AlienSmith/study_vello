@@ -26,6 +26,8 @@ pub struct Layout {
     pub n_paths: u32,
     /// Number of clips.
     pub n_clips: u32,
+    /// Number of patterns.
+    pub n_patterns: u32,
     /// Start of binning data.
     pub bin_data_start: u32,
     /// Start of path tag stream.
@@ -40,6 +42,8 @@ pub struct Layout {
     pub transform_base: u32,
     /// Start of linewidth stream.
     pub linewidth_base: u32,
+    /// Start of pattern stream.
+    pub pattern_base: u32,
 }
 
 impl Layout {
@@ -119,6 +123,7 @@ pub fn resolve_solid_paths_only(encoding: &Encoding, packed: &mut Vec<u8>) -> La
     let mut layout = Layout {
         n_paths: encoding.n_paths,
         n_clips: encoding.n_clips,
+        n_patterns: encoding.n_patterns,
         ..Layout::default()
     };
     let SceneBufferSizes {
@@ -153,6 +158,9 @@ pub fn resolve_solid_paths_only(encoding: &Encoding, packed: &mut Vec<u8>) -> La
     // Linewidth stream
     layout.linewidth_base = size_to_words(data.len());
     data.extend_from_slice(bytemuck::cast_slice(&encoding.linewidths));
+    // Pattern stream
+    layout.pattern_base = size_to_words(data.len());
+    data.extend_from_slice(bytemuck::cast_slice(&encoding.pattern_data));
     layout.n_draw_objects = layout.n_paths;
     assert_eq!(buffer_size, data.len());
     layout
@@ -382,6 +390,10 @@ impl Resolver {
                 data.extend_from_slice(bytemuck::cast_slice(&stream[pos..]));
             }
         }
+        // Pattern stream
+        layout.pattern_base = size_to_words(data.len());
+        data.extend_from_slice(bytemuck::cast_slice(&encoding.pattern_data));
+
         layout.n_draw_objects = layout.n_paths;
         assert_eq!(buffer_size, data.len());
         (layout, self.ramp_cache.ramps(), self.image_cache.images())
@@ -610,7 +622,8 @@ impl SceneBufferSizes {
             )
             + slice_size_in_bytes(&encoding.draw_data, patch_sizes.draw_data)
             + slice_size_in_bytes(&encoding.transforms, patch_sizes.transforms)
-            + slice_size_in_bytes(&encoding.linewidths, patch_sizes.linewidths);
+            + slice_size_in_bytes(&encoding.linewidths, patch_sizes.linewidths)
+            + slice_size_in_bytes(&encoding.pattern_data, patch_sizes.patterns);
         Self {
             buffer_size,
             path_tag_padded,

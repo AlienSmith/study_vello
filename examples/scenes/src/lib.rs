@@ -1,3 +1,4 @@
+
 pub mod download;
 mod images;
 mod mmark;
@@ -77,6 +78,7 @@ pub struct Arguments {
 #[derive(Subcommand, Debug)]
 enum Command {
     /// Download SVG files for testing. By default, downloads a set of files from wikipedia
+
     Download(Download),
 }
 
@@ -96,14 +98,15 @@ impl Arguments {
             #[cfg(any(target_arch = "wasm32", target_os = "android"))]
             return Ok(Some(test_scenes()));
             #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
-            if self.test_scenes {
-                Ok(test_scenes())
-            } else if let Some(svgs) = &self.svgs {
-                scene_from_files(svgs)
-            } else {
-                default_scene(command)
-            }
-            .map(Some)
+            Ok(Some(test_scenes()))
+            // if self.test_scenes {
+            //     Ok(test_scenes())
+            // } else if let Some(svgs) = &self.svgs {
+            //     scene_from_files(svgs)
+            // } else {
+            //     default_scene(command)
+            // }
+            // .map(Some)
         }
     }
 }

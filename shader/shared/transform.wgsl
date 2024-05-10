@@ -2,6 +2,13 @@
 
 // Helpers for working with transforms.
 
+struct Pattern{
+    start: vec2<f32>,
+    box_scale: vec2<f32>,
+    rotation: f32,
+    is_screen_space: u32,
+}
+
 struct Transform {
     matrx: vec4<f32>,
     translate: vec2<f32>,
@@ -9,6 +16,10 @@ struct Transform {
 
 fn transform_apply(transform: Transform, p: vec2<f32>) -> vec2<f32> {
     return transform.matrx.xy * p.x + transform.matrx.zw * p.y + transform.translate;
+}
+
+fn transform_apply_vector(transform: Transform, p: vec2<f32>) -> vec2<f32>{
+    return transform.matrx.xy * p.x + transform.matrx.zw * p.y;
 }
 
 fn transform_inverse(transform: Transform) -> Transform {

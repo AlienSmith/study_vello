@@ -35,6 +35,14 @@ pub struct Clip {
     pub path_ix: i32,
 }
 
+// PatternInp
+#[derive(Copy, Clone, Pod, Zeroable, Debug, Default)]
+#[repr(C)]
+pub struct PatternInp {
+    pub pattern_ix: u32,
+    pub clip_ix: u32,
+}
+
 /// Clip bounding box.
 #[derive(Copy, Clone, Pod, Zeroable, Debug, Default)]
 #[repr(C)]

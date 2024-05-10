@@ -11,6 +11,8 @@ struct DrawMonoid {
     scene_offset: u32,
     // The offset of the associated info.
     info_offset: u32,
+    // The number of clip operations preceding this draw object.
+    pattern_ix: u32,
 }
 
 // Each draw object has a 32-bit draw tag, which is a bit-packed
@@ -33,14 +35,17 @@ fn combine_draw_monoid(a: DrawMonoid, b: DrawMonoid) -> DrawMonoid {
     c.clip_ix = a.clip_ix + b.clip_ix;
     c.scene_offset = a.scene_offset + b.scene_offset;
     c.info_offset = a.info_offset + b.info_offset;
+    c.pattern_ix = a.pattern_ix + b.pattern_ix;
     return c;
 }
 
 fn map_draw_tag(tag_word: u32) -> DrawMonoid {
     var c: DrawMonoid;
+    var pattern_bit = (tag_word >> 10u) & 1u;
     c.path_ix = u32(tag_word != DRAWTAG_NOP);
     c.clip_ix = tag_word & 1u;
     c.scene_offset = (tag_word >> 2u) & 0x07u;
     c.info_offset = (tag_word >> 6u) & 0x0fu;
+    c.pattern_ix = pattern_bit;
     return c;
 }

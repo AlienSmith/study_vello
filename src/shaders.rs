@@ -63,6 +63,7 @@ pub struct FullShaders {
     pub draw_leaf: ShaderId,
     pub clip_reduce: ShaderId,
     pub clip_leaf: ShaderId,
+    pub pattern: ShaderId,
     pub binning: ShaderId,
     pub tile_alloc: ShaderId,
     pub path_coarse: ShaderId,
@@ -162,6 +163,7 @@ pub fn full_shaders(device: &Device, engine: &mut Engine) -> Result<FullShaders,
             BindType::Buffer,
             BindType::Buffer,
             BindType::Buffer,
+            BindType::Buffer,
         ],
     )?;
     let clip_reduce = engine.add_shader(
@@ -190,6 +192,23 @@ pub fn full_shaders(device: &Device, engine: &mut Engine) -> Result<FullShaders,
             BindType::Buffer,
         ],
     )?;
+
+    let pattern = engine.add_shader(
+        device,
+        "pattern",
+        preprocess::preprocess(shader!("binning"), &empty, &imports).into(),
+        &[
+            BindType::Uniform,
+            BindType::Uniform,
+            BindType::BufReadOnly,
+            BindType::BufReadOnly,
+            BindType::BufReadOnly,
+            BindType::Buffer,
+            BindType::Buffer,
+            BindType::Buffer,
+        ],
+    )?;
+
     let binning = engine.add_shader(
         device,
         "binning",
@@ -283,6 +302,7 @@ pub fn full_shaders(device: &Device, engine: &mut Engine) -> Result<FullShaders,
         draw_leaf,
         clip_reduce,
         clip_leaf,
+        pattern,
         binning,
         tile_alloc,
         path_coarse,

@@ -16,3 +16,9 @@ struct BumpAllocators {
     segments: atomic<u32>,
     blend: atomic<u32>,
 }
+
+struct IndirectCount {
+    count_x: u32,
+    count_y: u32,
+    count_z: u32,
+}

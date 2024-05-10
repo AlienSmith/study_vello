@@ -86,6 +86,7 @@ impl CachedRange {
             draw_data: self.end.draw_data - self.start.draw_data,
             transforms: self.end.transforms - self.start.transforms,
             linewidths: self.end.linewidths - self.start.linewidths,
+            patterns: self.end.patterns - self.start.patterns,
         }
     }
 }

@@ -18,6 +18,7 @@ mod engine;
 mod render;
 mod scene;
 mod shaders;
+mod wgpu_engine;
 
 /// Styling and composition primitives.
 pub use peniko;
@@ -34,8 +35,12 @@ use render::Render;
 pub use scene::{DrawGlyphs, Scene, SceneBuilder, SceneFragment};
 pub use util::block_on_wgpu;
 
-use engine::{Engine, ExternalResource, Recording};
-use shaders::FullShaders;
+pub use engine::{
+    BufProxy, Command, Id, ImageFormat, ImageProxy, Recording, ResourceProxy, ShaderId,
+};
+pub use shaders::FullShaders;
+
+use wgpu_engine::{ExternalResource, WgpuEngine};
 
 /// Temporary export, used in with_winit for stats
 pub use vello_encoding::BumpAllocators;

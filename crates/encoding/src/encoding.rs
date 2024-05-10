@@ -1,9 +1,13 @@
 // Copyright 2022 The Vello authors
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+use std::f32::consts::PI;
+
+use crate::math::PatternData;
+
 use super::{DrawColor, DrawTag, PathEncoder, PathTag, Transform};
 
-use peniko::{kurbo::Shape, BlendMode, BrushRef, Color};
+use peniko::{kurbo::{Shape, Vec2}, BlendMode, BrushRef, Color};
 
 #[cfg(feature = "full")]
 use {
@@ -11,6 +15,28 @@ use {
     fello::NormalizedCoord,
     peniko::{ColorStop, Extend, GradientKind, Image},
 };
+
+pub struct TransformState(pub u8);
+impl TransformState{
+    pub const DEFAULT: Self = Self(0x0);
+    pub const IGNORED: Self = Self(0x1);
+}
+
+impl Default for TransformState{
+    fn default() -> Self {
+        TransformState::DEFAULT
+    }
+}
+impl Clone for TransformState{
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
+impl PartialEq for TransformState{
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
 
 /// Encoded data streams for a scene.
 #[derive(Clone, Default)]
@@ -27,6 +53,12 @@ pub struct Encoding {
     pub transforms: Vec<Transform>,
     /// The line width stream.
     pub linewidths: Vec<f32>,
+    /// the following transform would be in screen space
+    pub transform_state: TransformState,
+    /// whether the corresponding transform is in screen space
+    pub should_ignore_camera_transforms:Vec<TransformState>, 
+    /// The pattern data stream.
+    pub pattern_data: Vec<PatternData>,
     /// Late bound resource data.
     #[cfg(feature = "full")]
     pub resources: Resources,
@@ -36,8 +68,17 @@ pub struct Encoding {
     pub n_path_segments: u32,
     /// Number of encoded clips/layers.
     pub n_clips: u32,
+    /// Number of patterns
+    pub n_patterns: u32,
     /// Number of unclosed clips/layers.
     pub n_open_clips: u32,
+    /// camera_transform
+    pub camera_transform: Option<Transform>,
+}
+
+fn angle_to_radians(angle: f32) -> f32{
+    let angle = angle - 360.0*(angle / 360.0).floor();
+    PI * angle/180.0 
 }
 
 impl Encoding {
@@ -53,7 +94,9 @@ impl Encoding {
 
     /// Clears the encoding.
     pub fn reset(&mut self, is_fragment: bool) {
+        self.pattern_data.clear();
         self.transforms.clear();
+        self.should_ignore_camera_transforms.clear();
         self.path_tags.clear();
         self.path_data.clear();
         self.linewidths.clear();
@@ -62,12 +105,14 @@ impl Encoding {
         self.n_paths = 0;
         self.n_path_segments = 0;
         self.n_clips = 0;
+        self.n_patterns = 0;
         self.n_open_clips = 0;
         #[cfg(feature = "full")]
         self.resources.reset();
         if !is_fragment {
             self.transforms.push(Transform::IDENTITY);
             self.linewidths.push(-1.0);
+            self.should_ignore_camera_transforms.push(TransformState::DEFAULT);
         }
     }
 
@@ -97,6 +142,7 @@ impl Encoding {
                     run.stream_offsets.draw_data += offsets.draw_data;
                     run.stream_offsets.transforms += offsets.transforms;
                     run.stream_offsets.linewidths += offsets.linewidths;
+                    run.stream_offsets.patterns += offsets.patterns;
                     run
                 }));
             self.resources
@@ -134,21 +180,34 @@ impl Encoding {
         self.path_data.extend_from_slice(&other.path_data);
         self.draw_tags.extend_from_slice(&other.draw_tags);
         self.draw_data.extend_from_slice(&other.draw_data);
+        self.should_ignore_camera_transforms.extend_from_slice(&other.should_ignore_camera_transforms);
         self.n_paths += other.n_paths;
         self.n_path_segments += other.n_path_segments;
         self.n_clips += other.n_clips;
+        self.n_patterns += other.n_patterns;
         self.n_open_clips += other.n_open_clips;
         if let Some(transform) = *transform {
+            let mut ignore_translate = transform;
+            ignore_translate.translation = [0.0,0.0];
             self.transforms
-                .extend(other.transforms.iter().map(|x| transform * *x));
+                .extend(other.transforms.iter().enumerate().map(|(index,x)| {
+                    if other.should_ignore_camera_transforms[index] == TransformState::DEFAULT {
+                        transform * *x
+                    }else {
+                        *x
+                    }
+                    }));
             #[cfg(feature = "full")]
             for run in &mut self.resources.glyph_runs[glyph_runs_base..] {
                 run.transform = transform * run.transform;
             }
+            self.camera_transform = Some(transform);
         } else {
             self.transforms.extend_from_slice(&other.transforms);
+            self.camera_transform = None;
         }
         self.linewidths.extend_from_slice(&other.linewidths);
+        self.pattern_data.extend_from_slice(&other.pattern_data);
     }
 
     /// Returns a snapshot of the current stream offsets.
@@ -160,6 +219,7 @@ impl Encoding {
             draw_data: self.draw_data.len(),
             transforms: self.transforms.len(),
             linewidths: self.linewidths.len(),
+            patterns: self.pattern_data.len(),
         }
     }
 
@@ -176,9 +236,10 @@ impl Encoding {
     /// If the given transform is different from the current one, encodes it and
     /// returns true. Otherwise, encodes nothing and returns false.
     pub fn encode_transform(&mut self, transform: Transform) -> bool {
-        if self.transforms.last() != Some(&transform) {
+        if self.transforms.last() != Some(&transform) || self.should_ignore_camera_transforms.last() != Some(&self.transform_state){
             self.path_tags.push(PathTag::TRANSFORM);
             self.transforms.push(transform);
+            self.should_ignore_camera_transforms.push(self.transform_state.clone());
             true
         } else {
             false
@@ -334,6 +395,37 @@ impl Encoding {
             }));
     }
 
+    /// Encode start of pattern
+    /// start is pivot offset from clip boundary
+    pub fn encode_begin_pattern(&mut self, start: Vec2, box_scale:Vec2, rotation: f32, is_screen_space: bool){
+        self.transform_state = if is_screen_space{
+            TransformState::IGNORED
+        }else{
+            TransformState::DEFAULT
+        };
+        let radians  = angle_to_radians(rotation);
+        let is_screen_space:u32 = 
+        if is_screen_space{
+            1
+        }else{
+            0
+        };
+        self.draw_tags.push(DrawTag::BEGIN_PATTERN);
+        self.pattern_data.push(PatternData { start: [start.x as f32, start.y as f32], box_scale: [box_scale.x as f32, box_scale.y as f32], rotate: radians, is_screen_space });
+        self.n_patterns += 1;
+        self.path_tags.push(PathTag::PATH);
+        self.n_paths += 1;
+    }
+
+    ///Encode a end of pattern command.
+    pub fn encode_end_pattern(&mut self){
+        self.transform_state = TransformState::DEFAULT;
+        self.draw_tags.push(DrawTag::END_PATTERN);
+        self.n_patterns += 1;
+        self.path_tags.push(PathTag::PATH);
+        self.n_paths += 1;
+    }
+
     /// Encodes a begin clip command.
     pub fn encode_begin_clip(&mut self, blend_mode: BlendMode, alpha: f32) {
         use super::DrawBeginClip;
@@ -447,6 +539,8 @@ pub struct StreamOffsets {
     pub transforms: usize,
     /// Current length of linewidth stream.
     pub linewidths: usize,
+    /// Current length of pattern stream.
+    pub patterns: usize,
 }
 
 impl StreamOffsets {
@@ -458,5 +552,6 @@ impl StreamOffsets {
         self.draw_data += other.draw_data;
         self.transforms += other.transforms;
         self.linewidths += other.linewidths;
+        self.patterns += other.patterns;
     }
 }

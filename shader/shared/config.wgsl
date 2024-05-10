@@ -16,6 +16,7 @@ struct Config {
     n_drawobj: u32,
     n_path: u32,
     n_clip: u32,
+    n_patterns: u32,
 
     // To reduce the number of bindings, info and bin data are combined
     // into one buffer.
@@ -30,6 +31,8 @@ struct Config {
 
     transform_base: u32,
     linewidth_base: u32,
+
+    pattern_base: u32,
 
     // Sizes of bump allocated buffers (in element size units)
     binning_size: u32,
@@ -47,6 +50,9 @@ let N_TILE_X = 16u;
 let N_TILE_Y = 16u;
 //let N_TILE = N_TILE_X * N_TILE_Y;
 let N_TILE = 256u;
+
+// Not currently supporting non-square tiles
+let TILE_SCALE = 0.0625;
 
 let BLEND_STACK_SPLIT = 4u;
 

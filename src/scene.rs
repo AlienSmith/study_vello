@@ -15,7 +15,7 @@
 // Also licensed under MIT license, at your choice.
 
 use fello::NormalizedCoord;
-use peniko::kurbo::{Affine, Rect, Shape};
+use peniko::kurbo::{Affine, Rect, Shape, Vec2};
 use peniko::{BlendMode, BrushRef, Color, Fill, Font, Image, Stroke, StyleRef};
 use vello_encoding::{Encoding, Glyph, GlyphRun, Patch, Transform};
 
@@ -86,6 +86,14 @@ impl<'a> SceneBuilder<'a> {
     fn new(scene: &'a mut Encoding, is_fragment: bool) -> Self {
         scene.reset(is_fragment);
         Self { scene }
+    }
+
+    pub fn push_pattern(&mut self,start: Vec2, box_scale:Vec2, rotation: f32, is_screen_space:bool){
+        self.scene.encode_begin_pattern(start, box_scale, rotation, is_screen_space);
+    }
+
+    pub fn pop_pattern(&mut self){
+        self.scene.encode_end_pattern();
     }
 
     /// Pushes a new layer bound by the specifed shape and composed with

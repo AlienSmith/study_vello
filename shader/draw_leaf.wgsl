@@ -8,6 +8,11 @@
 #import bbox
 #import transform
 
+struct AtomicPatternInp{
+    pattern_ix: atomic<u32>,
+    clip_ix: u32,
+}
+
 @group(0) @binding(0)
 var<uniform> config: Config;
 
@@ -28,6 +33,9 @@ var<storage, read_write> info: array<u32>;
 
 @group(0) @binding(6)
 var<storage, read_write> clip_inp: array<ClipInp>;
+
+@group(0) @binding(7)
+var<storage, read_write> path_to_pattern: array<AtomicPatternInp>;
 
 #import util
 
@@ -102,6 +110,13 @@ fn main(
         tag_word == DRAWTAG_BEGIN_CLIP
     {
         let bbox = path_bbox[m.path_ix];
+        let pattern_ix = &path_to_pattern[m.path_ix].pattern_ix;
+        if ((m.pattern_ix & 1u) != 0u) && (tag_word != DRAWTAG_BEGIN_CLIP) {
+            atomicMax(pattern_ix,(m.pattern_ix >> 1u) + 1u);
+            path_to_pattern[m.path_ix].clip_ix = m.clip_ix;
+        }else{
+            atomicMax(pattern_ix,0u);
+        }
         // TODO: bbox is mostly yagni here, sort that out. Maybe clips?
         // let x0 = f32(bbox.x0);
         // let y0 = f32(bbox.y0);

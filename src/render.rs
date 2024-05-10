@@ -104,7 +104,7 @@ impl Render {
         }
 
         let cpu_config =
-            RenderConfig::new(&layout, params.width, params.height, &params.base_color);
+            RenderConfig::new(&layout, params.width, params.height, &params.base_color, encoding.camera_transform);
         let buffer_sizes = &cpu_config.buffer_sizes;
         let wg_counts = &cpu_config.workgroup_counts;
 
@@ -214,6 +214,11 @@ impl Render {
             buffer_sizes.clip_inps.size_in_bytes().into(),
             "clip_inp_buf",
         );
+        let path_to_pattern_buf = ResourceProxy::new_buf(
+            buffer_sizes.path_to_pattern.size_in_bytes().into(),
+            "path_to_pattern_buf",
+        );
+        let bump_buf = BufProxy::new(buffer_sizes.bump_alloc.size_in_bytes().into(), "bump_buf");
         recording.dispatch(
             shaders.draw_leaf,
             wg_counts.draw_leaf,
@@ -225,6 +230,7 @@ impl Render {
                 draw_monoid_buf,
                 info_bin_data_buf,
                 clip_inp_buf,
+                path_to_pattern_buf,
             ],
         );
         recording.free_resource(draw_reduced_buf);
@@ -269,11 +275,45 @@ impl Render {
         recording.free_resource(clip_inp_buf);
         recording.free_resource(clip_bic_buf);
         recording.free_resource(clip_el_buf);
+
+        let indirect_count_buf = BufProxy::new(
+            buffer_sizes.indirect_count.size_in_bytes().into(),
+            "indirect_count",
+        );
+
+        
+        if wg_counts.use_patterns{
+            let camera_buf = ResourceProxy::Buf(
+                recording.upload_uniform("camera", bytemuck::bytes_of(&cpu_config.camera_transform)),
+            );
+            recording.dispatch(
+                shaders.path_count_setup,
+                (1, 1, 1),
+                [bump_buf, indirect_count_buf.into()],
+            );
+            recording.dispatch_indirect(
+                shaders.pattern,
+                indirect_count_buf,
+                0,
+                [
+                    config_buf,
+                    camera_buf,
+                    scene_buf,
+                    clip_bbox_buf,
+                    path_to_pattern_buf,
+                    path_bbox_buf,
+                    bump_buf,
+                    lines_buf,
+                ],
+            );
+        }
+        recording.free_resource(path_to_pattern_buf);
+
         let draw_bbox_buf = ResourceProxy::new_buf(
             buffer_sizes.draw_bboxes.size_in_bytes().into(),
             "draw_bbox_buf",
         );
-        let bump_buf = BufProxy::new(buffer_sizes.bump_alloc.size_in_bytes().into(), "bump_buf");
+
         let bin_header_buf = ResourceProxy::new_buf(
             buffer_sizes.bin_headers.size_in_bytes().into(),
             "bin_header_buf",

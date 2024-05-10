@@ -1,6 +1,8 @@
 // Copyright 2023 The Vello authors
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+use crate::{math, clip::PatternInp};
+
 use super::{
     BinHeader, Clip, ClipBbox, ClipBic, ClipElement, Cubic, DrawBbox, DrawMonoid, Layout, Path,
     PathBbox, PathMonoid, PathSegment, Tile,
@@ -31,6 +33,22 @@ pub struct BumpAllocators {
     pub tile: u32,
     pub segments: u32,
     pub blend: u32,
+    pub lines: u32,
+    pub lines_before: u32,
+}
+
+/// Storage of indirect dispatch size values.
+///
+/// The original plan was to reuse [`BumpAllocators`], but the WebGPU compatible
+/// usage list rules forbid that being used as indirect counts while also
+/// bound as writable.
+#[derive(Clone, Copy, Debug, Default, Zeroable, Pod)]
+#[repr(C)]
+pub struct IndirectCount {
+    pub count_x: u32,
+    pub count_y: u32,
+    pub count_z: u32,
+    pub pad0: u32,
 }
 
 /// Uniform render configuration data used by all GPU stages.
@@ -62,6 +80,22 @@ pub struct ConfigUniform {
     pub ptcl_size: u32,
 }
 
+#[derive(Clone, Copy, Debug, Zeroable, Pod)]
+#[repr(C)]
+pub struct TransformUniform {
+    /// 2x2 matrix.
+    pub matrix: [f32; 4],
+    /// Translation.
+    pub translation: [f32; 2],
+    padding: [f32; 2],
+}
+
+impl Default for TransformUniform{
+    fn default() -> Self {
+        Self { matrix: [1.0,0.0,0.0,1.0], translation: [0.0,0.0], padding: Default::default() }
+    }
+}
+
 /// CPU side setup and configuration.
 #[derive(Default)]
 pub struct RenderConfig {
@@ -71,10 +105,12 @@ pub struct RenderConfig {
     pub workgroup_counts: WorkgroupCounts,
     /// Sizes of all buffer resources.
     pub buffer_sizes: BufferSizes,
+    ///camera matrix
+    pub camera_transform: TransformUniform,
 }
 
 impl RenderConfig {
-    pub fn new(layout: &Layout, width: u32, height: u32, base_color: &peniko::Color) -> Self {
+    pub fn new(layout: &Layout, width: u32, height: u32, base_color: &peniko::Color, camera_transform: Option<math::Transform>) -> Self {
         let new_width = next_multiple_of(width, TILE_WIDTH);
         let new_height = next_multiple_of(height, TILE_HEIGHT);
         let width_in_tiles = new_width / TILE_WIDTH;
@@ -83,6 +119,15 @@ impl RenderConfig {
         let workgroup_counts =
             WorkgroupCounts::new(layout, width_in_tiles, height_in_tiles, n_path_tags);
         let buffer_sizes = BufferSizes::new(layout, &workgroup_counts, n_path_tags);
+        let transform = if let Some(t) = camera_transform{
+            TransformUniform{
+                matrix: t.matrix,
+                translation: t.translation,
+                ..Default::default()
+            }
+        }else{
+            TransformUniform::default()
+        };
         Self {
             gpu: ConfigUniform {
                 width_in_tiles,
@@ -98,6 +143,8 @@ impl RenderConfig {
             },
             workgroup_counts,
             buffer_sizes,
+            camera_transform: transform
+            
         }
     }
 }
@@ -109,6 +156,7 @@ pub type WorkgroupSize = (u32, u32, u32);
 #[derive(Copy, Clone, Debug, Default)]
 pub struct WorkgroupCounts {
     pub use_large_path_scan: bool,
+    pub use_patterns: bool,
     pub path_reduce: WorkgroupSize,
     pub path_reduce2: WorkgroupSize,
     pub path_scan1: WorkgroupSize,
@@ -137,6 +185,7 @@ impl WorkgroupCounts {
         let n_paths = layout.n_paths;
         let n_draw_objects = layout.n_draw_objects;
         let n_clips = layout.n_clips;
+        let n_patterns = layout.n_patterns;
         let path_tag_padded = align_up(n_path_tags, 4 * PATH_REDUCE_WG);
         let path_tag_wgs = path_tag_padded / (4 * PATH_REDUCE_WG);
         let use_large_path_scan = path_tag_wgs > PATH_REDUCE_WG;
@@ -154,6 +203,7 @@ impl WorkgroupCounts {
         let height_in_bins = (height_in_tiles + 15) / 16;
         Self {
             use_large_path_scan,
+            use_patterns: n_patterns > 0,
             path_reduce: (path_tag_wgs, 1, 1),
             path_reduce2: (PATH_REDUCE_WG, 1, 1),
             path_scan1: (reduced_size / PATH_REDUCE_WG, 1, 1),
@@ -237,12 +287,14 @@ pub struct BufferSizes {
     pub draw_reduced: BufferSize<DrawMonoid>,
     pub draw_monoids: BufferSize<DrawMonoid>,
     pub info: BufferSize<u32>,
+    pub path_to_pattern: BufferSize<PatternInp>,
     pub clip_inps: BufferSize<Clip>,
     pub clip_els: BufferSize<ClipElement>,
     pub clip_bics: BufferSize<ClipBic>,
     pub clip_bboxes: BufferSize<ClipBbox>,
     pub draw_bboxes: BufferSize<DrawBbox>,
     pub bump_alloc: BufferSize<BumpAllocators>,
+    pub indirect_count: BufferSize<IndirectCount>,
     pub bin_headers: BufferSize<BinHeader>,
     pub paths: BufferSize<Path>,
     // Bump allocated buffers
@@ -273,12 +325,14 @@ impl BufferSizes {
         let draw_reduced = BufferSize::new(draw_object_wgs);
         let draw_monoids = BufferSize::new(n_draw_objects);
         let info = BufferSize::new(layout.bin_data_start);
+        let path_to_pattern = BufferSize::new(layout.n_draw_objects);
         let clip_inps = BufferSize::new(n_clips);
         let clip_els = BufferSize::new(n_clips);
         let clip_bics = BufferSize::new(n_clips / CLIP_REDUCE_WG);
         let clip_bboxes = BufferSize::new(n_clips);
         let draw_bboxes = BufferSize::new(n_paths);
         let bump_alloc = BufferSize::new(1);
+        let indirect_count = BufferSize::new(1);
         let bin_headers = BufferSize::new(draw_object_wgs * 256);
         let n_paths_aligned = align_up(n_paths, 256);
         let paths = BufferSize::new(n_paths_aligned);
@@ -300,12 +354,14 @@ impl BufferSizes {
             draw_reduced,
             draw_monoids,
             info,
+            path_to_pattern,
             clip_inps,
             clip_els,
             clip_bics,
             clip_bboxes,
             draw_bboxes,
             bump_alloc,
+            indirect_count,
             bin_headers,
             paths,
             bin_data,

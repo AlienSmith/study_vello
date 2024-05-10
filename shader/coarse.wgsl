@@ -194,6 +194,8 @@ fn main(
     let blend_offset = cmd_offset;
     cmd_offset += 1u;
 
+    let within_range = bin_tile_x + tile_x < config.width_in_tiles && bin_tile_y + tile_y < config.height_in_tiles;
+    //find drawobjects/Path in range of this bin
     while true {
         for (var i = 0u; i < N_SLICE; i += 1u) {
             atomicStore(&sh_bitmaps[i][local_id.x], 0u);
@@ -251,6 +253,7 @@ fn main(
 
         var tile_count = 0u;
         // I think this predicate is the same as the last, maybe they can be combined
+        // find tiles of Path withen range of this bin
         if tag != DRAWTAG_NOP {
             let path_ix = draw_monoids[drawobj_ix].path_ix;
             let path = paths[path_ix];
@@ -325,7 +328,8 @@ fn main(
         // Write per-tile command list for this tile
         var slice_ix = 0u;
         var bitmap = atomicLoad(&sh_bitmaps[0u][local_id.x]);
-        while true {
+        //fixed a potential data race condition
+        while within_range {
             if bitmap == 0u {
                 slice_ix += 1u;
                 // potential optimization: make iteration limit dynamic
@@ -429,7 +433,7 @@ fn main(
         }
         workgroupBarrier();
     }
-    if bin_tile_x + tile_x < config.width_in_tiles && bin_tile_y + tile_y < config.height_in_tiles {
+    if within_range {
         ptcl[cmd_offset] = CMD_END;
         if max_blend_depth > BLEND_STACK_SPLIT {
             let scratch_size = max_blend_depth * TILE_WIDTH * TILE_HEIGHT;
