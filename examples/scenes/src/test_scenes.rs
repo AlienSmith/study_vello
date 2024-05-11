@@ -39,6 +39,7 @@ pub fn test_scenes() -> SceneSet {
         function: Box::new(crate::mmark::MMark::new(80_000)),
     };
     let scenes = vec![
+        scene!(gpu_dash_test),
         scene!(pattern_test),
         splash_scene,
         mmark_scene,
@@ -527,7 +528,26 @@ fn render_cardioid(sb: &mut SceneBuilder) {
         &path,
     );
 }
-
+fn cardioid() -> BezPath {
+    let n = 2;
+    let dth = std::f64::consts::PI * 2.0 / (n as f64);
+    let center = Point::new(1024.0, 768.0);
+    let r = 750.0;
+    let mut path = BezPath::new();
+    for i in 1..n {
+        let mut p0 = center;
+        let a0 = i as f64 * dth;
+        p0.x += a0.cos() * r;
+        p0.y += a0.sin() * r;
+        let mut p1 = center;
+        let a1 = ((i * 2) % n) as f64 * dth;
+        p1.x += a1.cos() * r;
+        p1.y += a1.sin() * r;
+        path.push(PathEl::MoveTo(p0));
+        path.push(PathEl::LineTo(p1));
+    }
+    path
+}
 fn render_clip_test(sb: &mut SceneBuilder) {
     const N: usize = 16;
     const X0: f64 = 50.0;
@@ -901,59 +921,17 @@ fn pattern_test(sb: &mut SceneBuilder,_params: &mut SceneParams) {
     
 }
 
-// fn pattern_test1(sb: &mut SceneBuilder,_params: &mut SceneParams) {
-//     let transform = Affine::IDENTITY;
-//     //let transform = transform.then_translate(Vec2 { x: 100.0, y: 100.0 });
-//     let clip1 = {
-//         const X0: f64 = 0.0;
-//         const Y0: f64 = 0.0;
-//         const X1: f64 = 400.0;
-//         const Y1: f64 = 400.0;
-//         [
-//             PathEl::MoveTo((X0, Y0).into()),
-//             PathEl::LineTo((X1, Y0).into()),
-//             PathEl::LineTo((X1, Y0 + (Y1 - Y0)).into()),
-//             PathEl::LineTo((X1 + (X0 - X1), Y1).into()),
-//             PathEl::LineTo((X0, Y1).into()),
-//             PathEl::ClosePath,
-//         ]
-//     };
-//     //back group
-//     sb.fill(
-//                 peniko::Fill::NonZero,
-//                 transform,
-//                 peniko::Color::rgb8(255, 255, 255),
-//                 None,
-//                 &kurbo::Rect::new(0.0, 0.0, 400.0, 400.0),
-//             );
-//     sb.push_layer(Mix::Clip, 1.0, transform, &clip1);
-//     {
-//         // sb.push_pattern(Vec2::new(20.0,0.0), Vec2::new(25.0,25.0), -45.0,true);
-//         //     sb.fill(
-//         //         peniko::Fill::NonZero,
-//         //         transform,
-//         //         peniko::Color::rgb8(0, 128, 128),
-//         //         None,
-//         //         &kurbo::Ellipse::new((0.0, 0.0), Vec2::new(5.0,10.0), 0.0),
-//         //         //&kurbo::Rect::new(0.0, 0.0,20.0,20.0),
-//         //     );
-//         // sb.pop_pattern();
-
-        
-//         sb.push_pattern(Vec2::new(0.0,20.0), Vec2::new(25.0,25.0), 45.0,false);
-//             sb.fill(
-//                 peniko::Fill::NonZero,
-//                 Affine::IDENTITY,
-//                 peniko::Color::rgb8(128, 128, 0),
-//                 None,
-//                 &kurbo::Ellipse::new((0.0, 0.0), Vec2::new(5.0,10.0), 0.0),
-//                 //&kurbo::Rect::new(0.0, 0.0,20.0,20.0),
-//             );
-//         sb.pop_pattern();
-//     }
-//     sb.pop_layer();
-    
-// }
+fn gpu_dash_test(sb: &mut SceneBuilder,_params: &mut SceneParams) {
+    let path = cardioid();
+    let mut stroke = Stroke::new(2.0);
+    sb.stroke(
+        &stroke,
+        Affine::IDENTITY,
+        Color::rgb8(0, 0, 255),
+        None,
+        &path,
+    );
+}
 fn rectangle_test(sb: &mut SceneBuilder,_params: &mut SceneParams){
     sb.fill(
         peniko::Fill::NonZero,

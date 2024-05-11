@@ -6,12 +6,6 @@
 #import transform
 #import cubic
 
-struct InputTransform {
-    matrx: vec4<f32>,
-    translate: vec2<f32>,
-    padding: vec2<f32>,
-}
-
 @group(0) @binding(0)
 var<uniform> config: Config;
 
@@ -199,7 +193,7 @@ fn main(
             let p1 = apply_offset(oup.p1, pivot);
             let p2 = apply_offset(oup.p2, pivot);
             let p3 = apply_offset(oup.p3, pivot);
-            let instance = Cubic(p0, p1, p2, p3, oup.stroke, oup.path_ix, oup.flags, oup.tag_byte);
+            let instance = Cubic(p0, p1, p2, p3, oup.stroke, oup.path_ix, oup.flags, oup.tag_byte, oup.dash_start, oup.dash_size);
             if(ix == min_x && iy == min_y){
                 cubic[index] = instance;
             }

@@ -8,17 +8,21 @@
 #import segment
 #import cubic
 #import bump
+#import transform
 
 @group(0) @binding(0)
 var<uniform> config: Config;
 
 @group(0) @binding(1)
-var<storage> scene: array<u32>;
+var<uniform> camera: InputTransform;  
 
 @group(0) @binding(2)
-var<storage> cubics: array<Cubic>;
+var<storage> scene: array<u32>;
 
 @group(0) @binding(3)
+var<storage> cubics: array<Cubic>;
+
+@group(0) @binding(4)
 var<storage> paths: array<Path>;
 
 // We don't get this from import as it's the atomic version
@@ -27,13 +31,13 @@ struct AtomicTile {
     segments: atomic<u32>,
 }
 
-@group(0) @binding(4)
+@group(0) @binding(5)
 var<storage, read_write> bump: BumpAllocators;
 
-@group(0) @binding(5)
+@group(0) @binding(6)
 var<storage, read_write> tiles: array<AtomicTile>;
 
-@group(0) @binding(6)
+@group(0) @binding(7)
 var<storage, read_write> segments: array<Segment>;
 
 struct SubdivResult {
@@ -119,6 +123,8 @@ fn main(
     var tag_byte = cubic.tag_byte;
 
     if (tag_byte & PATH_TAG_SEG_TYPE) != 0u {
+        let world_to_screen =Transform(camera.matrx, camera.translate);
+        let screen_to_world = transform_inverse(world_to_screen);
         // Discussion question: it might actually be cheaper to do the path segment
         // decoding & transform again rather than store the result in a buffer;
         // classic memory vs ALU tradeoff.
@@ -157,6 +163,7 @@ fn main(
         let v_step = val / f32(n);
         var n_out = 1u;
         var val_sum = 0.0;
+        var accumulated_length = 0.0;
         for (var i = 0u; i < n_quads; i += 1u) {
             let t = f32(i + 1u) * step;
             let qp2 = eval_cubic(p0, p1, p2, p3, t);
@@ -178,11 +185,13 @@ fn main(
                     let t = (au - u0) * uscale;
                     lp1 = eval_quad(qp0, qp1, qp2, t);
                 }
-
                 // Output line segment lp0..lp1
                 let xymin = min(lp0, lp1) - cubic.stroke;
                 let xymax = max(lp0, lp1) + cubic.stroke;
                 let dp = lp1 - lp0;
+                let current_section_length = length(dp);
+                let dp_world = transform_apply_vector(screen_to_world, normalize(dp));
+                let length_modifier = 1.0 / max(length(dp_world), 1e-7);
                 let recip_dx = 1.0 / dp.x;
                 let invslope = select(dp.x / dp.y, 1.0e9, abs(dp.y) < 1.0e-9);
                 let SX = 1.0 / f32(TILE_WIDTH);
@@ -229,6 +238,10 @@ fn main(
                     xx0 = clamp(xx0, x0, x1);
                     xx1 = clamp(xx1, x0, x1);
                     var tile_seg: Segment;
+                    tile_seg.dash_modifier = length_modifier;
+                    tile_seg.dash_offset = accumulated_length;
+                    tile_seg.dash_start = cubic.dash_start;
+                    tile_seg.dash_size = cubic.dash_size;
                     for (var x = xx0; x < xx1; x += 1) {
                         let tile_x0 = f32(x) * f32(TILE_WIDTH);
                         let tile_ix = base + x;
@@ -267,6 +280,7 @@ fn main(
                 n_out += 1u;
                 val_target += v_step;
                 lp0 = lp1;
+                accumulated_length += current_section_length;
             }
             val_sum += params.val;
             qp0 = qp2;

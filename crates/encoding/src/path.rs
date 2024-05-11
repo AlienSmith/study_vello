@@ -14,6 +14,10 @@ pub struct PathSegment {
     pub delta: [f32; 2],
     pub y_edge: f32,
     pub next: u32,
+    //for dashes
+    pub dash_offset: f32,
+    pub dash_start: u32,
+    pub dash_size: u32,
 }
 
 /// Path segment type.
@@ -168,6 +172,8 @@ pub struct Cubic {
     pub stroke: [f32; 2],
     pub path_ix: u32,
     pub flags: u32,
+    pub dash_start: u32,
+    pub dash_size: u32,
 }
 
 /// Path bounding box.

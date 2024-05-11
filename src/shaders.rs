@@ -270,6 +270,7 @@ pub fn full_shaders(
         preprocess::preprocess(shader!("path_coarse_full"), &full_config, &imports).into(),
         &[
             BindType::Uniform,
+            BindType::Uniform,
             BindType::BufReadOnly,
             BindType::BufReadOnly,
             BindType::BufReadOnly,
@@ -306,6 +307,7 @@ pub fn full_shaders(
         preprocess::preprocess(shader!("fine"), &full_config, &imports).into(),
         &[
             BindType::Uniform,
+            BindType::BufReadOnly,
             BindType::BufReadOnly,
             BindType::BufReadOnly,
             BindType::BufReadOnly,

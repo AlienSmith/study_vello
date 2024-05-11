@@ -2,6 +2,12 @@
 
 // Helpers for working with transforms.
 
+struct InputTransform {
+    matrx: vec4<f32>,
+    translate: vec2<f32>,
+    padding: vec2<f32>,
+}
+
 struct Pattern{
     start: vec2<f32>,
     box_scale: vec2<f32>,

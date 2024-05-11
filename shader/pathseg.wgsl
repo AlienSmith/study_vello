@@ -133,6 +133,8 @@ fn main(
     let linewidth = bitcast<f32>(scene[config.linewidth_base + tm.linewidth_ix * 3u]);
     let dash_array_start = bitcast<f32>(scene[config.linewidth_base + tm.linewidth_ix * 3u + 1u]);
     let dash_array_end = bitcast<f32>(scene[config.linewidth_base + tm.linewidth_ix * 3u + 2u]);
+    let dash_start = u32(dash_array_start);
+    let dash_size = u32(dash_array_end - dash_array_start); 
 
     if (tag_byte & PATH_TAG_PATH) != 0u {
         (*out).linewidth = linewidth;
@@ -194,7 +196,7 @@ fn main(
             bbox += vec4(-stroke, stroke);
         }
         let flags = u32(linewidth >= 0.0);
-        cubics[global_id.x] = Cubic(p0, p1, p2, p3, stroke, tm.path_ix, flags, tag_byte);
+        cubics[global_id.x] = Cubic(p0, p1, p2, p3, stroke, tm.path_ix, flags, tag_byte, dash_start, dash_size);
         // Update bounding box using atomics only. Computing a monoid is a
         // potential future optimization.
         if bbox.z > bbox.x || bbox.w > bbox.y {

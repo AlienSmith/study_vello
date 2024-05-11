@@ -4,6 +4,8 @@
 // modes, controllable by #define.
 
 // This is a cut'n'paste w/ backdrop.
+let MAX_DASHES_ARRAY_SIZE = 20u;
+
 struct Tile {
     backdrop: i32,
     segments: u32,
@@ -16,6 +18,9 @@ struct Tile {
 var<uniform> config: Config;
 
 @group(0) @binding(1)
+var<storage> scene: array<u32>;
+
+@group(0) @binding(2)
 var<storage> segments: array<Segment>;
 
 #ifdef full
@@ -25,20 +30,93 @@ var<storage> segments: array<Segment>;
 
 let GRADIENT_WIDTH = 512;
 
-@group(0) @binding(2)
+@group(0) @binding(3)
 var<storage> ptcl: array<u32>;
 
-@group(0) @binding(3)
+@group(0) @binding(4)
 var<storage> info: array<u32>;
 
-@group(0) @binding(4)
+@group(0) @binding(5)
 var output: texture_storage_2d<rgba8unorm, write>;
 
-@group(0) @binding(5)
+@group(0) @binding(6)
 var gradients: texture_2d<f32>;
 
-@group(0) @binding(6)
+@group(0) @binding(7)
 var image_atlas: texture_2d<f32>;
+
+var<private> dashes_array: array<f32,MAX_DASHES_ARRAY_SIZE>;
+var<private> dashes_line_length: f32;
+var<private> dashes_array_length: u32;
+
+fn read_dashes_array_from_scene(start:u32, size:u32, length_modifier:f32){
+    let length = min(size, MAX_DASHES_ARRAY_SIZE - 1u);
+    for (var i = 0u; i < length; i += 1u){
+        dashes_array[i] = dashes_line_length;
+        let value = bitcast<f32>(scene[config.dasharrays_base + start + i]);
+        dashes_line_length += value * length_modifier;
+    }
+    dashes_array[length] = dashes_line_length;
+    dashes_array_length = length + 1u;
+}
+
+fn linear_find_index_of_offset(offset:f32) -> u32{
+    for (var i = 1u; i < dashes_array_length; i += 1u){
+        if dashes_array[i - 1u] < offset && dashes_array[i] >= offset{
+            return i;
+        }
+    }
+    return 0u;
+}
+
+fn find_next_valid_offset_on_dash_line(optimal:f32) -> f32{
+    if(dashes_line_length < 2.0){
+        return optimal;
+    }
+    let base = floor(optimal / dashes_line_length) * dashes_line_length;
+    let offset = optimal - base;
+    let index = linear_find_index_of_offset(offset);
+    let result = base + dashes_array[index];
+    return select(optimal, result, index % 2u == 0u);
+}
+
+fn find_previous_valid_offset_on_dash_line(optimal:f32) -> f32{
+    if(dashes_line_length < 2.0){
+        return optimal;
+    }
+    let base = floor(optimal / dashes_line_length) * dashes_line_length;
+    let offset = optimal - base;
+    let index = linear_find_index_of_offset(offset);
+    let previous_offset = (index - 1u) % dashes_array_length;
+    let result = base + dashes_array[previous_offset];
+    return select(optimal, result, index % 2u == 0u);
+}
+
+
+fn find_neareset_offset_on_dash_line(optimal:f32, begin:f32, end:f32) -> f32{
+    if(dashes_line_length < 2.0){
+        return optimal;
+    }
+    let base = floor(optimal / dashes_line_length) * dashes_line_length;
+    let offset = optimal - base;
+    let index = linear_find_index_of_offset(offset);
+    var previous = base + dashes_array[(index - 1u) % dashes_array_length];
+    var next = base + dashes_array[index];
+    var opt = clamp(begin, end, optimal);
+    previous = max(previous, begin);
+    next = min(next,end);
+    return select(select(previous, next, abs(next - optimal) < abs(optimal - previous)), optimal, index % 2u == 1u);
+}
+//dots
+fn dummy_array(length_modifier:f32){
+    dashes_array_length = 5u;
+    dashes_array[0] = 0.0*length_modifier;
+    dashes_array[1] = 0.0*length_modifier;
+    dashes_array[2] = 20.0*length_modifier;
+    dashes_array[3] = 20.0*length_modifier;
+    dashes_array[4] = 60.0*length_modifier;
+    dashes_line_length = 60.0*length_modifier;
+}
 
 fn read_fill(cmd_ix: u32) -> CmdFill {
     let tile = ptcl[cmd_ix + 1u];
@@ -195,21 +273,40 @@ fn fill_path(tile: Tile, xy: vec2<f32>, even_odd: bool) -> array<f32, PIXELS_PER
 }
 
 fn stroke_path(seg: u32, half_width: f32, xy: vec2<f32>) -> array<f32, PIXELS_PER_THREAD> {
+    dashes_line_length = 0.0;  
     var df: array<f32, PIXELS_PER_THREAD>;
     for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
         df[i] = 1e9;
     }
     var segment_ix = seg;
+    let temp_segment = segments[segment_ix];
+    //read_dashes_array_from_scene(temp_segment.dash_start, temp_segment.dash_size, temp_segment.dash_modifier);
+    dummy_array(temp_segment.dash_modifier);
     while segment_ix != 0u {
         let segment = segments[segment_ix];
         let delta = segment.delta;
         let dpos0 = xy + vec2(0.5, 0.5) - segment.origin;
         let scale = 1.0 / dot(delta, delta);
-        for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
-            let dpos = vec2(dpos0.x + f32(i), dpos0.y);
-            let t = clamp(dot(dpos, delta) * scale, 0.0, 1.0);
-            // performance idea: hoist sqrt out of loop
-            df[i] = min(df[i], length(delta * t - dpos));
+        let length = length(segment.delta);
+        let offset = segment.dash_offset;
+        //let offset = 0.0;
+        let start = find_next_valid_offset_on_dash_line(offset);
+        let end = find_previous_valid_offset_on_dash_line(offset + length);
+        //we need this check otherwise curved dash line wrong on the edge
+        if end >= start{
+            for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
+                let dpos = vec2(dpos0.x + f32(i), dpos0.y);
+                let t = clamp(dot(dpos, delta) * scale, 0.0, 1.0);
+                var optimal = find_neareset_offset_on_dash_line(t * length + offset, start, end) - offset;
+                optimal /= length;
+                df[i] =  min(df[i], length(delta * optimal - dpos));
+                // performance idea: hoist sqrt out of loop
+                // let optimal = t*length;
+                // let base = floor(optimal / dashes_line_length) * dashes_line_length;
+                // let offset = optimal - base;
+                // let is_solid = (linear_find_index_of_offset(offset)) % 2u == 1u || segment.dash_array_end == 0u;
+                // df[i] =  select(df[i], min(df[i], length(delta * t - dpos)), is_solid);
+            }
         }
         segment_ix = segment.next;
     }

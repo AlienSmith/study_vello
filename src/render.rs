@@ -16,6 +16,7 @@ pub struct Render {
 /// Resources produced by pipeline, needed for fine rasterization.
 struct FineResources {
     config_buf: ResourceProxy,
+    scene_buf: ResourceProxy,
     bump_buf: ResourceProxy,
     tile_buf: ResourceProxy,
     segments_buf: ResourceProxy,
@@ -282,10 +283,11 @@ impl Render {
         recording.free_resource(clip_bic_buf);
         recording.free_resource(clip_el_buf);
 
+        let camera_buf = ResourceProxy::Buf(
+            recording.upload_uniform("camera", bytemuck::bytes_of(&cpu_config.camera_transform)),
+        );
+
         if wg_counts.use_patterns{
-            let camera_buf = ResourceProxy::Buf(
-                recording.upload_uniform("camera", bytemuck::bytes_of(&cpu_config.camera_transform)),
-            );
             recording.dispatch(
                 shaders.pattern,
                 wg_counts.path_coarse,
@@ -367,6 +369,7 @@ impl Render {
             0,
             [
                 config_buf,
+                camera_buf,
                 scene_buf,
                 cubic_buf,
                 path_buf,
@@ -410,7 +413,6 @@ impl Render {
                 ptcl_buf,
             ],
         );
-        recording.free_resource(scene_buf);
         recording.free_resource(draw_monoid_buf);
         recording.free_resource(bin_header_buf);
         recording.free_resource(path_buf);
@@ -418,6 +420,7 @@ impl Render {
         self.fine_wg_count = Some(wg_counts.fine);
         self.fine_resources = Some(FineResources {
             config_buf,
+            scene_buf,
             bump_buf,
             tile_buf,
             segments_buf,
@@ -443,6 +446,7 @@ impl Render {
             fine_wg_count,
             [
                 fine.config_buf,
+                fine.scene_buf,
                 fine.segments_buf,
                 fine.ptcl_buf,
                 fine.info_bin_data_buf,
@@ -458,6 +462,7 @@ impl Render {
         recording.free_resource(fine.gradient_image);
         recording.free_resource(fine.image_atlas);
         recording.free_resource(fine.info_bin_data_buf);
+        recording.free_resource(fine.scene_buf);
     }
 
     /// Get the output image.
