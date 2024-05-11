@@ -59,6 +59,9 @@ fn main(
     @builtin(local_invocation_id) local_id: vec3<u32>,
     @builtin(workgroup_id) wg_id: vec3<u32>,
 ) {
+    if (atomicLoad(&bump.failed) & (STAGE_PATTERN)) != 0u {
+        return;
+    }
     for (var i = 0u; i < N_SLICE; i += 1u) {
         atomicStore(&sh_bitmaps[i][local_id.x], 0u);
     }

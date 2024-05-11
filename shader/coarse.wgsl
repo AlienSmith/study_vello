@@ -160,7 +160,7 @@ fn main(
         sh_part_count[0] = atomicLoad(&bump.failed);
     }
     let failed = workgroupUniformLoad(&sh_part_count[0]);
-    if (failed & (STAGE_BINNING | STAGE_TILE_ALLOC | STAGE_PATH_COARSE)) != 0u {
+    if (failed & (STAGE_BINNING | STAGE_TILE_ALLOC | STAGE_PATH_COARSE | STAGE_PATTERN)) != 0u {
         return;
     }
     let width_in_bins = (config.width_in_tiles + N_TILE_X - 1u) / N_TILE_X;
