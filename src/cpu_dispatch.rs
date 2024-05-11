@@ -65,8 +65,8 @@ impl<'a> CpuBinding<'a> {
 
 /// Structure used for binding textures to CPU shaders.
 pub struct CpuTexture {
-    pub width: usize,
-    pub height: usize,
+    pub _width: usize,
+    pub _height: usize,
     // In RGBA format. May expand in the future.
-    pub pixels: Vec<u32>,
+    pub _pixels: Vec<u32>,
 }

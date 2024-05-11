@@ -936,9 +936,8 @@ fn pattern_test(sb: &mut SceneBuilder,_params: &mut SceneParams) {
 
 fn gpu_dash_test(sb: &mut SceneBuilder,_params: &mut SceneParams) {
     let path = cardioid();
-    let mut stroke = Stroke::new(2.0);
     sb.stroke_dash(
-        &stroke,
+        &Stroke::new(2.0),
         Affine::IDENTITY,
         Color::rgb8(0, 0, 255),
         None,
@@ -946,15 +945,15 @@ fn gpu_dash_test(sb: &mut SceneBuilder,_params: &mut SceneParams) {
         vec![0.0,10.0, 10.0, 20.0, 5.0, 20.0]
     );
 }
-fn rectangle_test(sb: &mut SceneBuilder,_params: &mut SceneParams){
-    sb.fill(
-        peniko::Fill::NonZero,
-        Affine::IDENTITY,
-        peniko::Color::rgb8(255, 255, 255),
-        None,
-        &kurbo::Rect::new(0.0, 0.0, 100.0, 100.0),
-    );
-}
+// fn rectangle_test(sb: &mut SceneBuilder,_params: &mut SceneParams){
+//     sb.fill(
+//         peniko::Fill::NonZero,
+//         Affine::IDENTITY,
+//         peniko::Color::rgb8(255, 255, 255),
+//         None,
+//         &kurbo::Rect::new(0.0, 0.0, 100.0, 100.0),
+//     );
+// }
 
 fn clip_test(sb: &mut SceneBuilder, params: &mut SceneParams) {
     let clip = {

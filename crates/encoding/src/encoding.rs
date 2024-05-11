@@ -1,7 +1,7 @@
 // Copyright 2022 The Vello authors
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use std::{f32::consts::PI, sync::Arc};
+use std::f32::consts::PI;
 
 use crate::math::PatternData;
 
@@ -29,7 +29,7 @@ impl Default for TransformState{
 }
 impl Clone for TransformState{
     fn clone(&self) -> Self {
-        Self(self.0.clone())
+        Self(self.0)
     }
 }
 impl PartialEq for TransformState{
