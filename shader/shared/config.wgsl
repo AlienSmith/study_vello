@@ -31,7 +31,7 @@ struct Config {
 
     transform_base: u32,
     linewidth_base: u32,
-
+    dasharrays_base: u32,
     pattern_base: u32,
 
     // Sizes of bump allocated buffers (in element size units)

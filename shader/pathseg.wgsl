@@ -129,7 +129,11 @@ fn main(
     var tag_byte = (tag_word >> shift) & 0xffu;
 
     let out = &path_bboxes[tm.path_ix];
-    let linewidth = bitcast<f32>(scene[config.linewidth_base + tm.linewidth_ix]);
+
+    let linewidth = bitcast<f32>(scene[config.linewidth_base + tm.linewidth_ix * 3u]);
+    let dash_array_start = bitcast<f32>(scene[config.linewidth_base + tm.linewidth_ix * 3u + 1u]);
+    let dash_array_end = bitcast<f32>(scene[config.linewidth_base + tm.linewidth_ix * 3u + 2u]);
+
     if (tag_byte & PATH_TAG_PATH) != 0u {
         (*out).linewidth = linewidth;
         (*out).trans_ix = tm.trans_ix;

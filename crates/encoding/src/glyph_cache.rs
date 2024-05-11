@@ -42,9 +42,9 @@ impl GlyphCache {
         let mut encode_glyph = || {
             let start = encoding_cache.stream_offsets();
             match style {
-                Style::Fill(Fill::NonZero) => encoding_cache.encode_linewidth(-1.0),
-                Style::Fill(Fill::EvenOdd) => encoding_cache.encode_linewidth(-2.0),
-                Style::Stroke(stroke) => encoding_cache.encode_linewidth(stroke.width),
+                Style::Fill(Fill::NonZero) => encoding_cache.encode_linewidth(-1.0,None),
+                Style::Fill(Fill::EvenOdd) => encoding_cache.encode_linewidth(-2.0,None),
+                Style::Stroke(stroke) => encoding_cache.encode_linewidth(stroke.width,None),
             }
             let mut path = encoding_cache.encode_path(is_fill);
             scaler
@@ -86,6 +86,7 @@ impl CachedRange {
             draw_data: self.end.draw_data - self.start.draw_data,
             transforms: self.end.transforms - self.start.transforms,
             linewidths: self.end.linewidths - self.start.linewidths,
+            dasharrays: self.end.dasharrays - self.start.dasharrays,
             patterns: self.end.patterns - self.start.patterns,
         }
     }

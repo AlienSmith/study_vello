@@ -1,7 +1,7 @@
 // Copyright 2022 The Vello authors
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use std::f32::consts::PI;
+use std::{f32::consts::PI, sync::Arc};
 
 use crate::math::PatternData;
 
@@ -53,6 +53,8 @@ pub struct Encoding {
     pub transforms: Vec<Transform>,
     /// The line width stream.
     pub linewidths: Vec<f32>,
+    /// The dash array stream.
+    pub dasharrays: Vec<f32>,
     /// the following transform would be in screen space
     pub transform_state: TransformState,
     /// whether the corresponding transform is in screen space
@@ -100,6 +102,7 @@ impl Encoding {
         self.path_tags.clear();
         self.path_data.clear();
         self.linewidths.clear();
+        self.dasharrays.clear();
         self.draw_data.clear();
         self.draw_tags.clear();
         self.n_paths = 0;
@@ -112,6 +115,9 @@ impl Encoding {
         if !is_fragment {
             self.transforms.push(Transform::IDENTITY);
             self.linewidths.push(-1.0);
+            self.linewidths.push(0.0);
+            self.linewidths.push(0.0);
+            self.dasharrays.push(1.0);
             self.should_ignore_camera_transforms.push(TransformState::DEFAULT);
         }
     }
@@ -142,6 +148,7 @@ impl Encoding {
                     run.stream_offsets.draw_data += offsets.draw_data;
                     run.stream_offsets.transforms += offsets.transforms;
                     run.stream_offsets.linewidths += offsets.linewidths;
+                    run.stream_offsets.dasharrays += offsets.dasharrays;
                     run.stream_offsets.patterns += offsets.patterns;
                     run
                 }));
@@ -207,6 +214,7 @@ impl Encoding {
             self.camera_transform = None;
         }
         self.linewidths.extend_from_slice(&other.linewidths);
+        self.dasharrays.extend_from_slice(&other.dasharrays);
         self.pattern_data.extend_from_slice(&other.pattern_data);
     }
 
@@ -219,16 +227,23 @@ impl Encoding {
             draw_data: self.draw_data.len(),
             transforms: self.transforms.len(),
             linewidths: self.linewidths.len(),
+            dasharrays: self.dasharrays.len(),
             patterns: self.pattern_data.len(),
         }
     }
 
-    /// Encodes a linewidth.
-    pub fn encode_linewidth(&mut self, linewidth: f32) {
-        if self.linewidths.last() != Some(&linewidth) {
-            self.path_tags.push(PathTag::LINEWIDTH);
-            self.linewidths.push(linewidth);
+    /// Encodes a linewidth with dash array even bing filled odd being void.
+    pub fn encode_linewidth(&mut self, linewidth: f32, dash_array: Option<Vec<f32>>) {
+        //TODO add check of same linewidth and dash_array to save space
+        let start = self.dasharrays.len();
+        if let Some(array) = dash_array{
+            self.dasharrays.extend(array);
         }
+        let end = self.dasharrays.len();
+        self.path_tags.push(PathTag::LINEWIDTH);
+        self.linewidths.push(linewidth);
+        self.linewidths.push(start as f32);
+        self.linewidths.push(end as f32);
     }
 
     /// Encodes a transform.
@@ -539,6 +554,8 @@ pub struct StreamOffsets {
     pub transforms: usize,
     /// Current length of linewidth stream.
     pub linewidths: usize,
+    /// Current length of dash array.
+    pub dasharrays: usize,
     /// Current length of pattern stream.
     pub patterns: usize,
 }
@@ -552,6 +569,7 @@ impl StreamOffsets {
         self.draw_data += other.draw_data;
         self.transforms += other.transforms;
         self.linewidths += other.linewidths;
+        self.dasharrays += other.dasharrays;
         self.patterns += other.patterns;
     }
 }

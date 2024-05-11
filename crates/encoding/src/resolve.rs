@@ -42,6 +42,8 @@ pub struct Layout {
     pub transform_base: u32,
     /// Start of linewidth stream.
     pub linewidth_base: u32,
+    /// Start of dasharrays stream.
+    pub dasharrays_base: u32,
     /// Start of pattern stream.
     pub pattern_base: u32,
 }
@@ -158,6 +160,9 @@ pub fn resolve_solid_paths_only(encoding: &Encoding, packed: &mut Vec<u8>) -> La
     // Linewidth stream
     layout.linewidth_base = size_to_words(data.len());
     data.extend_from_slice(bytemuck::cast_slice(&encoding.linewidths));
+    // dasharrays stream
+    layout.dasharrays_base = size_to_words(data.len());
+    data.extend_from_slice(bytemuck::cast_slice(&encoding.dasharrays));
     // Pattern stream
     layout.pattern_base = size_to_words(data.len());
     data.extend_from_slice(bytemuck::cast_slice(&encoding.pattern_data));
@@ -390,6 +395,9 @@ impl Resolver {
                 data.extend_from_slice(bytemuck::cast_slice(&stream[pos..]));
             }
         }
+        // dasharrays stream
+        layout.dasharrays_base = size_to_words(data.len());
+        data.extend_from_slice(bytemuck::cast_slice(&encoding.dasharrays));
         // Pattern stream
         layout.pattern_base = size_to_words(data.len());
         data.extend_from_slice(bytemuck::cast_slice(&encoding.pattern_data));
@@ -625,6 +633,7 @@ impl SceneBufferSizes {
             + slice_size_in_bytes(&encoding.draw_data, patch_sizes.draw_data)
             + slice_size_in_bytes(&encoding.transforms, patch_sizes.transforms)
             + slice_size_in_bytes(&encoding.linewidths, patch_sizes.linewidths)
+            + slice_size_in_bytes(&encoding.dasharrays, patch_sizes.dasharrays)
             + slice_size_in_bytes(&encoding.pattern_data, patch_sizes.patterns);
         Self {
             buffer_size,
