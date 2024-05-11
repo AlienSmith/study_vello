@@ -20,6 +20,8 @@ mod engine;
 mod render;
 mod scene;
 mod shaders;
+#[cfg(feature = "wgpu")]
+mod wgpu_engine;
 
 /// Styling and composition primitives.
 pub use peniko;
@@ -30,17 +32,25 @@ pub use peniko::kurbo;
 pub use fello;
 
 pub mod glyph;
+
+#[cfg(feature = "wgpu")]
 pub mod util;
 
-use render::Render;
+pub use render::Render;
 pub use scene::{DrawGlyphs, Scene, SceneBuilder, SceneFragment};
+#[cfg(feature = "wgpu")]
 pub use util::block_on_wgpu;
 
-use engine::{Engine, ExternalResource, Recording};
-use shaders::FullShaders;
+pub use engine::{
+    BufProxy, Command, Id, ImageFormat, ImageProxy, Recording, ResourceProxy, ShaderId,
+};
+pub use shaders::FullShaders;
+#[cfg(feature = "wgpu")]
+use wgpu_engine::{ExternalResource, WgpuEngine};
 
 /// Temporary export, used in with_winit for stats
 pub use vello_encoding::BumpAllocators;
+#[cfg(feature = "wgpu")]
 use wgpu::{Device, Queue, SurfaceTexture, TextureFormat, TextureView};
 #[cfg(feature = "wgpu-profiler")]
 use wgpu_profiler::GpuProfiler;
@@ -52,8 +62,9 @@ pub type Error = Box<dyn std::error::Error>;
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// Renders a scene into a texture or surface.
+#[cfg(feature = "wgpu")]
 pub struct Renderer {
-    engine: Engine,
+    engine: WgpuEngine,
     shaders: FullShaders,
     blit: Option<BlitPipeline>,
     target: Option<TargetTexture>,
@@ -74,6 +85,7 @@ pub struct RenderParams {
     pub height: u32,
 }
 
+#[cfg(feature = "wgpu")]
 pub struct RendererOptions {
     /// The format of the texture used for surfaces with this renderer/device
     /// If None, the renderer cannot be used with surfaces
@@ -84,10 +96,11 @@ pub struct RendererOptions {
     pub use_cpu: bool,
 }
 
+#[cfg(feature = "wgpu")]
 impl Renderer {
     /// Creates a new renderer for the specified device.
     pub fn new(device: &Device, render_options: &RendererOptions) -> Result<Self> {
-        let mut engine = Engine::new();
+        let mut engine = WgpuEngine::new();
         let shaders = shaders::full_shaders(device, &mut engine, render_options.use_cpu)?;
         let blit = render_options
             .surface_format
@@ -206,7 +219,7 @@ impl Renderer {
     #[cfg(feature = "hot_reload")]
     pub async fn reload_shaders(&mut self, device: &Device) -> Result<()> {
         device.push_error_scope(wgpu::ErrorFilter::Validation);
-        let mut engine = Engine::new();
+        let mut engine = WgpuEngine::new();
         let shaders = shaders::full_shaders(device, &mut engine, false)?;
         let error = device.pop_error_scope().await;
         if let Some(error) = error {
@@ -354,12 +367,14 @@ impl Renderer {
     }
 }
 
+#[cfg(feature = "wgpu")]
 struct TargetTexture {
     view: TextureView,
     width: u32,
     height: u32,
 }
 
+#[cfg(feature = "wgpu")]
 impl TargetTexture {
     pub fn new(device: &Device, width: u32, height: u32) -> Self {
         let texture = device.create_texture(&wgpu::TextureDescriptor {
@@ -385,11 +400,13 @@ impl TargetTexture {
     }
 }
 
+#[cfg(feature = "wgpu")]
 struct BlitPipeline {
     bind_layout: wgpu::BindGroupLayout,
     pipeline: wgpu::RenderPipeline,
 }
 
+#[cfg(feature = "wgpu")]
 impl BlitPipeline {
     fn new(device: &Device, format: TextureFormat) -> Self {
         const SHADERS: &str = r#"
