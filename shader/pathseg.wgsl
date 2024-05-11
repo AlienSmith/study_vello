@@ -116,6 +116,7 @@ fn main(
     @builtin(local_invocation_id) local_id: vec3<u32>,
 ) {
     let ix = global_id.x;
+    //the cubic buffer is always bigger than path_tag_count so it will never fail here
     if ix == 0u {
         let path_tag_count = 4u*(config.pathdata_base - config.pathtag_base);
         atomicStore(&bump.cubic, path_tag_count);

@@ -78,6 +78,8 @@ pub struct ConfigUniform {
     pub segments_size: u32,
     /// Size of per-tile command list buffer allocation (in u32s).
     pub ptcl_size: u32,
+    /// Size of Cubic buffer allocation (in Cubic).
+    pub cubic_size: u32,
 }
 
 #[derive(Clone, Copy, Debug, Zeroable, Pod)]
@@ -139,6 +141,7 @@ impl RenderConfig {
                 tiles_size: buffer_sizes.tiles.len(),
                 segments_size: buffer_sizes.segments.len(),
                 ptcl_size: buffer_sizes.ptcl.len(),
+                cubic_size: buffer_sizes.cubics.len(),
                 layout: *layout,
             },
             workgroup_counts,

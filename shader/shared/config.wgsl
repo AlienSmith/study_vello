@@ -39,6 +39,7 @@ struct Config {
     tiles_size: u32,
     segments_size: u32,    
     ptcl_size: u32,
+    cubic_size: u32,
 }
 
 // Geometry of tiles and bins
