@@ -282,32 +282,32 @@ impl Render {
         );
 
         
-        if wg_counts.use_patterns{
-            let camera_buf = ResourceProxy::Buf(
-                recording.upload_uniform("camera", bytemuck::bytes_of(&cpu_config.camera_transform)),
-            );
-            recording.dispatch(
-                shaders.path_count_setup,
-                (1, 1, 1),
-                [bump_buf, indirect_count_buf.into()],
-            );
-            recording.dispatch_indirect(
-                shaders.pattern,
-                indirect_count_buf,
-                0,
-                [
-                    config_buf,
-                    camera_buf,
-                    scene_buf,
-                    clip_bbox_buf,
-                    path_to_pattern_buf,
-                    path_bbox_buf,
-                    bump_buf,
-                    lines_buf,
-                ],
-            );
-        }
-        recording.free_resource(path_to_pattern_buf);
+        // if wg_counts.use_patterns{
+        //     let camera_buf = ResourceProxy::Buf(
+        //         recording.upload_uniform("camera", bytemuck::bytes_of(&cpu_config.camera_transform)),
+        //     );
+        //     recording.dispatch(
+        //         shaders.path_count_setup,
+        //         (1, 1, 1),
+        //         [bump_buf, indirect_count_buf.into()],
+        //     );
+        //     recording.dispatch_indirect(
+        //         shaders.pattern,
+        //         indirect_count_buf,
+        //         0,
+        //         [
+        //             config_buf,
+        //             camera_buf,
+        //             scene_buf,
+        //             clip_bbox_buf,
+        //             path_to_pattern_buf,
+        //             path_bbox_buf,
+        //             bump_buf,
+        //             lines_buf,
+        //         ],
+        //     );
+        // }
+        // recording.free_resource(path_to_pattern_buf);
 
         let draw_bbox_buf = ResourceProxy::new_buf(
             buffer_sizes.draw_bboxes.size_in_bytes().into(),

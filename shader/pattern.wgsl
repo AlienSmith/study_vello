@@ -4,6 +4,7 @@
 #import bump
 #import segment
 #import transform
+#import cubic
 
 struct InputTransform {
     matrx: vec4<f32>,
@@ -33,7 +34,7 @@ var<storage, read_write> path_bbox: array<PathBbox>;
 var<storage, read_write> bump: BumpAllocators;
 
 @group(0) @binding(7)
-var<storage, read_write> lines: array<LineSoup>;
+var<storage, read_write> lines: array<Cubic>;
 
 var<private> is_in_screen_space: bool;
 var<private> bbox: vec4<f32>;
@@ -87,119 +88,119 @@ fn main(
     @builtin(global_invocation_id) global_id: vec3<u32>,
     @builtin(local_invocation_id) local_id: vec3<u32>,
 ) {
-    let count = atomicLoad(&bump.lines_before);
-    let index = global_id.x;
-    if(index >= count){
-        return;
-    }
-    let soup = lines[index];
-    let info = path_to_pattern[soup.path_ix];
+    // let count = atomicLoad(&bump.lines_before);
+    // let index = global_id.x;
+    // if(index >= count){
+    //     return;
+    // }
+    // let soup = lines[index];
+    // let info = path_to_pattern[soup.path_ix];
 
-    if info.pattern_ix == 0u {
-        return;
-    }
-    world_to_screen =Transform(camera.matrx, camera.translate);
-    screen_to_world = transform_inverse(world_to_screen);
+    // if info.pattern_ix == 0u {
+    //     return;
+    // }
+    // world_to_screen =Transform(camera.matrx, camera.translate);
+    // screen_to_world = transform_inverse(world_to_screen);
 
-    bbox = vec4(1e9, 1e9, -1e9, -1e9);
-    let pattern = read_pattern(config.pattern_base, info.pattern_ix - 1u);
-    var clip_bbox = clip_bbox_buf[info.clip_ix - 1u];
+    // bbox = vec4(1e9, 1e9, -1e9, -1e9);
+    // let pattern = read_pattern(config.pattern_base, info.pattern_ix - 1u);
+    // var clip_bbox = clip_bbox_buf[info.clip_ix - 1u];
 
-    is_in_screen_space = pattern.is_screen_space > 0u;
+    // is_in_screen_space = pattern.is_screen_space > 0u;
         
-    var center = vec2<f32>(0.5 * ( clip_bbox.x + clip_bbox.z), 0.5 * (clip_bbox.y + clip_bbox.w));
+    // var center = vec2<f32>(0.5 * ( clip_bbox.x + clip_bbox.z), 0.5 * (clip_bbox.y + clip_bbox.w));
 
-    ///camera culling
-    let width = config.width_in_tiles * TILE_WIDTH;
-    let height = config.height_in_tiles * TILE_HEIGHT;
-    clip_bbox = bbox_intersect(clip_bbox, vec4<f32>(0.0, 0.0, f32(width), f32(height)));
+    // ///camera culling
+    // let width = config.width_in_tiles * TILE_WIDTH;
+    // let height = config.height_in_tiles * TILE_HEIGHT;
+    // clip_bbox = bbox_intersect(clip_bbox, vec4<f32>(0.0, 0.0, f32(width), f32(height)));
 
-    let clip_center = vec2<f32>(f32(width) * 0.5, f32(height) * 0.5);
-    let radians = pattern.rotation;
-    let sin_theta = sin(radians);
-    let cos_theta = cos(radians);
-    let pattern_rotation = vec4(cos_theta, sin_theta, -1.0 * sin_theta, cos_theta);
+    // let clip_center = vec2<f32>(f32(width) * 0.5, f32(height) * 0.5);
+    // let radians = pattern.rotation;
+    // let sin_theta = sin(radians);
+    // let cos_theta = cos(radians);
+    // let pattern_rotation = vec4(cos_theta, sin_theta, -1.0 * sin_theta, cos_theta);
 
-    let delta_center = center - clip_center;
-    var pattern_x_in_clip_space = pattern_rotation.xy * pattern.box_scale.x;
-    var pattern_y_in_clip_space = pattern_rotation.zw * pattern.box_scale.y;
-    if(!is_in_screen_space){
-        pattern_x_in_clip_space = transform_apply_vector(world_to_screen, pattern_x_in_clip_space);
-        pattern_y_in_clip_space = transform_apply_vector(world_to_screen, pattern_y_in_clip_space);
-    }
+    // let delta_center = center - clip_center;
+    // var pattern_x_in_clip_space = pattern_rotation.xy * pattern.box_scale.x;
+    // var pattern_y_in_clip_space = pattern_rotation.zw * pattern.box_scale.y;
+    // if(!is_in_screen_space){
+    //     pattern_x_in_clip_space = transform_apply_vector(world_to_screen, pattern_x_in_clip_space);
+    //     pattern_y_in_clip_space = transform_apply_vector(world_to_screen, pattern_y_in_clip_space);
+    // }
 
-    let pattern_x_in_clip_space_dir = normalize(pattern_x_in_clip_space);
-    let pattern_x_in_clip_space_length = length(pattern_x_in_clip_space);
-    let pattern_y_in_clip_space_dir = normalize(pattern_y_in_clip_space);
-    let pattern_y_in_clip_space_length = length(pattern_y_in_clip_space);
+    // let pattern_x_in_clip_space_dir = normalize(pattern_x_in_clip_space);
+    // let pattern_x_in_clip_space_length = length(pattern_x_in_clip_space);
+    // let pattern_y_in_clip_space_dir = normalize(pattern_y_in_clip_space);
+    // let pattern_y_in_clip_space_length = length(pattern_y_in_clip_space);
 
-    let x_projection = dot(delta_center, pattern_x_in_clip_space_dir);
-    let floor_x = floor(x_projection / pattern_x_in_clip_space_length);
-    let y_projection = dot(delta_center, pattern_y_in_clip_space_dir);
-    let floor_y = floor(y_projection / pattern_y_in_clip_space_length);
-    let floor = floor_x * pattern_x_in_clip_space + floor_y * pattern_y_in_clip_space;
-    center -= floor;
+    // let x_projection = dot(delta_center, pattern_x_in_clip_space_dir);
+    // let floor_x = floor(x_projection / pattern_x_in_clip_space_length);
+    // let y_projection = dot(delta_center, pattern_y_in_clip_space_dir);
+    // let floor_y = floor(y_projection / pattern_y_in_clip_space_length);
+    // let floor = floor_x * pattern_x_in_clip_space + floor_y * pattern_y_in_clip_space;
+    // center -= floor;
     
-    if(!is_in_screen_space){
-        center = transform_apply(screen_to_world, center);
-    }
+    // if(!is_in_screen_space){
+    //     center = transform_apply(screen_to_world, center);
+    // }
         
-    let pox_x = center.x + pattern.start.x;
-    let pox_y = center.y + pattern.start.y;
-    let delta_x = pattern.box_scale.x;
-    let delta_y = pattern.box_scale.y;
+    // let pox_x = center.x + pattern.start.x;
+    // let pox_y = center.y + pattern.start.y;
+    // let delta_x = pattern.box_scale.x;
+    // let delta_y = pattern.box_scale.y;
 
-    let pattern_to_world_or_screen = Transform(pattern_rotation, vec2(pox_x, pox_y));
-    let rotate = vec4(cos_theta, -1.0 * sin_theta, sin_theta, cos_theta);
-    let translated = rotate.xy * -1.0 * pox_x + rotate.zw * -1.0 * pox_y;
-    let screen_or_world_to_pattern = Transform(rotate, translated);
+    // let pattern_to_world_or_screen = Transform(pattern_rotation, vec2(pox_x, pox_y));
+    // let rotate = vec4(cos_theta, -1.0 * sin_theta, sin_theta, cos_theta);
+    // let translated = rotate.xy * -1.0 * pox_x + rotate.zw * -1.0 * pox_y;
+    // let screen_or_world_to_pattern = Transform(rotate, translated);
 
-    if(is_in_screen_space){
-        pattern_to_screen = pattern_to_world_or_screen;
-        screen_to_pattern = screen_or_world_to_pattern;
-    }else{
-        pattern_to_screen = transform_mul(world_to_screen, pattern_to_world_or_screen);
-        screen_to_pattern = transform_mul(screen_or_world_to_pattern,screen_to_world);
-    }        
+    // if(is_in_screen_space){
+    //     pattern_to_screen = pattern_to_world_or_screen;
+    //     screen_to_pattern = screen_or_world_to_pattern;
+    // }else{
+    //     pattern_to_screen = transform_mul(world_to_screen, pattern_to_world_or_screen);
+    //     screen_to_pattern = transform_mul(screen_or_world_to_pattern,screen_to_world);
+    // }        
 
-    //We don't care which thread does the write it will be the same
-    let out = &path_bbox[soup.path_ix];
-    (*out).x0 = i32(clip_bbox.x);
-    (*out).y0 = i32(clip_bbox.y);
-    (*out).x1 = i32(clip_bbox.z);
-    (*out).y1 = i32(clip_bbox.w);
+    // //We don't care which thread does the write it will be the same
+    // let out = &path_bbox[soup.path_ix];
+    // (*out).x0 = i32(clip_bbox.x);
+    // (*out).y0 = i32(clip_bbox.y);
+    // (*out).x1 = i32(clip_bbox.z);
+    // (*out).y1 = i32(clip_bbox.w);
 
-    compare_bbox(clip_bbox.xy);
-    compare_bbox(clip_bbox.xw);
-    compare_bbox(clip_bbox.zy);
-    compare_bbox(clip_bbox.zw);
+    // compare_bbox(clip_bbox.xy);
+    // compare_bbox(clip_bbox.xw);
+    // compare_bbox(clip_bbox.zy);
+    // compare_bbox(clip_bbox.zw);
 
-    let SX = (1.0 / pattern.box_scale.x);
-    let SY = (1.0 / pattern.box_scale.y);
-    let min_x = round_down(bbox.x * SX);
-    let min_y = round_down(bbox.y * SY);
-    let max_x = round_up(bbox.z * SX);
-    let max_y = round_up(bbox.w * SX);
+    // let SX = (1.0 / pattern.box_scale.x);
+    // let SY = (1.0 / pattern.box_scale.y);
+    // let min_x = round_down(bbox.x * SX);
+    // let min_y = round_down(bbox.y * SY);
+    // let max_x = round_up(bbox.z * SX);
+    // let max_y = round_up(bbox.w * SX);
 
-    var line_count =  u32(max_x - min_x) * u32(max_y - min_y) - 1u;
-    let line_ix = atomicAdd(&bump.lines, line_count);
+    // var line_count =  u32(max_x - min_x) * u32(max_y - min_y) - 1u;
+    // let line_ix = atomicAdd(&bump.lines, line_count);
 
-    var local_offset = 0u;
-    for(var ix = min_x; ix < max_x; ix += 1){
-        for(var iy = min_y; iy < max_y; iy += 1){
-            let pivot_x = (f32(ix) + 0.5) * delta_x;
-            let pivot_y = (f32(iy) + 0.5)* delta_y;
-            let pivot = vec2(pivot_x, pivot_y);
-            let p0 = apply_offset(soup.p0, pivot);
-            let p1 = apply_offset(soup.p1, pivot);
-            let instance = LineSoup(soup.path_ix, p0, p1);
-            if(ix == min_x && iy == min_y){
-                lines[index] = instance;
-            }
-            else{
-                lines[line_ix + local_offset] = instance;
-                local_offset += 1u;
-            }
-        }
-    }
+    // var local_offset = 0u;
+    // for(var ix = min_x; ix < max_x; ix += 1){
+    //     for(var iy = min_y; iy < max_y; iy += 1){
+    //         let pivot_x = (f32(ix) + 0.5) * delta_x;
+    //         let pivot_y = (f32(iy) + 0.5)* delta_y;
+    //         let pivot = vec2(pivot_x, pivot_y);
+    //         let p0 = apply_offset(soup.p0, pivot);
+    //         let p1 = apply_offset(soup.p1, pivot);
+    //         let instance = LineSoup(soup.path_ix, p0, p1);
+    //         if(ix == min_x && iy == min_y){
+    //             lines[index] = instance;
+    //         }
+    //         else{
+    //             lines[line_ix + local_offset] = instance;
+    //             local_offset += 1u;
+    //         }
+    //     }
+    // }
 }

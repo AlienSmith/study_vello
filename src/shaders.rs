@@ -206,7 +206,7 @@ pub fn full_shaders(
     let pattern = engine.add_shader(
         device,
         "pattern",
-        preprocess::preprocess(shader!("binning"), &empty, &imports).into(),
+        preprocess::preprocess(shader!("pattern"), &empty, &imports).into(),
         &[
             BindType::Uniform,
             BindType::Uniform,
