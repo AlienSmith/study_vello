@@ -107,19 +107,21 @@ fn main(
     // Exit early if prior stages failed, as we can't run this stage.
     // We need to check only prior stages, as if this stage has failed in another workgroup, 
     // we still want to know this workgroup's memory requirement.   
-    if (atomicLoad(&bump.failed) & (STAGE_BINNING | STAGE_TILE_ALLOC)) != 0u {
+    if (atomicLoad(&bump.failed) & (STAGE_BINNING | STAGE_TILE_ALLOC | STAGE_PATTERN)) != 0u {
         return;
     }
     let ix = global_id.x;
-    let tag_word = scene[config.pathtag_base + (ix >> 2u)];
-    let shift = (ix & 3u) * 8u;
-    var tag_byte = (tag_word >> shift) & 0xffu;
+    if ix >= atomicLoad(&bump.cubic){
+        return;
+    }
+
+    let cubic = cubics[global_id.x];
+    var tag_byte = cubic.tag_byte;
 
     if (tag_byte & PATH_TAG_SEG_TYPE) != 0u {
         // Discussion question: it might actually be cheaper to do the path segment
         // decoding & transform again rather than store the result in a buffer;
         // classic memory vs ALU tradeoff.
-        let cubic = cubics[global_id.x];
         let path = paths[cubic.path_ix];
         let is_stroke = (cubic.flags & CUBIC_IS_STROKE) != 0u;
         let bbox = vec4<i32>(path.bbox);

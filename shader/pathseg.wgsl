@@ -15,6 +15,7 @@
 #import pathtag
 #import cubic
 #import transform
+#import bump
 
 @group(0) @binding(0)
 var<uniform> config: Config;
@@ -39,6 +40,9 @@ var<storage, read_write> path_bboxes: array<AtomicPathBbox>;
 
 @group(0) @binding(4)
 var<storage, read_write> cubics: array<Cubic>;
+
+@group(0) @binding(5)
+var<storage, read_write> bump: BumpAllocators;
 
 // Monoid is yagni, for future optimization
 
@@ -112,6 +116,10 @@ fn main(
     @builtin(local_invocation_id) local_id: vec3<u32>,
 ) {
     let ix = global_id.x;
+    if ix == 0u {
+        let path_tag_count = 4u*(config.pathdata_base - config.pathtag_base);
+        atomicStore(&bump.cubic, path_tag_count);
+    }
     let tag_word = scene[config.pathtag_base + (ix >> 2u)];
     pathdata_base = config.pathdata_base;
     let shift = (ix & 3u) * 8u;
@@ -181,7 +189,7 @@ fn main(
             bbox += vec4(-stroke, stroke);
         }
         let flags = u32(linewidth >= 0.0);
-        cubics[global_id.x] = Cubic(p0, p1, p2, p3, stroke, tm.path_ix, flags);
+        cubics[global_id.x] = Cubic(p0, p1, p2, p3, stroke, tm.path_ix, flags, tag_byte);
         // Update bounding box using atomics only. Computing a monoid is a
         // potential future optimization.
         if bbox.z > bbox.x || bbox.w > bbox.y {

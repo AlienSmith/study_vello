@@ -8,6 +8,7 @@ struct Cubic {
     stroke: vec2<f32>,
     path_ix: u32,
     flags: u32,
+    tag_byte: u32,
 }
 
 let CUBIC_IS_STROKE = 1u;

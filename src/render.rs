@@ -192,6 +192,12 @@ impl Render {
         );
         let cubic_buf =
             ResourceProxy::new_buf(buffer_sizes.cubics.size_in_bytes().into(), "cubic_buf");
+        
+        let bump_buf = BufProxy::new(buffer_sizes.bump_alloc.size_in_bytes().into(), "bump_buf");
+        recording.clear_all(bump_buf);
+        let bump_buf = ResourceProxy::Buf(bump_buf);
+
+        recording.clear_all(*cubic_buf.as_buf().unwrap());
         recording.dispatch(
             shaders.pathseg,
             wg_counts.path_seg,
@@ -201,6 +207,7 @@ impl Render {
                 tagmonoid_buf,
                 path_bbox_buf,
                 cubic_buf,
+                bump_buf,
             ],
         );
         let draw_reduced_buf = ResourceProxy::new_buf(
@@ -224,7 +231,6 @@ impl Render {
             buffer_sizes.path_to_pattern.size_in_bytes().into(),
             "path_to_pattern_buf",
         );
-        let bump_buf = BufProxy::new(buffer_sizes.bump_alloc.size_in_bytes().into(), "bump_buf");
         recording.dispatch(
             shaders.draw_leaf,
             wg_counts.draw_leaf,
@@ -276,38 +282,26 @@ impl Render {
         recording.free_resource(clip_bic_buf);
         recording.free_resource(clip_el_buf);
 
-        let indirect_count_buf = BufProxy::new(
-            buffer_sizes.indirect_count.size_in_bytes().into(),
-            "indirect_count",
-        );
-
-        
-        // if wg_counts.use_patterns{
-        //     let camera_buf = ResourceProxy::Buf(
-        //         recording.upload_uniform("camera", bytemuck::bytes_of(&cpu_config.camera_transform)),
-        //     );
-        //     recording.dispatch(
-        //         shaders.path_count_setup,
-        //         (1, 1, 1),
-        //         [bump_buf, indirect_count_buf.into()],
-        //     );
-        //     recording.dispatch_indirect(
-        //         shaders.pattern,
-        //         indirect_count_buf,
-        //         0,
-        //         [
-        //             config_buf,
-        //             camera_buf,
-        //             scene_buf,
-        //             clip_bbox_buf,
-        //             path_to_pattern_buf,
-        //             path_bbox_buf,
-        //             bump_buf,
-        //             lines_buf,
-        //         ],
-        //     );
-        // }
-        // recording.free_resource(path_to_pattern_buf);
+        if wg_counts.use_patterns{
+            let camera_buf = ResourceProxy::Buf(
+                recording.upload_uniform("camera", bytemuck::bytes_of(&cpu_config.camera_transform)),
+            );
+            recording.dispatch(
+                shaders.pattern,
+                wg_counts.path_coarse,
+                [
+                    config_buf,
+                    camera_buf,
+                    scene_buf,
+                    clip_bbox_buf,
+                    path_to_pattern_buf,
+                    path_bbox_buf,
+                    bump_buf,
+                    cubic_buf,
+                ],
+            );
+        }
+        recording.free_resource(path_to_pattern_buf);
 
         let draw_bbox_buf = ResourceProxy::new_buf(
             buffer_sizes.draw_bboxes.size_in_bytes().into(),
@@ -318,8 +312,6 @@ impl Render {
             buffer_sizes.bin_headers.size_in_bytes().into(),
             "bin_header_buf",
         );
-        recording.clear_all(bump_buf);
-        let bump_buf = ResourceProxy::Buf(bump_buf);
         recording.dispatch(
             shaders.binning,
             wg_counts.binning,
@@ -353,10 +345,26 @@ impl Render {
                 tile_buf,
             ],
         );
-        recording.free_resource(draw_bbox_buf);
+
+        let indirect_count_buf = BufProxy::new(
+            buffer_sizes.indirect_count.size_in_bytes().into(),
+            "indirect_count",
+        );
+
         recording.dispatch(
+            shaders.path_coarse_counter,
+            (1,1,1),
+            [
+                bump_buf,
+                indirect_count_buf.into(),
+            ],
+        );
+
+        recording.free_resource(draw_bbox_buf);
+        recording.dispatch_indirect(
             shaders.path_coarse,
-            wg_counts.path_coarse,
+            indirect_count_buf,
+            0,
             [
                 config_buf,
                 scene_buf,
@@ -367,6 +375,19 @@ impl Render {
                 segments_buf,
             ],
         );
+        // recording.dispatch(
+        //         shaders.path_coarse,
+        //         wg_counts.path_coarse,
+        //         [
+        //             config_buf,
+        //             scene_buf,
+        //             cubic_buf,
+        //             path_buf,
+        //             bump_buf,
+        //             tile_buf,
+        //             segments_buf,
+        //         ],
+        //     );
         recording.free_resource(tagmonoid_buf);
         recording.free_resource(cubic_buf);
         recording.dispatch(

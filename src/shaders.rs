@@ -73,6 +73,7 @@ pub struct FullShaders {
     pub pattern: ShaderId,
     pub binning: ShaderId,
     pub tile_alloc: ShaderId,
+    pub path_coarse_counter: ShaderId,
     pub path_coarse: ShaderId,
     pub backdrop: ShaderId,
     pub coarse: ShaderId,
@@ -156,6 +157,7 @@ pub fn full_shaders(
             BindType::Uniform,
             BindType::BufReadOnly,
             BindType::BufReadOnly,
+            BindType::Buffer,
             BindType::Buffer,
             BindType::Buffer,
         ],
@@ -252,6 +254,16 @@ pub fn full_shaders(
         ],
     )?;
 
+    let path_coarse_counter = engine.add_shader(
+        device,
+        "path_coarse_counter",
+        preprocess::preprocess(shader!("path_coarse_counter"), &full_config, &imports).into(),
+        &[
+            BindType::BufReadOnly,
+            BindType::Buffer,
+        ],
+    )?;
+
     let path_coarse = engine.add_shader(
         device,
         "path_coarse_full",
@@ -317,6 +329,7 @@ pub fn full_shaders(
         pattern,
         binning,
         tile_alloc,
+        path_coarse_counter,
         path_coarse,
         backdrop,
         coarse,

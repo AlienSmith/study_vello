@@ -33,8 +33,8 @@ pub struct BumpAllocators {
     pub tile: u32,
     pub segments: u32,
     pub blend: u32,
-    pub lines: u32,
-    pub lines_before: u32,
+    pub cubic: u32,
+    pub padding: u32,
 }
 
 /// Storage of indirect dispatch size values.
@@ -325,7 +325,6 @@ impl BufferSizes {
         let path_reduced_scan = BufferSize::new(path_tag_wgs);
         let path_monoids = BufferSize::new(path_tag_wgs * PATH_REDUCE_WG);
         let path_bboxes = BufferSize::new(n_paths);
-        let cubics = BufferSize::new(n_path_tags);
         let draw_object_wgs = workgroups.draw_reduce.0;
         let draw_reduced = BufferSize::new(draw_object_wgs);
         let draw_monoids = BufferSize::new(n_draw_objects);
@@ -349,6 +348,7 @@ impl BufferSizes {
         let tiles = BufferSize::new(1 << 21);
         let segments = BufferSize::new(1 << 21);
         let ptcl = BufferSize::new(1 << 23);
+        let cubics = BufferSize::new(n_path_tags + (1 << 18));
         Self {
             path_reduced,
             path_reduced2,
