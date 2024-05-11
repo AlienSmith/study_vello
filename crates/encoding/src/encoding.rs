@@ -117,7 +117,6 @@ impl Encoding {
             self.linewidths.push(-1.0);
             self.linewidths.push(0.0);
             self.linewidths.push(0.0);
-            self.dasharrays.push(1.0);
             self.should_ignore_camera_transforms.push(TransformState::DEFAULT);
         }
     }

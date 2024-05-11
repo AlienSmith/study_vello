@@ -529,7 +529,7 @@ fn render_cardioid(sb: &mut SceneBuilder) {
     );
 }
 fn cardioid() -> BezPath {
-    let n = 2;
+    let n = 601;
     let dth = std::f64::consts::PI * 2.0 / (n as f64);
     let center = Point::new(1024.0, 768.0);
     let r = 750.0;
@@ -901,6 +901,19 @@ fn pattern_test(sb: &mut SceneBuilder,_params: &mut SceneParams) {
             );
         sb.pop_pattern();
 
+        sb.push_pattern(Vec2::new(0.0,20.0), Vec2::new(25.0,25.0), 0.0,false);
+
+            sb.stroke_dash(
+                &Stroke::new(2.0),
+                Affine::IDENTITY,
+                Color::rgb8(0, 0, 255),
+                None,
+                &kurbo::Ellipse::new((0.0, 0.0), Vec2::new(5.0,10.0), 0.0),
+                vec![5.0,5.0]
+            );
+
+        sb.pop_pattern();
+
         sb.fill(
             peniko::Fill::NonZero,
             transform,
@@ -924,12 +937,13 @@ fn pattern_test(sb: &mut SceneBuilder,_params: &mut SceneParams) {
 fn gpu_dash_test(sb: &mut SceneBuilder,_params: &mut SceneParams) {
     let path = cardioid();
     let mut stroke = Stroke::new(2.0);
-    sb.stroke(
+    sb.stroke_dash(
         &stroke,
         Affine::IDENTITY,
         Color::rgb8(0, 0, 255),
         None,
         &path,
+        vec![0.0,10.0, 10.0, 20.0, 5.0, 20.0]
     );
 }
 fn rectangle_test(sb: &mut SceneBuilder,_params: &mut SceneParams){

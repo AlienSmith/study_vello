@@ -280,8 +280,8 @@ fn stroke_path(seg: u32, half_width: f32, xy: vec2<f32>) -> array<f32, PIXELS_PE
     }
     var segment_ix = seg;
     let temp_segment = segments[segment_ix];
-    //read_dashes_array_from_scene(temp_segment.dash_start, temp_segment.dash_size, temp_segment.dash_modifier);
-    dummy_array(temp_segment.dash_modifier);
+    read_dashes_array_from_scene(temp_segment.dash_start, temp_segment.dash_size, temp_segment.dash_modifier);
+    //dummy_array(temp_segment.dash_modifier);
     while segment_ix != 0u {
         let segment = segments[segment_ix];
         let delta = segment.delta;

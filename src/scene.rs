@@ -150,7 +150,32 @@ impl<'a> SceneBuilder<'a> {
             self.scene.encode_brush(brush, 1.0);
         }
     }
-
+    //TODO modify Stroke in peniko and remove this function
+    pub fn stroke_dash<'b>(
+        &mut self,
+        style: &Stroke,
+        transform: Affine,
+        brush: impl Into<BrushRef<'b>>,
+        brush_transform: Option<Affine>,
+        shape: &impl Shape,
+        dash_array: Vec<f32>,
+    ) {
+        self.scene
+            .encode_transform(Transform::from_kurbo(&transform));
+        self.scene.encode_linewidth(style.width, None);
+        self.scene.encode_linewidth(style.width, Some(dash_array));
+        if self.scene.encode_shape(shape, false) {
+            if let Some(brush_transform) = brush_transform {
+                if self
+                    .scene
+                    .encode_transform(Transform::from_kurbo(&(transform * brush_transform)))
+                {
+                    self.scene.swap_last_path_tags();
+                }
+            }
+            self.scene.encode_brush(brush, 1.0);
+        }
+    }
     /// Strokes a shape using the specified style and brush.
     pub fn stroke<'b>(
         &mut self,
