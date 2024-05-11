@@ -48,6 +48,9 @@ struct Args {
     scene: Option<i32>,
     #[command(flatten)]
     args: scenes::Arguments,
+    #[arg(long)]
+    /// Whether to use CPU shaders
+    use_cpu: bool,
 }
 
 struct RenderState {
@@ -84,6 +87,7 @@ fn run(
                 &RendererOptions {
                     surface_format: Some(render_state.surface.format),
                     timestamp_period: render_cx.devices[id].queue.get_timestamp_period(),
+                    use_cpu: false,
                 },
             )
             .expect("Could create renderer"),
@@ -125,13 +129,16 @@ fn run(
     let mut profile_stored = None;
     let mut prev_scene_ix = scene_ix - 1;
     let mut profile_taken = Instant::now();
+    let use_cpu = args.use_cpu;
     // _event_loop is used on non-wasm platforms to create new windows
     event_loop.run(move |event, _event_loop, control_flow| match event {
         Event::WindowEvent {
             ref event,
             window_id,
         } => {
-            let Some(render_state) = &mut render_state else { return };
+            let Some(render_state) = &mut render_state else {
+                return;
+            };
             if render_state.window.id() != window_id {
                 return;
             }
@@ -307,7 +314,9 @@ fn run(
             }
         }
         Event::RedrawRequested(_) => {
-            let Some(render_state) = &mut render_state else { return };
+            let Some(render_state) = &mut render_state else {
+                return;
+            };
             let width = render_state.surface.config.width;
             let height = render_state.surface.config.height;
             let device_handle = &render_cx.devices[render_state.surface.dev_id];
@@ -436,7 +445,9 @@ fn run(
         Event::UserEvent(event) => match event {
             #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
             UserEvent::HotReload => {
-                let Some(render_state) = &mut render_state else { return };
+                let Some(render_state) = &mut render_state else {
+                    return;
+                };
                 let device_handle = &render_cx.devices[render_state.surface.dev_id];
                 eprintln!("==============\nReloading shaders");
                 let start = Instant::now();
@@ -486,6 +497,7 @@ fn run(
                                 timestamp_period: render_cx.devices[id]
                                     .queue
                                     .get_timestamp_period(),
+                                use_cpu,
                             },
                         )
                         .expect("Could create renderer")
