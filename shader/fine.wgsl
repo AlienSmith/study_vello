@@ -527,13 +527,13 @@ fn main(
                         // load from memory
                     }
                     let bg = unpack4x8unorm(bg_rgba);
-                    //let fg = rgba[i] * area[i] * end_clip.alpha;
 #ifdef ptcl_segmentation
                     //We need to do layer alpha in compose.
                     let fg = rgba[i] * filter_color * area[i];
 #else
                     let fg = rgba[i] * filter_color * area[i] * end_clip.alpha;
 #endif
+                    
                     rgba[i] = blend_mix_compose(bg, fg, end_clip.blend);
                 }
                 cmd_ix += 3u;

@@ -56,7 +56,7 @@ fn main(
     read_layer_blend_info(tile_ix);
 
     let start_index = select(0u, fine_index[tile_ix - 1u], tile_ix > 0u);
-    let slice_count = fine_index[tile_ix] - start_index;
+    let slice_count = min(2u,fine_index[tile_ix] - start_index);
     for(var j = 0u; j < PIXELS_PER_THREAD; j += 1u){
         rgba[j] = vec4<f32>(0.0, 0.0, 0.0, 0.0);
         rgba_bg[j] = vec4<f32>(0.0, 0.0, 0.0, 0.0);

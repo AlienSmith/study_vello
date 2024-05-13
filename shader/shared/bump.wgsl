@@ -18,6 +18,7 @@ struct BumpAllocators {
     blend: atomic<u32>,
     cubic: atomic<u32>,
     padding: atomic<u32>,
+    debug: vec4<u32>,
 }
 
 struct IndirectCount {

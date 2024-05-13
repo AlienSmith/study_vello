@@ -7,10 +7,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use clap::{CommandFactory, Parser};
 use scenes::{ImageCache, SceneParams, SceneSet, SimpleText};
 use vello::{
-    block_on_wgpu,
-    kurbo::{Affine, Vec2},
-    util::RenderContext,
-    RendererOptions, Scene, SceneBuilder, SceneFragment,
+    block_on_wgpu, glyph::fello::raw::tables::base, kurbo::{Affine, Vec2}, util::RenderContext, RendererOptions, Scene, SceneBuilder, SceneFragment
 };
 use wgpu::{
     BufferDescriptor, BufferUsages, CommandEncoderDescriptor, Extent3d, ImageCopyBuffer,
@@ -132,12 +129,18 @@ async fn render(mut scenes: SceneSet, index: usize, args: &Args) -> Result<()> {
             (Some(x), Some(y)) => (x, y),
         }
     };
+    //TODO support base_color or background color for ptcl segmentation
+    let mut base_color = args
+    .args
+    .base_color
+    .or(scene_params.base_color)
+    .unwrap_or(vello::peniko::Color::TRANSPARENT);
+    if base_color != vello::peniko::Color::TRANSPARENT {
+        println!("at this point ptcl segmentation does not support none transparent base color");
+    }
+    base_color = vello::peniko::Color::TRANSPARENT;
     let render_params = vello::RenderParams {
-        base_color: args
-            .args
-            .base_color
-            .or(scene_params.base_color)
-            .unwrap_or(vello::peniko::Color::BLACK),
+        base_color,
         width,
         height,
     };

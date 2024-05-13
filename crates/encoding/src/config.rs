@@ -35,6 +35,7 @@ pub struct BumpAllocators {
     pub blend: u32,
     pub cubic: u32,
     pub padding: u32,
+    pub debug: [u32; 4],
 }
 
 /// Storage of indirect dispatch size values.

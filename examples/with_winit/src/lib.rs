@@ -348,12 +348,19 @@ fn run(
 
             // If the user specifies a base color in the CLI we use that. Otherwise we use any
             // color specified by the scene. The default is black.
+            //TODO support base_color or background color for ptcl segmentation
+            let mut base_color = args
+            .args
+            .base_color
+            .or(scene_params.base_color)
+            .unwrap_or(vello::peniko::Color::TRANSPARENT);
+            if base_color != vello::peniko::Color::TRANSPARENT {
+                println!("at this point ptcl segmentation does not support none transparent base color");
+            }
+            base_color = vello::peniko::Color::TRANSPARENT;
+
             let render_params = vello::RenderParams {
-                base_color: args
-                    .args
-                    .base_color
-                    .or(scene_params.base_color)
-                    .unwrap_or(Color::BLACK),
+                base_color,
                 width,
                 height,
             };
