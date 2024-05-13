@@ -9,12 +9,42 @@ use super::{DrawColor, DrawTag, PathEncoder, PathTag, Transform};
 
 use peniko::{kurbo::{Shape, Vec2}, BlendMode, BrushRef, Color};
 
+
 #[cfg(feature = "full")]
 use {
     super::{DrawImage, DrawLinearGradient, DrawRadialGradient, Glyph, GlyphRun, Patch},
     fello::NormalizedCoord,
     peniko::{ColorStop, Extend, GradientKind, Image},
 };
+
+//TODO move this struct to peniko
+#[derive(Clone, Copy)]
+pub struct LinearColor{
+    pub r: f32,
+    pub g: f32,
+    pub b: f32,
+    pub a: f32,
+}
+impl Default for LinearColor{
+    fn default() -> Self {
+        Self { r: 1.0, g: 1.0, b: 1.0, a: 1.0 }
+    }
+}
+impl  LinearColor {
+    pub fn new(r: f32, g:f32, b:f32, a:f32) -> Self {
+        Self {
+            r,g,b,a
+        }
+    }
+
+    pub fn pack_color(&self) -> u32{
+        let r = (self.r * 255.0) as u32;
+        let g = (self.g * 255.0) as u32;
+        let b = (self.b * 255.0) as u32;
+        let a = (self.a * 255.0) as u32;
+        a | (b << 8) | (g << 16) | (r << 24)
+    }
+}
 
 pub struct TransformState(pub u8);
 impl TransformState{
@@ -446,6 +476,16 @@ impl Encoding {
         self.draw_tags.push(DrawTag::BEGIN_CLIP);
         self.draw_data
             .extend_from_slice(bytemuck::bytes_of(&DrawBeginClip::new(blend_mode, alpha)));
+        self.n_clips += 1;
+        self.n_open_clips += 1;
+    }
+
+    /// Encodes a begin clip command.
+    pub fn encode_begin_clip_filter(&mut self, packed_color: u32, alpha: f32) {
+        use super::DrawBeginClip;
+        self.draw_tags.push(DrawTag::BEGIN_CLIP);
+        self.draw_data
+            .extend_from_slice(bytemuck::bytes_of(&DrawBeginClip::new_filter(packed_color, alpha)));
         self.n_clips += 1;
         self.n_open_clips += 1;
     }

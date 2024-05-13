@@ -31,7 +31,7 @@ pub use draw::{
     DrawBbox, DrawBeginClip, DrawColor, DrawImage, DrawLinearGradient, DrawMonoid,
     DrawRadialGradient, DrawTag,
 };
-pub use encoding::{Encoding, StreamOffsets};
+pub use encoding::{Encoding, StreamOffsets, LinearColor};
 pub use math::Transform;
 pub use monoid::Monoid;
 pub use path::{

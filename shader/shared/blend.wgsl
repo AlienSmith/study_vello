@@ -313,25 +313,26 @@ fn blend_compose(
 // Apply color mixing and composition. Both input and output colors are
 // premultiplied RGB.
 fn blend_mix_compose(backdrop: vec4<f32>, src: vec4<f32>, mode: u32) -> vec4<f32> {
-    let BLEND_DEFAULT = ((MIX_NORMAL << 8u) | COMPOSE_SRC_OVER);
-    let EPSILON = 1e-15;
-    if (mode & 0x7fffu) == BLEND_DEFAULT {
-        // Both normal+src_over blend and clip case
-        return backdrop * (1.0 - src.a) + src;
-    }
-    // Un-premultiply colors for blending. Max with a small epsilon to avoid NaNs.
-    let inv_src_a = 1.0 / max(src.a, EPSILON);
-    var cs = src.rgb * inv_src_a;
-    let inv_backdrop_a = 1.0 / max(backdrop.a, EPSILON);
-    let cb = backdrop.rgb * inv_backdrop_a;
-    let mix_mode = mode >> 8u;
-    let mixed = blend_mix(cb, cs, mix_mode);
-    cs = mix(cs, mixed, backdrop.a);
-    let compose_mode = mode & 0xffu;
-    if compose_mode == COMPOSE_SRC_OVER {
-        let co = mix(backdrop.rgb, cs, src.a);
-        return vec4(co, src.a + backdrop.a * (1.0 - src.a));
-    } else {
-        return blend_compose(cb, cs, backdrop.a, src.a, compose_mode);
-    }
+    return backdrop * (1.0 - src.a) + src;
+    // let BLEND_DEFAULT = ((MIX_NORMAL << 8u) | COMPOSE_SRC_OVER);
+    // let EPSILON = 1e-15;
+    // if (mode & 0x7fffu) == BLEND_DEFAULT {
+    //     // Both normal+src_over blend and clip case
+    //     return backdrop * (1.0 - src.a) + src;
+    // }
+    // // Un-premultiply colors for blending. Max with a small epsilon to avoid NaNs.
+    // let inv_src_a = 1.0 / max(src.a, EPSILON);
+    // var cs = src.rgb * inv_src_a;
+    // let inv_backdrop_a = 1.0 / max(backdrop.a, EPSILON);
+    // let cb = backdrop.rgb * inv_backdrop_a;
+    // let mix_mode = mode >> 8u;
+    // let mixed = blend_mix(cb, cs, mix_mode);
+    // cs = mix(cs, mixed, backdrop.a);
+    // let compose_mode = mode & 0xffu;
+    // if compose_mode == COMPOSE_SRC_OVER {
+    //     let co = mix(backdrop.rgb, cs, src.a);
+    //     return vec4(co, src.a + backdrop.a * (1.0 - src.a));
+    // } else {
+    //     return blend_compose(cb, cs, backdrop.a, src.a, compose_mode);
+    // }
 }

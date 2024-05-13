@@ -17,7 +17,7 @@
 use fello::NormalizedCoord;
 use peniko::kurbo::{Affine, Rect, Shape, Vec2};
 use peniko::{BlendMode, BrushRef, Color, Fill, Font, Image, Stroke, StyleRef};
-use vello_encoding::{Encoding, Glyph, GlyphRun, Patch, Transform};
+use vello_encoding::{Encoding, Glyph, GlyphRun, Patch, Transform, LinearColor};
 
 /// Encoded definition of a scene and associated resources.
 #[derive(Default)]
@@ -100,12 +100,11 @@ impl<'a> SceneBuilder<'a> {
     /// previous layers using the specified blend mode.
     pub fn push_layer(
         &mut self,
-        blend: impl Into<BlendMode>,
-        alpha: f32,
+        filter_color:(f32,f32,f32,f32),
         transform: Affine,
         shape: &impl Shape,
     ) {
-        let blend = blend.into();
+        let filter_color = LinearColor::new(filter_color.0, filter_color.1, filter_color.2, filter_color.3);
         self.scene
             .encode_transform(Transform::from_kurbo(&transform));
         self.scene.encode_linewidth(-1.0,None);
@@ -115,7 +114,8 @@ impl<'a> SceneBuilder<'a> {
             self.scene
                 .encode_shape(&Rect::new(0.0, 0.0, 0.0, 0.0), true);
         }
-        self.scene.encode_begin_clip(blend, alpha.clamp(0.0, 1.0));
+        //the last byte was used as the blend flag
+        self.scene.encode_begin_clip_filter(filter_color.pack_color(), filter_color.a);
     }
 
     /// Pops the current layer.

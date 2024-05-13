@@ -190,7 +190,7 @@ fn animated_text(sb: &mut SceneBuilder, params: &mut SceneParams) {
         &rect,
     );
     let alpha = params.time.sin() as f32 * 0.5 + 0.5;
-    sb.push_layer(Mix::Normal, alpha, Affine::IDENTITY, &rect);
+    sb.push_layer((1.0,1.0,1.0,alpha), Affine::IDENTITY, &rect);
     sb.fill(
         Fill::NonZero,
         Affine::translate((100.0, 100.0)) * Affine::scale(0.2),
@@ -567,7 +567,7 @@ fn render_clip_test(sb: &mut SceneBuilder) {
             PathEl::LineTo((X0, Y1).into()),
             PathEl::ClosePath,
         ];
-        sb.push_layer(Mix::Clip, 1.0, Affine::IDENTITY, &path);
+        sb.push_layer((1.0,1.0,1.0,1.0), Affine::IDENTITY, &path);
     }
     let rect = Rect::new(X0, Y0, X1, Y1);
     sb.fill(
@@ -599,8 +599,7 @@ fn render_alpha_test(sb: &mut SceneBuilder) {
         &make_diamond(1024.0, 125.0),
     );
     sb.push_layer(
-        Mix::Clip,
-        1.0,
+        (1.0,1.0,1.0,1.0),
         Affine::IDENTITY,
         &make_diamond(1024.0, 150.0),
     );
@@ -636,10 +635,10 @@ fn render_blend_square(sb: &mut SceneBuilder, blend: BlendMode, transform: Affin
         Color::rgb8(0, 255, 0),
         Color::rgb8(0, 0, 255),
     ];
-    sb.push_layer(Mix::Normal, 1.0, transform, &rect);
+    sb.push_layer((1.0,1.0,1.0,1.0), transform, &rect);
     for (i, c) in COLORS.iter().enumerate() {
         let linear = Gradient::new_linear((0.0, 0.0), (0.0, 200.0)).with_stops([Color::WHITE, *c]);
-        sb.push_layer(blend, 1.0, transform, &rect);
+        sb.push_layer((1.0,1.0,1.0,1.0), transform, &rect);
         // squash the ellipse
         let a = transform
             * Affine::translate((100., 100.))
@@ -870,7 +869,7 @@ fn pattern_test(sb: &mut SceneBuilder,_params: &mut SceneParams) {
         None,
         &kurbo::Rect::new(0.0, 0.0, 400.0, 400.0),
     );
-    sb.push_layer(Mix::Clip, 1.0, transform, &clip1);
+    sb.push_layer((1.0,1.0,1.0,1.0), transform, &clip1);
     {
         sb.fill(
             peniko::Fill::NonZero,
@@ -970,7 +969,7 @@ fn clip_test(sb: &mut SceneBuilder, params: &mut SceneParams) {
             PathEl::ClosePath,
         ]
     };
-    sb.push_layer(Mix::Clip, 1.0, Affine::IDENTITY, &clip);
+    sb.push_layer((1.0,1.0,1.0,1.0), Affine::IDENTITY, &clip);
     {
         let text_size = 60.0 + 40.0 * (params.time as f32).sin();
         let s = "Some clipped text!";
@@ -997,11 +996,7 @@ fn clip_test(sb: &mut SceneBuilder, params: &mut SceneParams) {
     let scale = 2.0;
 
     sb.push_layer(
-        BlendMode {
-            mix: peniko::Mix::Normal,
-            compose: peniko::Compose::SrcOver,
-        },
-        1.0,
+        (1.0,1.0,1.0,1.0),
         Affine::new([scale, 0.0, 0.0, scale, 27.07470703125, 176.40660533027858]),
         &clip_rect,
     );

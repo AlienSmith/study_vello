@@ -129,6 +129,13 @@ impl DrawBeginClip {
             alpha,
         }
     }
+
+    pub fn new_filter(packed_color: u32, alpha: f32) -> Self{
+        Self {
+            blend_mode: packed_color,
+            alpha,
+        }   
+    }
 }
 
 /// Monoid for the draw tag stream.

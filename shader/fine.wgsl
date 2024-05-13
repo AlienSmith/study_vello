@@ -324,8 +324,31 @@ fn main(
     @builtin(local_invocation_id) local_id: vec3<u32>,
     @builtin(workgroup_id) wg_id: vec3<u32>,
 ) {
+
+
+#ifdef ptcl_segmentation
+    let initial_length = config.width_in_tiles * config.height_in_tiles;
+    let delta = u32(max(0 ,i32(wg_id.x) - i32(initial_length)));
+    var cmd_ix = (wg_id.x - delta) * PTCL_INITIAL_ALLOC + delta * PTCL_INCREMENT; 
+    let cmd_end = cmd_ix + select(PTCL_INITIAL_ALLOC, PTCL_INCREMENT, i32(wg_id.x) - i32(initial_length) + 1 > 0);
+    //let temp_ix = wg_id.y * config.width_in_tiles + wg_id.x;
+    //var cmd_ix = temp_ix * PTCL_INITIAL_ALLOC;
+    let indexing = ptcl[cmd_ix];
+    cmd_ix += 1u;
+    let slice_index = indexing & 0xffffu;
+    let tile_ix = (indexing >> 16u) & 0xffffu;
+    //let tile_ix = wg_id.y * config.width_in_tiles + wg_id.x;
+
+    let tile_ix_y = tile_ix / config.width_in_tiles;
+    let tile_ix_x = tile_ix - tile_ix_y * config.width_in_tiles;
+    let xy = vec2(f32(local_id.x * PIXELS_PER_THREAD + tile_ix_x * TILE_WIDTH), f32(local_id.y + tile_ix_y * TILE_HEIGHT));
+#else
     let tile_ix = wg_id.y * config.width_in_tiles + wg_id.x;
+    var cmd_ix = tile_ix * PTCL_INITIAL_ALLOC;
+    let blend_offset = ptcl[cmd_ix];
+    cmd_ix += 1u;
     let xy = vec2(f32(global_id.x * PIXELS_PER_THREAD), f32(global_id.y));
+#endif
 #ifdef full
     var rgba: array<vec4<f32>, PIXELS_PER_THREAD>;
     for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
@@ -334,15 +357,18 @@ fn main(
     var blend_stack: array<array<u32, PIXELS_PER_THREAD>, BLEND_STACK_SPLIT>;
     var clip_depth = 0u;
     var area: array<f32, PIXELS_PER_THREAD>;
-    var cmd_ix = tile_ix * PTCL_INITIAL_ALLOC;
-    let blend_offset = ptcl[cmd_ix];
-    cmd_ix += 1u;
     // main interpretation loop
     while true {
         let tag = ptcl[cmd_ix];
+#ifdef ptcl_segmentation
+        if tag == CMD_END || cmd_end - cmd_ix < 1u {
+            break;
+        }
+#else
         if tag == CMD_END {
             break;
         }
+#endif
         switch tag {
             // CMD_FILL
             case 1u: {
@@ -474,6 +500,8 @@ fn main(
             case 10u: {
                 let end_clip = read_end_clip(cmd_ix);
                 clip_depth -= 1u;
+                var filter_color = unpack4x8unorm(end_clip.blend).wzyx;
+                filter_color.w = 1.0;
                 for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
                     var bg_rgba: u32;
                     if clip_depth < BLEND_STACK_SPLIT {
@@ -482,19 +510,39 @@ fn main(
                         // load from memory
                     }
                     let bg = unpack4x8unorm(bg_rgba);
-                    let fg = rgba[i] * area[i] * end_clip.alpha;
+                    //let fg = rgba[i] * area[i] * end_clip.alpha;
+#ifdef ptcl_segmentation
+                    //We need to do layer alpha in compose.
+                    let fg = rgba[i] * filter_color * area[i];
+#else
+                    let fg = rgba[i] * filter_color * area[i] * end_clip.alpha;
+#endif
                     rgba[i] = blend_mix_compose(bg, fg, end_clip.blend);
                 }
                 cmd_ix += 3u;
             }
+#ifndef ptcl_segmentation
             // CMD_JUMP
             case 11u: {
                 cmd_ix = ptcl[cmd_ix + 1u];
             }
-            default: {}
+            default: {
+
+            }
+#else
+            default: {
+                //better through an error here
+                cmd_ix = cmd_end;
+            }
+#endif
         }
     }
     let xy_uint = vec2<u32>(xy);
+#ifdef ptcl_segmentation
+    let start_index = select(0u, fine_index[tile_ix - 1u], tile_ix > 0u);
+    let slice_buf_index = start_index + slice_index;
+    let slice_buf_index_base = slice_buf_index * TILE_SIZE + local_id.x * 4u + local_id.y * 16u;    
+#endif
     for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
         let coords = xy_uint + vec2(i, 0u);
         if coords.x < config.target_width && coords.y < config.target_height {
@@ -502,7 +550,15 @@ fn main(
             // Max with a small epsilon to avoid NaNs
             let a_inv = 1.0 / max(fg.a, 1e-6);
             let rgba_sep = vec4(fg.rgb * a_inv, fg.a);
+
+#ifdef ptcl_segmentation
+            // store the premulitplied alpha color to buffer and compose it later
+            fine_slice[slice_buf_index_base + i] = pack4x8unorm(fg);
+#else
+            // store the premulitplied alpha color directly to texture
             textureStore(output, vec2<i32>(coords), rgba_sep);
+#endif
+
         }
     } 
 #else
