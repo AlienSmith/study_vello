@@ -10,6 +10,7 @@ default = ["full"]
 # Enables support for the full pipeline including late-bound
 # resources (gradients, images and glyph runs)
 full = ["fello", "guillotiere"]
+ptcl_segmentation = ["full"]
 
 [dependencies]
 bytemuck = { workspace = true }

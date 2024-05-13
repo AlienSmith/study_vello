@@ -77,7 +77,9 @@ pub struct FullShaders {
     pub path_coarse: ShaderId,
     pub backdrop: ShaderId,
     pub coarse: ShaderId,
+    pub fine_setup: ShaderId,
     pub fine: ShaderId,
+    pub compose: ShaderId,
 }
 
 #[cfg(feature = "wgpu")]
@@ -93,6 +95,10 @@ pub fn full_shaders(
     let empty = HashSet::new();
     let mut full_config = HashSet::new();
     full_config.insert("full".into());
+
+    #[cfg(feature = "ptcl_segmentation")]
+    full_config.insert("ptcl_segmentation".into());
+
     let mut small_config = HashSet::new();
     small_config.insert("full".into());
     small_config.insert("small".into());
@@ -288,7 +294,7 @@ pub fn full_shaders(
     let coarse = engine.add_shader(
         device,
         "coarse",
-        preprocess::preprocess(shader!("coarse"), &empty, &imports).into(),
+        preprocess::preprocess(shader!("coarse"), &full_config, &imports).into(),
         &[
             BindType::Uniform,
             BindType::BufReadOnly,
@@ -297,6 +303,21 @@ pub fn full_shaders(
             BindType::BufReadOnly,
             BindType::BufReadOnly,
             BindType::BufReadOnly,
+            BindType::Buffer,
+            BindType::Buffer,
+            #[cfg(feature = "ptcl_segmentation")]
+            BindType::Buffer,
+            #[cfg(feature = "ptcl_segmentation")]
+            BindType::Buffer,
+        ],
+    )?;
+    let fine_setup = engine.add_shader(
+        device, 
+        "fine_setup", 
+        preprocess::preprocess(shader!("fine_setup"), &full_config, &imports).into(), 
+        &[
+            BindType::Uniform,
+            BindType::Buffer,
             BindType::Buffer,
             BindType::Buffer,
         ],
@@ -311,9 +332,29 @@ pub fn full_shaders(
             BindType::BufReadOnly,
             BindType::BufReadOnly,
             BindType::BufReadOnly,
+            BindType::ImageRead(ImageFormat::Rgba8),
+            BindType::ImageRead(ImageFormat::Rgba8),
+            BindType::BufReadOnly,
+            #[cfg(feature = "ptcl_segmentation")]
+            BindType::Buffer,
+            #[cfg(feature = "ptcl_segmentation")]
+            BindType::Buffer,
+            #[cfg(not(feature = "ptcl_segmentation"))]
             BindType::Image(ImageFormat::Rgba8),
-            BindType::ImageRead(ImageFormat::Rgba8),
-            BindType::ImageRead(ImageFormat::Rgba8),
+
+        ],
+    )?;
+    let compose = engine.add_shader(
+        device, 
+        "compose", 
+        preprocess::preprocess(shader!("compose"), &full_config, &imports).into(), 
+        &[
+            BindType::Uniform,
+            BindType::Image(ImageFormat::Rgba8),
+            BindType::BufReadOnly,
+            BindType::BufReadOnly,
+            BindType::BufReadOnly,
+            BindType::BufReadOnly,
         ],
     )?;
     Ok(FullShaders {
@@ -335,7 +376,9 @@ pub fn full_shaders(
         path_coarse,
         backdrop,
         coarse,
+        fine_setup,
         fine,
+        compose
     })
 }
 

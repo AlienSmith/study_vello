@@ -6,7 +6,7 @@ let STAGE_TILE_ALLOC: u32 = 0x2u;
 let STAGE_PATH_COARSE: u32 = 0x4u;
 let STAGE_COARSE: u32 = 0x8u;
 let STAGE_PATTERN: u32 = 0x10u;
-
+let STAGE_FINE_SETUP: u32 = 0x20u;
 // This must be kept in sync with the struct in src/render.rs
 struct BumpAllocators {
     // Bitmask of stages that have failed allocation.

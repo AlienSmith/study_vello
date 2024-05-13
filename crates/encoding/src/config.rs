@@ -51,6 +51,18 @@ pub struct IndirectCount {
     pub pad0: u32,
 }
 
+#[derive(Clone, Copy, Debug, Zeroable, Pod)]
+#[repr(C)]
+pub struct FineSlice {
+    pub data: [u32; 256],
+}
+
+impl Default for FineSlice {
+    fn default() -> Self {
+        Self { data: [0; 256] }
+    }
+}
+
 /// Uniform render configuration data used by all GPU stages.
 ///
 /// This data structure must be kept in sync with the definition in
@@ -80,6 +92,8 @@ pub struct ConfigUniform {
     pub ptcl_size: u32,
     /// Size of Cubic buffer allocation (in Cubic).
     pub cubic_size: u32,
+    /// number of ptcl slices.
+    pub ptcl_slice_count: u32,
 }
 
 #[derive(Clone, Copy, Debug, Zeroable, Pod)]
@@ -120,7 +134,8 @@ impl RenderConfig {
         let n_path_tags = layout.path_tags_size();
         let workgroup_counts =
             WorkgroupCounts::new(layout, width_in_tiles, height_in_tiles, n_path_tags);
-        let buffer_sizes = BufferSizes::new(layout, &workgroup_counts, n_path_tags);
+        let tile_counts = width_in_tiles * height_in_tiles;
+        let buffer_sizes = BufferSizes::new(tile_counts, layout, &workgroup_counts, n_path_tags);
         let transform = if let Some(t) = camera_transform{
             TransformUniform{
                 matrix: t.matrix,
@@ -142,6 +157,10 @@ impl RenderConfig {
                 segments_size: buffer_sizes.segments.len(),
                 ptcl_size: buffer_sizes.ptcl.len(),
                 cubic_size: buffer_sizes.cubics.len(),
+                #[cfg(feature = "ptcl_segmentation")]
+                ptcl_slice_count: buffer_sizes.fine_slice.len(),
+                #[cfg(not(feature = "ptcl_segmentation"))]
+                ptcl_slice_count: 0,
                 layout: *layout,
             },
             workgroup_counts,
@@ -303,6 +322,8 @@ pub struct BufferSizes {
     pub draw_bboxes: BufferSize<DrawBbox>,
     pub bump_alloc: BufferSize<BumpAllocators>,
     pub indirect_count: BufferSize<IndirectCount>,
+    #[cfg(feature = "ptcl_segmentation")]
+    pub fine_slice: BufferSize<FineSlice>,
     pub bin_headers: BufferSize<BinHeader>,
     pub paths: BufferSize<Path>,
     // Bump allocated buffers
@@ -310,10 +331,14 @@ pub struct BufferSizes {
     pub tiles: BufferSize<Tile>,
     pub segments: BufferSize<PathSegment>,
     pub ptcl: BufferSize<u32>,
+    #[cfg(feature = "ptcl_segmentation")]
+    pub fine_index: BufferSize<u32>,
+    #[cfg(feature = "ptcl_segmentation")]
+    pub layer_info: BufferSize<f32>,
 }
 
 impl BufferSizes {
-    pub fn new(layout: &Layout, workgroups: &WorkgroupCounts, n_path_tags: u32) -> Self {
+    pub fn new(tile_count:u32, layout: &Layout, workgroups: &WorkgroupCounts, n_path_tags: u32) -> Self {
         let n_paths = layout.n_paths;
         let n_draw_objects = layout.n_draw_objects;
         let n_clips = layout.n_clips;
@@ -352,6 +377,14 @@ impl BufferSizes {
         let segments = BufferSize::new(1 << 21);
         let ptcl = BufferSize::new(1 << 23);
         let cubics = BufferSize::new(n_path_tags + (1 << 18));
+        #[cfg(feature = "ptcl_segmentation")]
+        let fine_slice = BufferSize::new(65536);
+
+        #[cfg(feature = "ptcl_segmentation")]
+        let fine_index = BufferSize::new(tile_count);
+        #[cfg(feature = "ptcl_segmentation")]
+        //each tile need 3 layer ends index and its blend alpha
+        let layer_info = BufferSize::new(tile_count * 6);
         Self {
             path_reduced,
             path_reduced2,
@@ -370,12 +403,18 @@ impl BufferSizes {
             draw_bboxes,
             bump_alloc,
             indirect_count,
+            #[cfg(feature = "ptcl_segmentation")]
+            fine_slice,
             bin_headers,
             paths,
             bin_data,
             tiles,
             segments,
             ptcl,
+            #[cfg(feature = "ptcl_segmentation")]
+            fine_index,
+            #[cfg(feature = "ptcl_segmentation")]
+            layer_info,
         }
     }
 }

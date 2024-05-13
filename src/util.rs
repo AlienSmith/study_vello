@@ -130,7 +130,7 @@ impl RenderContext {
             wgpu::util::initialize_adapter_from_env_or_default(&self.instance, compatible_surface)
                 .await?;
         let features = adapter.features();
-        let limits = Limits::default();
+        let limits = adapter.limits();
         let mut maybe_features = wgpu::Features::CLEAR_TEXTURE;
         #[cfg(feature = "wgpu-profiler")]
         {

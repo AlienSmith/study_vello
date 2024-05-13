@@ -42,9 +42,9 @@ var<storage, read_write> bump: BumpAllocators;
 var<storage, read_write> ptcl: array<u32>;
 
 #ifdef ptcl_segmentation
-@group(0) @binding(10)
+@group(0) @binding(9)
 var<storage, read_write> fine_index: array<u32>;
-@group(0) @binding(11)
+@group(0) @binding(10)
 var<storage, read_write> layer_info: array<f32>;
 #endif
 
@@ -152,8 +152,6 @@ fn alloc_cmd(size: u32) {
 #endif
 
 fn write_path(tile: Tile, linewidth: f32) -> bool {
-    // TODO: take flags
-    alloc_cmd(3u);
     if linewidth < 0.0 {
         let even_odd = linewidth < -1.0;
         if tile.segments != 0u {
@@ -276,10 +274,17 @@ fn main(
     var render_blend_depth = 0u;
     var max_blend_depth = 0u;
 
-    let blend_offset = cmd_offset;
-    cmd_offset += 1u;
-
     let within_range = bin_tile_x + tile_x < config.width_in_tiles && bin_tile_y + tile_y < config.height_in_tiles;
+#ifdef ptcl_segmentation
+    if within_range{
+        let index = (tile_index << 16u) | (slice_index & 0xffffu) ;
+        ptcl[cmd_offset] = index;
+        slice_index += 1u;
+    }
+#else
+    var blend_offset = cmd_offset;
+#endif
+    cmd_offset += 1u;
     //find drawobjects/Path in range of this bin
     while true {
         for (var i = 0u; i < N_SLICE; i += 1u) {

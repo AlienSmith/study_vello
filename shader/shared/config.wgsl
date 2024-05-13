@@ -40,7 +40,11 @@ struct Config {
     segments_size: u32,    
     ptcl_size: u32,
     cubic_size: u32,
+    ptcl_slice_count: u32,
 }
+
+//let TILE_SIZE = TILE_WIDTH * TILE_HEIGHT;
+let TILE_SIZE = 256u;
 
 // Geometry of tiles and bins
 

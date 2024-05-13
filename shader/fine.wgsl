@@ -13,6 +13,7 @@ struct Tile {
 
 #import segment
 #import config
+#import bump
 
 @group(0) @binding(0)
 var<uniform> config: Config;
@@ -37,13 +38,26 @@ var<storage> ptcl: array<u32>;
 var<storage> info: array<u32>;
 
 @group(0) @binding(5)
-var output: texture_storage_2d<rgba8unorm, write>;
-
-@group(0) @binding(6)
 var gradients: texture_2d<f32>;
 
-@group(0) @binding(7)
+@group(0) @binding(6)
 var image_atlas: texture_2d<f32>;
+
+@group(0) @binding(7)
+var<storage> bump: BumpAllocators;
+
+#ifdef ptcl_segmentation
+@group(0) @binding(8)
+var<storage> fine_index: array<u32>;
+
+@group(0) @binding(9)
+var<storage, read_write> fine_slice: array<u32>;
+
+#else
+@group(0) @binding(8)
+var output: texture_storage_2d<rgba8unorm, write>;
+
+#endif
 
 var<private> dashes_array: array<f32,MAX_DASHES_ARRAY_SIZE>;
 var<private> dashes_line_length: f32;
@@ -324,7 +338,10 @@ fn main(
     @builtin(local_invocation_id) local_id: vec3<u32>,
     @builtin(workgroup_id) wg_id: vec3<u32>,
 ) {
-
+    //avoid accessing invalid positions
+    if atomicLoad(&bump.failed) != 0u{
+        return;
+    }
 
 #ifdef ptcl_segmentation
     let initial_length = config.width_in_tiles * config.height_in_tiles;
