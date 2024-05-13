@@ -440,6 +440,7 @@ fn main(
                 switch drawtag {
                     // DRAWTAG_FILL_COLOR
                     case 0x44u: {
+                        alloc_cmd(5u);
                         let linewidth = bitcast<f32>(info_bin_data[di]);
                         if write_path(tile, linewidth) {
                             let rgba_color = scene[dd];
@@ -449,7 +450,7 @@ fn main(
                     // DRAWTAG_FILL_LIN_GRADIENT
                     case 0x114u: {
                         let linewidth = bitcast<f32>(info_bin_data[di]);
-                        alloc_cmd(7u);
+                        alloc_cmd(6u);
                         if write_path(tile, linewidth) {
                             let index = scene[dd];
                             let info_offset = di + 1u;
@@ -459,7 +460,7 @@ fn main(
                     // DRAWTAG_FILL_RAD_GRADIENT
                     case 0x29cu: {
                         let linewidth = bitcast<f32>(info_bin_data[di]);
-                            alloc_cmd(7u);
+                            alloc_cmd(6u);
                         if write_path(tile, linewidth) {
                             let index = scene[dd];
                             let info_offset = di + 1u;
@@ -469,7 +470,7 @@ fn main(
                     // DRAWTAG_FILL_IMAGE
                     case 0x248u: {
                         let linewidth = bitcast<f32>(info_bin_data[di]);
-                            alloc_cmd(6u);
+                            alloc_cmd(5u);
                         if write_path(tile, linewidth) {                            
                             write_image(di + 1u);
                         }
@@ -492,7 +493,7 @@ fn main(
                     }
                     // DRAWTAG_END_CLIP
                     case 0x21u: {
-                            alloc_cmd(7u);
+                            alloc_cmd(6u);
                             clip_depth -= 1u;
                             write_path(tile, -1.0);
                             let blend = scene[dd];
