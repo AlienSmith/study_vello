@@ -3,10 +3,17 @@
 // Layout of per-tile command list
 // Initial allocation, in u32's.
 let PTCL_INITIAL_ALLOC = 64u;
-let PTCL_INCREMENT = 256u;
+let PTCL_INCREMENT = 64u;
 
 // Amount of space taken by jump
-let PTCL_HEADROOM = 2u;
+let JUMP_HEADROOM = 2u;
+
+// Amount of space taken by clips
+let PTCL_HEADROOM = 30u;
+
+let MAX_LAYER_COUNT = 3u;
+//3 layer ends index and its blend alpha
+let LAYER_INFOR_SIZE = 6u;
 
 // Tags for PTCL commands
 let CMD_END = 0u;

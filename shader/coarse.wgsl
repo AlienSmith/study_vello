@@ -41,6 +41,12 @@ var<storage, read_write> bump: BumpAllocators;
 @group(0) @binding(8)
 var<storage, read_write> ptcl: array<u32>;
 
+#ifdef ptcl_segmentation
+@group(0) @binding(10)
+var<storage, read_write> fine_index: array<u32>;
+@group(0) @binding(11)
+var<storage, read_write> layer_info: array<f32>;
+#endif
 
 
 // Much of this code assumes WG_SIZE == N_TILE. If these diverge, then
@@ -48,6 +54,7 @@ var<storage, read_write> ptcl: array<u32>;
 let WG_SIZE = 256u;
 //let N_SLICE = WG_SIZE / 32u;
 let N_SLICE = 8u;
+let N_CLIPS = 4u;
 
 var<workgroup> sh_bitmaps: array<array<atomic<u32>, N_TILE>, N_SLICE>;
 var<workgroup> sh_part_count: array<u32, WG_SIZE>;
@@ -63,10 +70,19 @@ var<workgroup> sh_tile_base: array<u32, WG_SIZE>;
 
 var<private> cmd_offset: u32;
 var<private> cmd_limit: u32;
+var<private> alloc_cmd_failed: bool;
 
+#ifdef ptcl_segmentation
+var<private> clip_stack: array<vec2<u32>,N_CLIPS>;
+var<private> clip_stack_end: u32;
+var<private> slice_index: u32;
+var<private> tile_index: u32;
+var<private> layer_counter: u32;
 // Make sure there is space for a command of given size, plus a jump if needed
 fn alloc_cmd(size: u32) {
     if cmd_offset + size >= cmd_limit {
+        write_end();
+        
         // We might be able to save a little bit of computation here
         // by setting the initial value of the bump allocator.
         let ptcl_dyn_start = config.width_in_tiles * config.height_in_tiles * PTCL_INITIAL_ALLOC;
@@ -74,13 +90,66 @@ fn alloc_cmd(size: u32) {
         if new_cmd + PTCL_INCREMENT > config.ptcl_size {
             new_cmd = 0u;
             atomicOr(&bump.failed, STAGE_COARSE);
+            alloc_cmd_failed = true;
         }
-        ptcl[cmd_offset] = CMD_JUMP;
-        ptcl[cmd_offset + 1u] = new_cmd;
+        ptcl[cmd_offset] = CMD_END;
+
+        let index = (tile_index << 16u) | (slice_index & 0xffffu);
+        slice_index += 1u;
+
         cmd_offset = new_cmd;
+        ptcl[cmd_offset] = index;
         cmd_limit = cmd_offset + (PTCL_INCREMENT - PTCL_HEADROOM);
+        cmd_offset += 1u;
+        
+        write_begin();
     }
 }
+fn write_begin(){
+    var clip_end = clip_stack_end;
+    while clip_end > 0u{
+        clip_end -=  1u;
+        write_begin_clip();
+    }
+}
+fn write_end(){
+    var clip_end = clip_stack_end;
+    while clip_end > 0u{
+        clip_end -=  1u;
+        let clip = clip_stack[clip_end];
+        let clip_tile = tiles[clip.x];
+        let clip_blend = scene[clip.y];
+        let clip_alpha = bitcast<f32>(scene[clip.y + 1u]);
+        write_path(clip_tile, -1.0);
+        write_end_clip(CmdEndClip(clip_blend, clip_alpha));
+    }
+}
+
+fn start_new_segment(){
+    ptcl[cmd_offset] = CMD_END;
+    cmd_offset += 1u;
+    alloc_cmd(cmd_limit - cmd_offset);
+}
+#else
+fn alloc_cmd(size: u32) {
+    if cmd_offset + size >= cmd_limit {
+        // We might be able to save a little bit of computation here
+        // by setting the initial value of the bump allocator.
+        let ptcl_dyn_start = config.width_in_tiles * config.height_in_tiles * PTCL_INITIAL_ALLOC;
+        var new_cmd = ptcl_dyn_start + atomicAdd(&bump.ptcl, PTCL_INCREMENT);
+        if new_cmd + PTCL_INCREMENT > config.ptcl_size {
+            // new_cmd = 0u;
+            atomicOr(&bump.failed, STAGE_COARSE);
+            alloc_cmd_failed = true;
+        } else {
+            ptcl[cmd_offset] = CMD_JUMP;
+            ptcl[cmd_offset + 1u] = new_cmd;
+            cmd_offset = new_cmd;
+            cmd_limit = cmd_offset + (PTCL_INCREMENT - JUMP_HEADROOM);
+        }
+    }
+}
+#endif
 
 fn write_path(tile: Tile, linewidth: f32) -> bool {
     // TODO: take flags
@@ -112,14 +181,18 @@ fn write_path(tile: Tile, linewidth: f32) -> bool {
 }
 
 fn write_color(color: CmdColor) {
-    alloc_cmd(2u);
+    if alloc_cmd_failed {
+        return;
+    }
     ptcl[cmd_offset] = CMD_COLOR;
     ptcl[cmd_offset + 1u] = color.rgba_color;
     cmd_offset += 2u;
 }
 
 fn write_grad(ty: u32, index: u32, info_offset: u32) {
-    alloc_cmd(3u);
+    if alloc_cmd_failed {
+        return;
+    }
     ptcl[cmd_offset] = ty;
     ptcl[cmd_offset + 1u] = index;
     ptcl[cmd_offset + 2u] = info_offset;
@@ -127,20 +200,26 @@ fn write_grad(ty: u32, index: u32, info_offset: u32) {
 }
 
 fn write_image(info_offset: u32) {
-    alloc_cmd(2u);
+    if alloc_cmd_failed {
+        return;
+    }
     ptcl[cmd_offset] = CMD_IMAGE;
     ptcl[cmd_offset + 1u] = info_offset;
     cmd_offset += 2u;
 }
 
 fn write_begin_clip() {
-    alloc_cmd(1u);
+    if alloc_cmd_failed {
+        return;
+    }
     ptcl[cmd_offset] = CMD_BEGIN_CLIP;
     cmd_offset += 1u;
 }
 
 fn write_end_clip(end_clip: CmdEndClip) {
-    alloc_cmd(3u);
+    if alloc_cmd_failed {
+        return;
+    }
     ptcl[cmd_offset] = CMD_END_CLIP;
     ptcl[cmd_offset + 1u] = end_clip.blend;
     ptcl[cmd_offset + 2u] = bitcast<u32>(end_clip.alpha);
@@ -176,7 +255,13 @@ fn main(
     let this_tile_ix = (bin_tile_y + tile_y) * config.width_in_tiles + bin_tile_x + tile_x;
     cmd_offset = this_tile_ix * PTCL_INITIAL_ALLOC;
     cmd_limit = cmd_offset + (PTCL_INITIAL_ALLOC - PTCL_HEADROOM);
-
+    alloc_cmd_failed = false;
+#ifdef ptcl_segmentation
+    clip_stack_end = 0u;
+    tile_index = this_tile_ix;
+    slice_index = 0u;
+    layer_counter = 0u;
+#endif
     // clip state
     var clip_zero_depth = 0u;
     var clip_depth = 0u;
@@ -364,6 +449,7 @@ fn main(
                     // DRAWTAG_FILL_LIN_GRADIENT
                     case 0x114u: {
                         let linewidth = bitcast<f32>(info_bin_data[di]);
+                        alloc_cmd(7u);
                         if write_path(tile, linewidth) {
                             let index = scene[dd];
                             let info_offset = di + 1u;
@@ -373,6 +459,7 @@ fn main(
                     // DRAWTAG_FILL_RAD_GRADIENT
                     case 0x29cu: {
                         let linewidth = bitcast<f32>(info_bin_data[di]);
+                            alloc_cmd(7u);
                         if write_path(tile, linewidth) {
                             let index = scene[dd];
                             let info_offset = di + 1u;
@@ -382,6 +469,7 @@ fn main(
                     // DRAWTAG_FILL_IMAGE
                     case 0x248u: {
                         let linewidth = bitcast<f32>(info_bin_data[di]);
+                            alloc_cmd(6u);
                         if write_path(tile, linewidth) {                            
                             write_image(di + 1u);
                         }
@@ -391,7 +479,12 @@ fn main(
                         if tile.segments == 0u && tile.backdrop == 0 {
                             clip_zero_depth = clip_depth + 1u;
                         } else {
+                                alloc_cmd(1u);
                             write_begin_clip();
+#ifdef ptcl_segmentation
+                                clip_stack[clip_stack_end] = vec2<u32>(tile_ix, dd);
+                                clip_stack_end += 1u;
+#endif
                             render_blend_depth += 1u;
                             max_blend_depth = max(max_blend_depth, render_blend_depth);
                         }
@@ -399,13 +492,26 @@ fn main(
                     }
                     // DRAWTAG_END_CLIP
                     case 0x21u: {
-                        clip_depth -= 1u;
-                        write_path(tile, -1.0);
-                        let blend = scene[dd];
-                        let alpha = bitcast<f32>(scene[dd + 1u]);
-                        write_end_clip(CmdEndClip(blend, alpha));
-                        render_blend_depth -= 1u;
-                    }
+                            alloc_cmd(7u);
+                            clip_depth -= 1u;
+                            write_path(tile, -1.0);
+                            let blend = scene[dd];
+                            let alpha = bitcast<f32>(scene[dd + 1u]);
+                            write_end_clip(CmdEndClip(blend, alpha));
+#ifdef ptcl_segmentation
+                            clip_stack_end -= 1u;
+                            //extract the blend flag
+                            let packed_color = unpack4x8unorm(blend).wzyx;
+                            if packed_color.a != 1.0 && layer_counter < MAX_LAYER_COUNT{
+                                let index = tile_index * LAYER_INFOR_SIZE + layer_counter * 2u;
+                                layer_info[index] = f32(slice_index);
+                                layer_info[index + 1u] = alpha;
+                                layer_counter += 1u;
+                                start_new_segment();
+                            }
+#endif
+                            render_blend_depth -= 1u;
+                        }
                     default: {}
                 }
             } else {
@@ -434,10 +540,17 @@ fn main(
         workgroupBarrier();
     }
     if within_range {
+#ifdef ptcl_segmentation
+        fine_index[tile_index] = slice_index;
+        //write_end();
+        //we have slicing head of 30, we would have more than enough space for this end marker.
+        ptcl[cmd_offset] = CMD_END;
+#else
         ptcl[cmd_offset] = CMD_END;
         if max_blend_depth > BLEND_STACK_SPLIT {
             let scratch_size = max_blend_depth * TILE_WIDTH * TILE_HEIGHT;
             ptcl[blend_offset] = atomicAdd(&bump.blend, scratch_size);
         }
+#endif
     }
 }
