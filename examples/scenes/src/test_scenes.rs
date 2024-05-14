@@ -44,7 +44,7 @@ pub fn test_scenes() -> SceneSet {
         splash_scene,
         mmark_scene,
         scene!(funky_paths),
-        //scene!(cardioid_and_friends),
+        scene!(cardioid_and_friends),
         scene!(animated_text: animated),
         scene!(gradient_extend),
         scene!(two_point_radial),
@@ -549,7 +549,8 @@ fn cardioid() -> BezPath {
     path
 }
 fn render_clip_test(sb: &mut SceneBuilder) {
-    const N: usize = 16;
+    //we only support at most 4 nested clips
+    const N: usize = 4;
     const X0: f64 = 50.0;
     const Y0: f64 = 450.0;
     // Note: if it gets much larger, it will exceed the 1MB scratch buffer.

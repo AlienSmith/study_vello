@@ -98,9 +98,9 @@ fn alloc_cmd(size: u32) {
         slice_index += 1u;
         
         //debug
-        if tile_index == 0u {
-            bump.debug[slice_index - 2u] = new_cmd; 
-        }
+        // if tile_index == 0u {
+        //     bump.debug[slice_index - 2u] = new_cmd; 
+        // }
 
         cmd_offset = new_cmd;
         ptcl[cmd_offset] = index;
