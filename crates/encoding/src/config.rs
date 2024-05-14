@@ -8,7 +8,7 @@ use super::{
     PathBbox, PathMonoid, PathSegment, Tile,
 };
 use bytemuck::{Pod, Zeroable};
-use std::mem;
+use std::{io::BufReader, mem};
 
 const TILE_WIDTH: u32 = 16;
 const TILE_HEIGHT: u32 = 16;

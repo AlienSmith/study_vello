@@ -39,17 +39,17 @@ pub fn test_scenes() -> SceneSet {
         function: Box::new(crate::mmark::MMark::new(80_000)),
     };
     let scenes = vec![
-        scene!(gpu_dash_test),
-        scene!(pattern_test),
-        splash_scene,
-        mmark_scene,
-        scene!(funky_paths),
+        //scene!(gpu_dash_test),
+        //scene!(pattern_test),
+        //splash_scene,
+        //mmark_scene,
+        //scene!(funky_paths),
         //scene!(cardioid_and_friends),
-        scene!(animated_text: animated),
-        scene!(gradient_extend),
-        scene!(two_point_radial),
-        scene!(brush_transform: animated),
-        scene!(blend_grid),
+        //scene!(animated_text: animated),
+        //scene!(gradient_extend),
+        //scene!(two_point_radial),
+        //scene!(brush_transform: animated),
+        //scene!(blend_grid),
         scene!(conflation_artifacts),
         scene!(labyrinth),
         scene!(base_color_test: animated),
@@ -670,10 +670,10 @@ fn conflation_artifacts(sb: &mut SceneBuilder, _: &mut SceneParams) {
     const S: f64 = 4.0;
 
     let scale = Affine::scale(S);
-    let x = N + 0.5; // Fractional pixel offset reveals the problem on axis-aligned edges.
-    let mut y = N;
+    let x = -10.0; // Fractional pixel offset reveals the problem on axis-aligned edges.
+    let mut y = -10.0;
 
-    let bg_color = Color::rgb8(255, 194, 19);
+    let bg_color = Color::rgb8(0, 0, 0);
     let fg_color = Color::rgb8(12, 165, 255);
 
     // Two adjacent triangles touching at diagonal edge with opposing winding numbers
@@ -688,6 +688,15 @@ fn conflation_artifacts(sb: &mut SceneBuilder, _: &mut SceneParams) {
             LineTo((N, N).into()),
             LineTo((0.0, N).into()),
             LineTo((0.0, 0.0).into()),
+        ],
+    );
+
+    sb.fill(
+        Fill::NonZero,
+        Affine::translate((x, y)) * scale,
+        fg_color,
+        None,
+        &[
             // triangle 2
             MoveTo((0.0, 0.0).into()),
             LineTo((N, N).into()),
@@ -698,13 +707,7 @@ fn conflation_artifacts(sb: &mut SceneBuilder, _: &mut SceneParams) {
 
     // Adjacent rects, opposite winding
     y += S * N + 10.0;
-    sb.fill(
-        Fill::EvenOdd,
-        Affine::translate((x, y)) * scale,
-        bg_color,
-        None,
-        &Rect::new(0.0, 0.0, N, N),
-    );
+    
     sb.fill(
         Fill::EvenOdd,
         Affine::translate((x, y)) * scale,
@@ -716,6 +719,15 @@ fn conflation_artifacts(sb: &mut SceneBuilder, _: &mut SceneParams) {
             LineTo((0.0, N).into()),
             LineTo((N * 0.5, N).into()),
             LineTo((N * 0.5, 0.0).into()),
+        ],
+    );
+
+    sb.fill(
+        Fill::EvenOdd,
+        Affine::translate((x, y)) * scale,
+        fg_color,
+        None,
+        &[
             // right rect
             MoveTo((N * 0.5, 0.0).into()),
             LineTo((N, 0.0).into()),
@@ -726,13 +738,7 @@ fn conflation_artifacts(sb: &mut SceneBuilder, _: &mut SceneParams) {
 
     // Adjacent rects, same winding
     y += S * N + 10.0;
-    sb.fill(
-        Fill::EvenOdd,
-        Affine::translate((x, y)) * scale,
-        bg_color,
-        None,
-        &Rect::new(0.0, 0.0, N, N),
-    );
+    
     sb.fill(
         Fill::EvenOdd,
         Affine::translate((x, y)) * scale,
@@ -744,6 +750,15 @@ fn conflation_artifacts(sb: &mut SceneBuilder, _: &mut SceneParams) {
             LineTo((0.0, N).into()),
             LineTo((N * 0.5, N).into()),
             LineTo((N * 0.5, 0.0).into()),
+        ],
+    );
+
+    sb.fill(
+        Fill::EvenOdd,
+        Affine::translate((x, y)) * scale,
+        fg_color,
+        None,
+        &[
             // right rect
             MoveTo((N * 0.5, 0.0).into()),
             LineTo((N * 0.5, N).into()),

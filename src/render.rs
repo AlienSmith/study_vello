@@ -26,7 +26,7 @@ struct FineResources {
     image_atlas: ResourceProxy,
 
     out_image: ImageProxy,
-
+    pp_input: ResourceProxy,
     #[cfg(feature = "ptcl_segmentation")]
     fine_index: ResourceProxy,
     #[cfg(feature = "ptcl_segmentation")]
@@ -450,6 +450,7 @@ impl Render {
             ],
         );
         let out_image = ImageProxy::new(params.width, params.height, ImageFormat::Rgba8);
+        let pp_input = ResourceProxy::new_buf((params.width* params.height * 4).into(), "pp_input");
         self.fine_wg_count = Some(wg_counts.fine);
         self.fine_resources = Some(FineResources {
             config_buf,
@@ -462,6 +463,7 @@ impl Render {
             info_bin_data_buf,
             image_atlas: ResourceProxy::Image(image_atlas),
             out_image,
+            pp_input,
             #[cfg(feature = "ptcl_segmentation")]
             fine_index: fine_index_buf,
             #[cfg(feature = "ptcl_segmentation")]
@@ -505,7 +507,7 @@ impl Render {
                 fine_wg_count,
                 [
                     fine.config_buf,
-                    ResourceProxy::Image(fine.out_image),
+                    ResourceProxy::Image(fine.pp_image),
                     fine.fine_index,
                     fine.fine_slice,
                     fine.bump_buf,
@@ -531,10 +533,21 @@ impl Render {
                     fine.gradient_image,
                     fine.image_atlas,
                     fine.bump_buf,
-                    ResourceProxy::Image(fine.out_image),
+                    fine.pp_input,
                 ],
             );
         }
+        
+        recording.dispatch(
+            shaders.pp_adhoc,
+            fine_wg_count,
+            [
+                fine.config_buf,
+                fine.pp_input,
+                ResourceProxy::Image(fine.out_image),
+            ],
+        );
+        recording.free_resource(fine.pp_input);
         recording.free_resource(fine.config_buf);
         recording.free_resource(fine.tile_buf);
         recording.free_resource(fine.segments_buf);

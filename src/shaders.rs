@@ -80,6 +80,7 @@ pub struct FullShaders {
     pub fine_setup: ShaderId,
     pub fine: ShaderId,
     pub compose: ShaderId,
+    pub pp_adhoc: ShaderId,
 }
 
 #[cfg(feature = "wgpu")]
@@ -334,13 +335,13 @@ pub fn full_shaders(
             BindType::BufReadOnly,
             BindType::ImageRead(ImageFormat::Rgba8),
             BindType::ImageRead(ImageFormat::Rgba8),
-            BindType::BufReadOnly,
+            BindType::Buffer,
             #[cfg(feature = "ptcl_segmentation")]
             BindType::Buffer,
             #[cfg(feature = "ptcl_segmentation")]
             BindType::Buffer,
             #[cfg(not(feature = "ptcl_segmentation"))]
-            BindType::Image(ImageFormat::Rgba8),
+            BindType::Buffer,
 
         ],
     )?;
@@ -357,6 +358,17 @@ pub fn full_shaders(
             BindType::BufReadOnly,
         ],
     )?;
+
+    let pp_adhoc = engine.add_shader(
+        device, 
+        "adhoc", 
+        preprocess::preprocess(shader!("pp_adhoc"), &full_config, &imports).into(), 
+    &[
+        BindType::Uniform,
+        BindType::BufReadOnly,
+        BindType::Image(ImageFormat::Rgba8),
+    ],)?;
+    
     Ok(FullShaders {
         pathtag_reduce,
         pathtag_reduce2,
@@ -378,7 +390,8 @@ pub fn full_shaders(
         coarse,
         fine_setup,
         fine,
-        compose
+        compose,
+        pp_adhoc
     })
 }
 

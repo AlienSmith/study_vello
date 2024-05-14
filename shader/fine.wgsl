@@ -55,8 +55,7 @@ var<storage, read_write> fine_slice: array<u32>;
 
 #else
 @group(0) @binding(8)
-var output: texture_storage_2d<rgba8unorm, write>;
-
+var<storage, read_write> pp_input: array<u32>;
 #endif
 
 var<private> dashes_array: array<f32,MAX_DASHES_ARRAY_SIZE>;
@@ -573,7 +572,9 @@ fn main(
             fine_slice[slice_buf_index_base + i] = pack4x8unorm(fg);
 #else
             // store the premulitplied alpha color directly to texture
-            textureStore(output, vec2<i32>(coords), rgba_sep);
+            //textureStore(output, vec2<i32>(coords), rgba_sep);
+            let index = coords.x + coords.y * config.target_width;
+            pp_input[index] = pack4x8unorm(rgba_sep);
 #endif
 
         }

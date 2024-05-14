@@ -37,7 +37,7 @@ edition.workspace = true
 repository.workspace = true
 
 [features]
-default = ["wgpu","ptcl_segmentation"]
+default = ["wgpu"]
 hot_reload = []
 buffer_labels = []
 # Enables support for ptcl segmentation, ptcls' for each tile will
