@@ -688,6 +688,15 @@ fn conflation_artifacts(sb: &mut SceneBuilder, _: &mut SceneParams) {
             LineTo((N, N).into()),
             LineTo((0.0, N).into()),
             LineTo((0.0, 0.0).into()),
+        ],
+    );
+
+    sb.fill(
+        Fill::NonZero,
+        Affine::translate((x, y)) * scale,
+        fg_color,
+        None,
+        &[
             // triangle 2
             MoveTo((0.0, 0.0).into()),
             LineTo((N, N).into()),
@@ -698,13 +707,7 @@ fn conflation_artifacts(sb: &mut SceneBuilder, _: &mut SceneParams) {
 
     // Adjacent rects, opposite winding
     y += S * N + 10.0;
-    sb.fill(
-        Fill::EvenOdd,
-        Affine::translate((x, y)) * scale,
-        bg_color,
-        None,
-        &Rect::new(0.0, 0.0, N, N),
-    );
+    
     sb.fill(
         Fill::EvenOdd,
         Affine::translate((x, y)) * scale,
@@ -716,6 +719,15 @@ fn conflation_artifacts(sb: &mut SceneBuilder, _: &mut SceneParams) {
             LineTo((0.0, N).into()),
             LineTo((N * 0.5, N).into()),
             LineTo((N * 0.5, 0.0).into()),
+        ],
+    );
+
+    sb.fill(
+        Fill::EvenOdd,
+        Affine::translate((x, y)) * scale,
+        fg_color,
+        None,
+        &[
             // right rect
             MoveTo((N * 0.5, 0.0).into()),
             LineTo((N, 0.0).into()),
@@ -726,13 +738,7 @@ fn conflation_artifacts(sb: &mut SceneBuilder, _: &mut SceneParams) {
 
     // Adjacent rects, same winding
     y += S * N + 10.0;
-    sb.fill(
-        Fill::EvenOdd,
-        Affine::translate((x, y)) * scale,
-        bg_color,
-        None,
-        &Rect::new(0.0, 0.0, N, N),
-    );
+
     sb.fill(
         Fill::EvenOdd,
         Affine::translate((x, y)) * scale,
@@ -744,6 +750,15 @@ fn conflation_artifacts(sb: &mut SceneBuilder, _: &mut SceneParams) {
             LineTo((0.0, N).into()),
             LineTo((N * 0.5, N).into()),
             LineTo((N * 0.5, 0.0).into()),
+        ],
+    );
+
+    sb.fill(
+        Fill::EvenOdd,
+        Affine::translate((x, y)) * scale,
+        fg_color,
+        None,
+        &[
             // right rect
             MoveTo((N * 0.5, 0.0).into()),
             LineTo((N * 0.5, N).into()),
