@@ -26,6 +26,7 @@ pub struct WgpuEngine {
     downloads: HashMap<Id, Buffer>,
 }
 
+#[allow(dead_code)]
 struct Shader {
     pipeline: ComputePipeline,
     bind_group_layout: BindGroupLayout,
