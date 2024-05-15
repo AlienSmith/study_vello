@@ -753,6 +753,38 @@ fn conflation_artifacts(sb: &mut SceneBuilder, _: &mut SceneParams) {
         ],
     );
 
+    
+    sb.fill(
+        Fill::EvenOdd,
+        Affine::translate((x, y)) * scale,
+        fg_color,
+        None,
+        &[
+            // right rect
+            MoveTo((N * 0.5, 0.0).into()),
+            LineTo((N * 0.5, N).into()),
+            LineTo((N, N).into()),
+            LineTo((N, 0.0).into()),
+        ],
+    );
+
+    
+    y += S * N + 10.0;
+    //heart
+    sb.fill(
+        Fill::EvenOdd,
+        Affine::translate((x, y)) * scale,
+        fg_color,
+        None,
+        &[
+            // right rect
+            MoveTo((N * 0.5 + 10.0, 30.0).into()),
+            LineTo((N * 0.5, N).into()),
+            LineTo((N, N).into()),
+            LineTo((N, 0.0).into()),
+        ],
+    );
+    
     sb.fill(
         Fill::EvenOdd,
         Affine::translate((x, y)) * scale,
