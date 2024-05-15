@@ -22,7 +22,7 @@ use super::Result;
 
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use wgpu::{
-    Adapter, Device, Instance, Limits, Queue, Surface, SurfaceConfiguration, TextureFormat,
+    Adapter, Device, Instance, Queue, Surface, SurfaceConfiguration, TextureFormat,
 };
 
 /// Simple render context that maintains wgpu state for rendering the pipeline.
@@ -123,7 +123,7 @@ impl RenderContext {
         }
         compatible
     }
-
+    #[allow(unused_mut)]
     /// Creates a compatible device handle id.
     async fn new_device(&mut self, compatible_surface: Option<&Surface>) -> Option<usize> {
         let adapter =
