@@ -1,5 +1,5 @@
 use crate::{ExampleScene, SceneConfig, SceneParams, SceneSet};
-use vello::kurbo::{Affine, BezPath, Ellipse, PathEl, Point, Rect, Vec2};
+use vello::kurbo::{Affine, BezPath, Circle, Ellipse, PathEl, Point, Rect, Shape, Vec2};
 use vello::peniko::*;
 use vello::*;
 
@@ -671,7 +671,7 @@ fn conflation_artifacts(sb: &mut SceneBuilder, _: &mut SceneParams) {
     const S: f64 = 4.0;
 
     let scale = Affine::scale(S);
-    let x = -10.0; // Fractional pixel offset reveals the problem on axis-aligned edges.
+    let mut x = -10.0; // Fractional pixel offset reveals the problem on axis-aligned edges.
     let mut y = -10.0;
 
     let bg_color = Color::rgb8(0, 0, 0);
@@ -770,20 +770,21 @@ fn conflation_artifacts(sb: &mut SceneBuilder, _: &mut SceneParams) {
     );
 
     
-    y += S * N + 10.0;
+    y += S * N + 200.0;
+    x = 25.0;
+    let circle = kurbo::Circle::new((0.0, 0.0), 0.5 * N);
+    let mut temp_circle = vec![];
+    for item in circle.path_elements(1.0){
+        temp_circle.push(item);
+    }
+
     //heart
     sb.fill(
         Fill::EvenOdd,
         Affine::translate((x, y)) * scale,
         fg_color,
         None,
-        &[
-            // right rect
-            MoveTo((N * 0.5 + 10.0, 30.0).into()),
-            LineTo((N * 0.5, N).into()),
-            LineTo((N, N).into()),
-            LineTo((N, 0.0).into()),
-        ],
+        &temp_circle.as_slice(),
     );
     
     sb.fill(
