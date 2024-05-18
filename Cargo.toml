@@ -60,7 +60,7 @@ fello = { git = "https://github.com/dfrg/fount", rev = "dadbcf75695f035ca46766bf
 peniko = { git = "https://github.com/linebender/peniko", rev = "cafdac9a211a0fb2fec5656bd663d1ac770bcc81" }
 
 # NOTE: Make sure to keep this in sync with the version badge in README.md
-wgpu = { version = "0.17" }                                              
+wgpu = { version = "0.19.3" }                                              
 
 
 # Used for examples
@@ -68,4 +68,4 @@ clap = "4.1.0"
 anyhow = "1.0"
 instant = { version = "0.1.12", features = ["wasm-bindgen"] }
 pollster = "0.3.0"
-wgpu-profiler = "0.13"
+wgpu-profiler = "0.16.1"

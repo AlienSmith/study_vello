@@ -336,7 +336,7 @@ pub fn full_shaders(
             BindType::ImageRead(ImageFormat::Rgba8),
             BindType::BufReadOnly,
             #[cfg(feature = "ptcl_segmentation")]
-            BindType::Buffer,
+            BindType::BufReadOnly,
             #[cfg(feature = "ptcl_segmentation")]
             BindType::Buffer,
             #[cfg(not(feature = "ptcl_segmentation"))]
