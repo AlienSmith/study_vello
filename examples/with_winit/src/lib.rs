@@ -21,7 +21,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use clap::{CommandFactory, Parser};
 use scenes::{ImageCache, SceneParams, SceneSet, SimpleText};
-use vello::peniko::Color;
+
 use vello::util::RenderSurface;
 use vello::{
     kurbo::{Affine, Vec2},

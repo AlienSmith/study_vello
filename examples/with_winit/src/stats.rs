@@ -15,9 +15,9 @@
 // Also licensed under MIT license, at your choice.
 
 use scenes::SimpleText;
-use std::{collections::VecDeque, time::Duration};
+use std::collections::VecDeque;
 use vello::{
-    kurbo::{Affine, Line, PathEl, Rect},
+    kurbo::{Affine, PathEl, Rect},
     peniko::{Brush, Color, Fill, Stroke},
     BumpAllocators, SceneBuilder,
 };
@@ -248,16 +248,16 @@ fn round_up(n: usize, f: usize) -> usize {
     n - 1 - (n - 1) % f + f
 }
 
-const COLORS: &[Color] = &[
-    Color::AQUA,
-    Color::RED,
-    Color::ALICE_BLUE,
-    Color::YELLOW,
-    Color::GREEN,
-    Color::BLUE,
-    Color::ORANGE,
-    Color::WHITE,
-];
+// const COLORS: &[Color] = &[
+//     Color::AQUA,
+//     Color::RED,
+//     Color::ALICE_BLUE,
+//     Color::YELLOW,
+//     Color::GREEN,
+//     Color::BLUE,
+//     Color::ORANGE,
+//     Color::WHITE,
+// ];
 
 #[cfg(feature = "wgpu-profiler")]
 use wgpu_profiler::GpuTimerQueryResult;
