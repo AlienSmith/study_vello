@@ -13,7 +13,6 @@
 // limitations under the License.
 //
 // Also licensed under MIT license, at your choice.
-
 use scenes::SimpleText;
 use std::collections::VecDeque;
 use vello::{
@@ -263,12 +262,13 @@ fn round_up(n: usize, f: usize) -> usize {
 use wgpu_profiler::GpuTimerQueryResult;
 #[cfg(feature = "wgpu-profiler")]
 pub fn draw_gpu_profiling(
-    scene: &mut Scene,
+    sb: &mut SceneBuilder,
     text: &mut SimpleText,
     viewport_width: f64,
     viewport_height: f64,
     profiles: &[GpuTimerQueryResult],
 ) {
+
     const COLORS: &[Color] = &[
         Color::AQUA,
         Color::RED,
@@ -286,9 +286,8 @@ pub fn draw_gpu_profiling(
     let height = width * 1.5;
     let y_offset = viewport_height - height;
     let offset = Affine::translate((0., y_offset));
-
     // Draw the background
-    scene.fill(
+    sb.fill(
         Fill::NonZero,
         offset,
         &Brush::Solid(Color::rgba8(0, 0, 0, 200)),
@@ -330,7 +329,7 @@ pub fn draw_gpu_profiling(
         let text_size = (text_height * 0.9) as f32;
         for (i, label) in labels.iter().enumerate() {
             text.add(
-                scene,
+                sb,
                 None,
                 text_size,
                 Some(&Brush::Solid(Color::WHITE)),
@@ -342,7 +341,7 @@ pub fn draw_gpu_profiling(
         let text_size = (text_height * 0.9) as f32;
         for (i, label) in labels.iter().enumerate() {
             text.add(
-                scene,
+                sb,
                 None,
                 text_size,
                 Some(&Brush::Solid(Color::WHITE)),
@@ -373,7 +372,7 @@ pub fn draw_gpu_profiling(
 
             let color = COLORS[cur_index % COLORS.len()];
             let x = width * 0.01 + (depth as f64 * depth_width);
-            scene.fill(
+            sb.fill(
                 Fill::NonZero,
                 offset,
                 &Brush::Solid(color),
@@ -421,7 +420,7 @@ pub fn draw_gpu_profiling(
                     )
                 }
             };
-            scene.fill(
+            sb.fill(
                 Fill::NonZero,
                 offset,
                 &Brush::Solid(color),
@@ -434,7 +433,7 @@ pub fn draw_gpu_profiling(
                 ),
             );
             text.add(
-                scene,
+                sb,
                 None,
                 text_size,
                 Some(&Brush::Solid(text_color)),
@@ -442,7 +441,7 @@ pub fn draw_gpu_profiling(
                 &label,
             );
             if !nested && slow {
-                scene.stroke(
+                sb.stroke(
                     &Stroke::new(2.),
                     offset,
                     &Brush::Solid(color),

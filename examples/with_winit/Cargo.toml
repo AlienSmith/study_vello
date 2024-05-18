@@ -19,14 +19,20 @@ crate-type = ["cdylib", "lib"]
 name = "with_winit_bin"
 path = "src/main.rs"
 
+[features]
+default = []
+# Enable the use of wgpu-profiler. This is an optional feature for times when we use a git dependency on
+# wgpu (which means the dependency used in wgpu-profiler would be incompatible)
+wgpu-profiler = ["dep:wgpu-profiler", "vello/wgpu-profiler"]
+
 [dependencies]
-vello = { path = "../../", features = ["buffer_labels", "wgpu-profiler"] }
+vello = { path = "../../", features = ["buffer_labels"] }
 scenes = { path = "../scenes" }
 anyhow = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
 instant = { workspace = true }
 pollster = { workspace = true }
-wgpu-profiler = { workspace = true }
+wgpu-profiler = { workspace = true, optional = true }
 
 wgpu = { workspace = true }
 winit = "0.29.15"

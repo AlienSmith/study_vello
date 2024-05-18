@@ -9,7 +9,7 @@ members = [
 
     "examples/headless",
     "examples/with_winit",
-    # "examples/with_bevy", # Disable for now until bevy is using wgpu 0.17
+    "examples/with_bevy",
     "examples/run_wasm",
     "examples/scenes",
 ]
@@ -37,9 +37,10 @@ edition.workspace = true
 repository.workspace = true
 
 [features]
-default = ["wgpu","ptcl_segmentation"]
+default = ["wgpu", "ptcl_segmentation"]
 hot_reload = []
 buffer_labels = []
+wgpu-profiler = ["dep:wgpu-profiler"]
 # Enables support for ptcl segmentation, ptcls' for each tile will
 # be break into fixed sized piece, and processed concurrently
 ptcl_segmentation = ["vello_encoding/ptcl_segmentation"]

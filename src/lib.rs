@@ -52,9 +52,8 @@ use wgpu_engine::{ExternalResource, WgpuEngine};
 pub use vello_encoding::BumpAllocators;
 #[cfg(feature = "wgpu")]
 use wgpu::{Device, Queue, SurfaceTexture, TextureFormat, TextureView};
-#[cfg(feature = "wgpu-profiler")]
-use wgpu_profiler::GpuProfiler;
-use wgpu_profiler::GpuProfilerSettings;
+#[cfg(all(feature = "wgpu", feature = "wgpu-profiler"))]
+use wgpu_profiler::{GpuProfiler, GpuProfilerSettings};
 
 /// Catch-all error type.
 pub type Error = Box<dyn std::error::Error>;
@@ -70,7 +69,7 @@ pub struct Renderer {
     blit: Option<BlitPipeline>,
     target: Option<TargetTexture>,
     #[cfg(feature = "wgpu-profiler")]
-    profiler: GpuProfiler,
+    pub profiler: GpuProfiler,
     #[cfg(feature = "wgpu-profiler")]
     pub profile_result: Option<Vec<wgpu_profiler::GpuTimerQueryResult>>,
 }
