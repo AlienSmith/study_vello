@@ -14,7 +14,7 @@
 //
 // Also licensed under MIT license, at your choice.
 
-use instant::{Duration, Instant};
+use instant::Instant;
 use winit::keyboard::{Key, NamedKey};
 use std::collections::HashSet;
 use std::sync::Arc;
