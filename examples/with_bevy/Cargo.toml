@@ -9,12 +9,4 @@ publish = false
 
 [dependencies]
 vello = { path = "../../" }
-bevy = { version = "0.13.1", features = [
-  "bevy_winit",
-  "bevy_core_pipeline",
-  "bevy_pbr",
-  "bevy_render",
-  "multi-threaded",
-  "x11",
-  "tonemapping_luts",
-], default-features = false }
+bevy = { version = "0.13.1" }

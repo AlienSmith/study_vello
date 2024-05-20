@@ -1,5 +1,6 @@
 use bevy::render::{Render, RenderSet};
 use bevy::utils::synccell::SyncCell;
+use bevy::window::{PresentMode, WindowResized};
 use vello::kurbo::{Affine, Point, Rect};
 use vello::peniko::{Color, Fill, Gradient, Stroke};
 use vello::{Renderer, RendererOptions, Scene, SceneBuilder, SceneFragment};
@@ -84,11 +85,20 @@ fn render_scenes(
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                title: "I am a window!".into(),
+                resolution: (1200., 800.).into(),
+                present_mode: PresentMode::AutoVsync,
+                ..default()
+            }),
+            ..default()
+        }))
         .add_plugins(VelloPlugin)
         .add_systems(Startup, setup)
         .add_systems(Update, bevy::window::close_on_esc)
-        .add_systems(Update, cube_rotator_system)
+        .add_systems(Update, on_resize_system)
+        //.add_systems(Update, cube_rotator_system)
         .add_plugins(ExtractComponentPlugin::<VelloScene>::default())
         .add_systems(Update, render_fragment)
         .run()
@@ -127,13 +137,13 @@ impl ExtractComponent for VelloScene {
 
 fn setup(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    //mut meshes: ResMut<Assets<Mesh>>,
+    //mut materials: ResMut<Assets<StandardMaterial>>,
     mut images: ResMut<Assets<Image>>,
 ) {
     let size = Extent3d {
-        width: 512,
-        height: 512,
+        width: 1200,
+        height: 800,
         ..default()
     };
 
@@ -161,39 +171,49 @@ fn setup(
 
     // Light
     // NOTE: Currently lights are shared between passes - see https://github.com/bevyengine/bevy/issues/3462
-    commands.spawn(PointLightBundle {
-        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 10.0)),
-        ..default()
-    });
+    // commands.spawn(PointLightBundle {
+    //     transform: Transform::from_translation(Vec3::new(0.0, 0.0, 10.0)),
+    //     ..default()
+    // });
 
-    let cube_size = 4.0;
-    let cube_handle = meshes.add(Cuboid::new(cube_size, cube_size, cube_size));
+    //let cube_size = 4.0;
+    //et cube_handle = meshes.add(Cuboid::new(cube_size, cube_size, cube_size));
 
-    // This material has the texture that has been rendered.
-    let material_handle = materials.add(StandardMaterial {
-        base_color_texture: Some(image_handle.clone()),
-        reflectance: 0.02,
-        unlit: false,
-        ..default()
+    //This material has the texture that has been rendered.
+    // let material_handle = materials.add(StandardMaterial {
+    //     base_color_texture: Some(image_handle.clone()),
+    //     //reflectance: 0.02,
+    //     unlit: true,
+    //     ..default()
+    // });
+
+    commands.spawn(SpriteBundle{
+        texture: image_handle.clone(),
+        transform: Transform {
+            translation: Vec3::new(0.0, 0.0, 0.),
+            ..Default::default()
+        },
+        ..Default::default()
     });
 
     // Main pass cube, with material containing the rendered first pass texture.
-    commands.spawn((
-        PbrBundle {
-            mesh: cube_handle,
-            material: material_handle,
-            transform: Transform::from_xyz(0.0, 0.0, 1.5)
-                .with_rotation(Quat::from_rotation_x(-std::f32::consts::PI / 5.0)),
-            ..default()
-        },
-        MainPassCube,
-    ));
+    // commands.spawn((
+    //     PbrBundle {
+    //         mesh: cube_handle,
+    //         material: material_handle,
+    //         transform: Transform::from_xyz(0.0, 0.0, 1.5)
+    //             .with_rotation(Quat::from_rotation_x(-std::f32::consts::PI / 5.0)),
+    //         ..default()
+    //     },
+    //     MainPassCube,
+    // ));
 
-    // The main pass camera.
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(0.0, 0.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ..default()
-    });
+    // //The main pass camera.
+    // commands.spawn(Camera3dBundle {
+    //     transform: Transform::from_xyz(0.0, 0.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
+    //     ..default()
+    // });
+    commands.spawn(Camera2dBundle::default());
     commands.spawn((
         VelloFragment(SceneFragment::default()),
         VelloTarget(image_handle),
@@ -201,12 +221,33 @@ fn setup(
 }
 
 /// Rotates the outer cube (main pass)
-fn cube_rotator_system(time: Res<Time>, mut query: Query<&mut Transform, With<MainPassCube>>) {
-    for mut transform in &mut query {
-        transform.rotate_x(1.0 * time.delta_seconds());
-        transform.rotate_y(0.7 * time.delta_seconds());
+// fn cube_rotator_system(time: Res<Time>, mut query: Query<&mut Transform, With<MainPassCube>>) {
+//     for mut transform in &mut query {
+//         transform.rotate_x(1.0 * time.delta_seconds());
+//         transform.rotate_y(0.7 * time.delta_seconds());
+//     }
+// }
+
+/// This system shows how to respond to a window being resized.
+/// Whenever the window is resized, the text will update with the new resolution.
+fn on_resize_system(
+    mut image_target: Query<&mut VelloTarget>,
+    mut resize_reader: EventReader<WindowResized>,
+    mut images: ResMut<Assets<Image>>,
+) {
+    let image_target = image_target.single_mut();
+    if let Some(e) = resize_reader.read().last(){
+        if let Some(image) = images.get_mut(image_target.0.id()){
+            let size = Extent3d {
+                width: e.width as u32,
+                height: e.height as u32,
+                ..default()
+            };
+            image.resize(size);
+        }
     }
 }
+
 
 fn render_fragment(mut fragment: Query<&mut VelloFragment>, mut frame: Local<usize>) {
     let mut fragment = fragment.single_mut();
