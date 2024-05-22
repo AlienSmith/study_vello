@@ -76,6 +76,8 @@ pub struct FullShaders {
     pub backdrop: ShaderId,
     pub coarse: ShaderId,
     pub fine: ShaderId,
+    pub pp_adhoc: ShaderId,
+    pub pp_adhoc1: ShaderId,
 }
 
 #[cfg(feature = "wgpu")]
@@ -278,11 +280,34 @@ pub fn full_shaders(
             BindType::BufReadOnly,
             BindType::BufReadOnly,
             BindType::BufReadOnly,
-            BindType::Image(ImageFormat::Rgba8),
             BindType::ImageRead(ImageFormat::Rgba8),
             BindType::ImageRead(ImageFormat::Rgba8),
+            BindType::Buffer,
+            BindType::Buffer,
         ],
     )?;
+
+    let pp_adhoc = engine.add_shader(
+        device, 
+        "adhoc", 
+        preprocess::preprocess(shader!("pp_adhoc"), &full_config, &imports).into(), 
+    &[
+        BindType::Uniform,
+        BindType::BufReadOnly,
+        BindType::BufReadOnly,
+        BindType::Buffer,
+    ],)?;
+
+    let pp_adhoc1 = engine.add_shader(
+        device, 
+        "adhoc1", 
+        preprocess::preprocess(shader!("pp_adhoc1"), &full_config, &imports).into(), 
+    &[
+        BindType::Uniform,
+        BindType::BufReadOnly,
+        BindType::Image(ImageFormat::Rgba8),
+    ],)?;
+
     Ok(FullShaders {
         pathtag_reduce,
         pathtag_reduce2,
@@ -301,6 +326,8 @@ pub fn full_shaders(
         backdrop,
         coarse,
         fine,
+        pp_adhoc,
+        pp_adhoc1,
     })
 }
 

@@ -32,13 +32,19 @@ var<storage> ptcl: array<u32>;
 var<storage> info: array<u32>;
 
 @group(0) @binding(4)
-var output: texture_storage_2d<rgba8unorm, write>;
-
-@group(0) @binding(5)
 var gradients: texture_2d<f32>;
 
-@group(0) @binding(6)
+@group(0) @binding(5)
 var image_atlas: texture_2d<f32>;
+
+@group(0) @binding(6)
+var<storage, read_write> pp_input: array<u32>;
+
+@group(0) @binding(7)
+var<storage, read_write> pp_flag: array<u32>;
+
+var<private> area: array<f32, PIXELS_PER_THREAD>;
+var<private> is_seam: array<u32,PIXELS_PER_THREAD>;
 
 fn read_fill(cmd_ix: u32) -> CmdFill {
     let tile = ptcl[cmd_ix + 1u];
@@ -141,7 +147,6 @@ var output: texture_storage_2d<r8, write>;
 let PIXELS_PER_THREAD = 4u;
 
 fn fill_path(tile: Tile, xy: vec2<f32>, even_odd: bool) -> array<f32, PIXELS_PER_THREAD> {
-    var area: array<f32, PIXELS_PER_THREAD>;
     let backdrop_f = f32(tile.backdrop);
     for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
         area[i] = backdrop_f;
@@ -220,6 +225,13 @@ fn stroke_path(seg: u32, half_width: f32, xy: vec2<f32>) -> array<f32, PIXELS_PE
     return df;
 }
 
+fn assign_seam() {
+    is_seam[0] |= select(0u, 1u,area[0] < 1.0 && area[0] > 0.0);
+    is_seam[1] |= select(0u, 1u,area[1] < 1.0 && area[1] > 0.0);
+    is_seam[2] |= select(0u, 1u,area[2] < 1.0 && area[2] > 0.0);
+    is_seam[3] |= select(0u, 1u,area[3] < 1.0 && area[3] > 0.0);
+}
+
 // The X size should be 16 / PIXELS_PER_THREAD
 @compute @workgroup_size(4, 16)
 fn main(
@@ -236,7 +248,6 @@ fn main(
     }
     var blend_stack: array<array<u32, PIXELS_PER_THREAD>, BLEND_STACK_SPLIT>;
     var clip_depth = 0u;
-    var area: array<f32, PIXELS_PER_THREAD>;
     var cmd_ix = tile_ix * PTCL_INITIAL_ALLOC;
     let blend_offset = ptcl[cmd_ix];
     cmd_ix += 1u;
@@ -253,13 +264,14 @@ fn main(
                 let segments = fill.tile >> 1u;
                 let even_odd = (fill.tile & 1u) != 0u;
                 let tile = Tile(fill.backdrop, segments);
-                area = fill_path(tile, xy, even_odd);
+                fill_path(tile, xy, even_odd);
+                assign_seam();
                 cmd_ix += 3u;
             }
             // CMD_STROKE
             case 2u: {
                 let stroke = read_stroke(cmd_ix);
-                area = stroke_path(stroke.tile, stroke.half_width, xy);
+                stroke_path(stroke.tile, stroke.half_width, xy);
                 cmd_ix += 3u;
             }
             // CMD_SOLID
@@ -405,20 +417,12 @@ fn main(
             // Max with a small epsilon to avoid NaNs
             let a_inv = 1.0 / max(fg.a, 1e-6);
             let rgba_sep = vec4(fg.rgb * a_inv, fg.a);
-            textureStore(output, vec2<i32>(coords), rgba_sep);
+            let index = coords.x + coords.y * config.target_width;
+            pp_input[index] = pack4x8unorm(rgba_sep);
+            pp_flag[index] = is_seam[i];
+#endif
         }
     } 
-#else
-    let tile = tiles[tile_ix];
-    let area = fill_path(tile, xy);
-
-    let xy_uint = vec2<u32>(xy);
-    for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
-        let coords = xy_uint + vec2(i, 0u);
-        if coords.x < config.target_width && coords.y < config.target_height {
-            textureStore(output, vec2<i32>(coords), vec4(area[i]));
-        }
-    }
 #endif
 }
 

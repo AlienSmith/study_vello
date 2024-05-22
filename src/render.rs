@@ -25,6 +25,9 @@ struct FineResources {
     image_atlas: ResourceProxy,
 
     out_image: ImageProxy,
+    pp_input: ResourceProxy,
+    pp_input1: ResourceProxy,
+    pp_flag: ResourceProxy,
 }
 
 pub fn render_full(
@@ -354,6 +357,9 @@ impl Render {
         recording.free_resource(bin_header_buf);
         recording.free_resource(path_buf);
         let out_image = ImageProxy::new(params.width, params.height, ImageFormat::Rgba8);
+        let pp_input = ResourceProxy::new_buf((params.width* params.height * 4).into(), "pp_input");
+        let pp_flag = ResourceProxy::new_buf((params.width* params.height * 4).into(), "pp_flag");
+        let pp_input1 = ResourceProxy::new_buf((params.width* params.height * 4).into(), "pp_input");
         self.fine_wg_count = Some(wg_counts.fine);
         self.fine_resources = Some(FineResources {
             config_buf,
@@ -365,6 +371,9 @@ impl Render {
             info_bin_data_buf,
             image_atlas: ResourceProxy::Image(image_atlas),
             out_image,
+            pp_input,
+            pp_input1,
+            pp_flag,
         });
         if robust {
             recording.download(*bump_buf.as_buf().unwrap());
@@ -385,11 +394,35 @@ impl Render {
                 fine.segments_buf,
                 fine.ptcl_buf,
                 fine.info_bin_data_buf,
-                ResourceProxy::Image(fine.out_image),
                 fine.gradient_image,
                 fine.image_atlas,
+                fine.pp_input,
+                fine.pp_flag,
             ],
         );
+        recording.dispatch(
+            shaders.pp_adhoc,
+            fine_wg_count,
+            [
+                fine.config_buf,
+                fine.pp_input,
+                fine.pp_flag,
+                fine.pp_input1,
+            ],
+        );
+
+        recording.dispatch(
+            shaders.pp_adhoc1,
+            fine_wg_count,
+            [
+                fine.config_buf,
+                fine.pp_input1,
+                ResourceProxy::Image(fine.out_image),
+            ],
+        );
+        recording.free_resource(fine.pp_input);
+        recording.free_resource(fine.pp_input1);
+        recording.free_resource(fine.pp_flag);
         recording.free_resource(fine.config_buf);
         recording.free_resource(fine.tile_buf);
         recording.free_resource(fine.segments_buf);
