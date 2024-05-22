@@ -1,5 +1,5 @@
 use crate::{ExampleScene, SceneConfig, SceneParams, SceneSet};
-use vello::kurbo::{Affine, BezPath, Ellipse, PathEl, Point, Rect};
+use vello::kurbo::{Affine, BezPath, Ellipse, PathEl, Point, Rect, Shape};
 use vello::peniko::*;
 use vello::*;
 
@@ -39,19 +39,7 @@ pub fn test_scenes() -> SceneSet {
         function: Box::new(crate::mmark::MMark::new(80_000)),
     };
     let scenes = vec![
-        splash_scene,
-        mmark_scene,
-        scene!(funky_paths),
-        scene!(cardioid_and_friends),
-        scene!(animated_text: animated),
-        scene!(gradient_extend),
-        scene!(two_point_radial),
-        scene!(brush_transform: animated),
-        scene!(blend_grid),
         scene!(conflation_artifacts),
-        scene!(labyrinth),
-        scene!(base_color_test: animated),
-        scene!(clip_test: animated),
     ];
 
     SceneSet { scenes }
@@ -644,16 +632,199 @@ fn blend_square(blend: BlendMode) -> SceneFragment {
     fragment
 }
 
-fn conflation_artifacts(sb: &mut SceneBuilder, _: &mut SceneParams) {
+fn add_seam_test(sb: &mut SceneBuilder, x: f64, y:f64, brush:Brush, bg_color: Color){
+    use PathEl::*;
+    const N: f64 = 50.0;
+    const S: f64 = 4.0;
+    const H: f64 = 300.0;
+    let scale = Affine::scale(S);
+    let mut x = x; // Fractional pixel offset reveals the problem on axis-aligned edges.
+    let mut y = y;
+
+    sb.fill(
+        Fill::NonZero,
+        Affine::translate((x, y)) * scale,
+        &bg_color,
+        None,
+        &[
+            MoveTo((0.0, 0.0).into()),
+            LineTo((0.0, H).into()),
+            LineTo((N, H).into()),
+            LineTo((N, 0.0).into()),
+        ],
+    );
+
+    // Two adjacent triangles touching at diagonal edge with opposing winding numbers
+    sb.fill(
+        Fill::NonZero,
+        Affine::translate((x, y)) * scale,
+        &brush.clone(),
+        None,
+        &[
+            // triangle 1
+            MoveTo((0.0, 0.0).into()),
+            LineTo((N, N).into()),
+            LineTo((0.0, N).into()),
+            LineTo((0.0, 0.0).into()),
+        ],
+    );
+
+    sb.fill(
+        Fill::NonZero,
+        Affine::translate((x, y)) * scale,
+        &brush.clone(),
+        None,
+        &[
+            // triangle 2
+            MoveTo((0.0, 0.0).into()),
+            LineTo((N, N).into()),
+            LineTo((N, 0.0).into()),
+            LineTo((0.0, 0.0).into()),
+        ],
+    );
+
+    // Adjacent rects, opposite winding
+    y += S * N + 10.0;
+    
+    sb.fill(
+        Fill::EvenOdd,
+        Affine::translate((x, y)) * scale,
+        &brush.clone(),
+        None,
+        &[
+            // left rect
+            MoveTo((0.0, 0.0).into()),
+            LineTo((0.0, N).into()),
+            LineTo((N * 0.5, N).into()),
+            LineTo((N * 0.5, 0.0).into()),
+        ],
+    );
+
+    sb.fill(
+        Fill::EvenOdd,
+        Affine::translate((x, y)) * scale,
+        &brush.clone(),
+        None,
+        &[
+            // right rect
+            MoveTo((N * 0.5, 0.0).into()),
+            LineTo((N, 0.0).into()),
+            LineTo((N, N).into()),
+            LineTo((N * 0.5, N).into()),
+        ],
+    );
+
+    // Adjacent rects, same winding
+    y += S * N + 10.0;
+    
+    sb.fill(
+        Fill::EvenOdd,
+        Affine::translate((x, y)) * scale,
+        &brush.clone(),
+        None,
+        &[
+            // left rect
+            MoveTo((0.0, 0.0).into()),
+            LineTo((0.0, N).into()),
+            LineTo((N * 0.5, N).into()),
+            LineTo((N * 0.5, 0.0).into()),
+        ],
+    );
+
+    
+    sb.fill(
+        Fill::EvenOdd,
+        Affine::translate((x, y)) * scale,
+        &brush.clone(),
+        None,
+        &[
+            // right rect
+            MoveTo((N * 0.5, 0.0).into()),
+            LineTo((N * 0.5, N).into()),
+            LineTo((N, N).into()),
+            LineTo((N, 0.0).into()),
+        ],
+    );
+
+    y += S * N + 20.0;
+    let r = N - 10.0;
+    let circle = kurbo::Circle::new((0.5 * N, 0.5 * N), 0.5 * r);
+    let mut temp_circle = vec![];
+    for item in circle.path_elements(1.0){
+        temp_circle.push(item);
+    }
+    //heart
+    sb.fill(
+        Fill::EvenOdd,
+        Affine::translate((x, y)) * scale,
+        &brush.clone(),
+        None,
+        &temp_circle.as_slice(),
+    );
+
+    temp_circle.push(MoveTo((0.0, 0.0).into()));
+    temp_circle.push(LineTo((0.0, N).into()));
+    temp_circle.push(LineTo((N, N).into()));
+    temp_circle.push(LineTo((N, 0.0).into()));
+    temp_circle.push(LineTo((0.0, 0.0).into()));    
+    sb.fill(
+        Fill::EvenOdd,
+        Affine::translate((x, y)) * scale,
+        &brush.clone(),
+        None,
+        &temp_circle.as_slice(),
+    );
+    
+    y += S * N + 20.0;
+    let circle = kurbo::Circle::new((0.5 * N, 0.5 * N), 0.5 * N);
+    let mut temp_circle = vec![];
+    for item in circle.path_elements(1.0){
+        temp_circle.push(item);
+    }
+    //heart
+    sb.fill(
+        Fill::EvenOdd,
+        Affine::translate((x, y)) * scale,
+        &brush.clone(),
+        None,
+        &temp_circle.as_slice(),
+    );
+
+    temp_circle.push(MoveTo((0.0, 0.0).into()));
+    temp_circle.push(LineTo((0.0, N).into()));
+    temp_circle.push(LineTo((N, N).into()));
+    temp_circle.push(LineTo((N, 0.0).into()));
+    temp_circle.push(LineTo((0.0, 0.0).into()));    
+    sb.fill(
+        Fill::EvenOdd,
+        Affine::translate((x, y)) * scale,
+        &brush.clone(),
+        None,
+        &temp_circle.as_slice(),
+    );
+}
+fn gradient_color(a: u8) -> Brush{
+    let colors = [Color::rgba8(255, 0, 0, a), Color::rgba8(0, 255, 0, a), Color::rgba8(0, 0, 255, a)];
+    let width = 35f64;
+    let height = 35f64;
+    let center = (width * 0.5, height * 0.5);
+    let radius = (width * 0.25) as f32;
+    Gradient::new_two_point_radial(center, radius * 0.25, center, radius)
+        .with_stops(colors)
+        .with_extend(Extend::Reflect)
+        .into()
+    
+}
+fn add_bleeding_test(sb: &mut SceneBuilder, x: f64, y:f64){
     use PathEl::*;
     const N: f64 = 50.0;
     const S: f64 = 4.0;
 
     let scale = Affine::scale(S);
-    let x = N + 0.5; // Fractional pixel offset reveals the problem on axis-aligned edges.
-    let mut y = N;
+    let mut x = x; // Fractional pixel offset reveals the problem on axis-aligned edges.
+    let mut y = y;
 
-    let bg_color = Color::rgb8(255, 194, 19);
+    let bg_color = Color::rgb8(0, 0, 0);
     let fg_color = Color::rgb8(12, 165, 255);
 
     // Two adjacent triangles touching at diagonal edge with opposing winding numbers
@@ -668,23 +839,26 @@ fn conflation_artifacts(sb: &mut SceneBuilder, _: &mut SceneParams) {
             LineTo((N, N).into()),
             LineTo((0.0, N).into()),
             LineTo((0.0, 0.0).into()),
-            // triangle 2
+        ],
+    );
+
+    sb.fill(
+        Fill::NonZero,
+        Affine::translate((x, y)) * scale,
+        bg_color,
+        None,
+        &[
+            // triangle 1
             MoveTo((0.0, 0.0).into()),
             LineTo((N, N).into()),
-            LineTo((N, 0.0).into()),
+            LineTo((0.0, N).into()),
             LineTo((0.0, 0.0).into()),
         ],
     );
 
     // Adjacent rects, opposite winding
     y += S * N + 10.0;
-    sb.fill(
-        Fill::EvenOdd,
-        Affine::translate((x, y)) * scale,
-        bg_color,
-        None,
-        &Rect::new(0.0, 0.0, N, N),
-    );
+    
     sb.fill(
         Fill::EvenOdd,
         Affine::translate((x, y)) * scale,
@@ -694,45 +868,119 @@ fn conflation_artifacts(sb: &mut SceneBuilder, _: &mut SceneParams) {
             // left rect
             MoveTo((0.0, 0.0).into()),
             LineTo((0.0, N).into()),
-            LineTo((N * 0.5, N).into()),
-            LineTo((N * 0.5, 0.0).into()),
-            // right rect
-            MoveTo((N * 0.5, 0.0).into()),
-            LineTo((N, 0.0).into()),
-            LineTo((N, N).into()),
-            LineTo((N * 0.5, N).into()),
+            LineTo((N , N).into()),
+            LineTo((N , 0.0).into()),
+        ],
+    );
+
+    sb.fill(
+        Fill::EvenOdd,
+        Affine::translate((x, y)) * scale,
+        bg_color,
+        None,
+        &[
+            // left rect
+            MoveTo((0.0, 0.0).into()),
+            LineTo((0.0, N).into()),
+            LineTo((N , N).into()),
+            LineTo((N , 0.0).into()),
         ],
     );
 
     // Adjacent rects, same winding
     y += S * N + 10.0;
-    sb.fill(
-        Fill::EvenOdd,
-        Affine::translate((x, y)) * scale,
-        bg_color,
-        None,
-        &Rect::new(0.0, 0.0, N, N),
-    );
+    
     sb.fill(
         Fill::EvenOdd,
         Affine::translate((x, y)) * scale,
         fg_color,
         None,
         &[
-            // left rect
+            // right rect
+            MoveTo((0.0, 0.0).into()),
+            LineTo((N, 0.0).into()),
+            LineTo((N, N).into()),
+            LineTo((0.0, N).into()),
+        ],
+    );
+
+    sb.fill(
+        Fill::EvenOdd,
+        Affine::translate((x, y)) * scale,
+        bg_color,
+        None,
+        &[
+            // right rect
             MoveTo((0.0, 0.0).into()),
             LineTo((0.0, N).into()),
-            LineTo((N * 0.5, N).into()),
-            LineTo((N * 0.5, 0.0).into()),
-            // right rect
-            MoveTo((N * 0.5, 0.0).into()),
-            LineTo((N * 0.5, N).into()),
             LineTo((N, N).into()),
             LineTo((N, 0.0).into()),
         ],
     );
+
+    y += S * N + 20.0;
+    let r = N - 10.0;
+    let circle = kurbo::Circle::new((0.5 * N, 0.5 * N), 0.5 * r);
+    let mut temp_circle = vec![];
+    for item in circle.path_elements(1.0){
+        temp_circle.push(item);
+    }
+    //heart
+    sb.fill(
+        Fill::EvenOdd,
+        Affine::translate((x, y)) * scale,
+        fg_color,
+        None,
+        &temp_circle.as_slice(),
+    );
+
+    sb.fill(
+        Fill::EvenOdd,
+        Affine::translate((x, y)) * scale,
+        bg_color,
+        None,
+        &temp_circle.as_slice(),
+    );
 }
 
+fn conflation_artifacts(sb: &mut SceneBuilder, _: &mut SceneParams) {
+    let mut x = -220.0;
+    let fg_color = Color::rgba8(12, 165, 255, 255);
+    let bg_color = Color::rgba8(0, 0, 0, 0);
+    x += 210.0;
+    add_seam_test(sb, x, -10.0, fg_color.into(), bg_color);
+    x += 210.0;
+    add_seam_test(sb, x, -10.0, gradient_color(255), bg_color);
+
+
+    let fg_color = Color::rgba8(12, 165, 255, 255);
+    let bg_color = Color::rgba8(255, 255, 255, 255);
+    x += 210.0;
+    add_seam_test(sb, x, -10.0, fg_color.into(), bg_color);
+    x += 210.0;
+    add_seam_test(sb, x, -10.0, gradient_color(255), bg_color);
+
+    let fg_color = Color::rgba8(12, 165, 255, 255);
+    let bg_color = Color::rgba8(255, 255, 255, 255);
+    x += 210.0;
+    add_seam_test(sb, x, -10.0, fg_color.into(), bg_color);
+    x += 210.0;
+    add_seam_test(sb, x, -10.0, gradient_color(255), bg_color);
+
+    let fg_color = Color::rgba8(12, 165, 255, 128);
+    let bg_color = Color::rgba8(255, 255, 255, 128);
+    x += 210.0;
+    add_seam_test(sb, x, -10.0, fg_color.into(), bg_color);
+    x += 210.0;
+    add_seam_test(sb, x, -10.0, gradient_color(128), bg_color);
+
+    let fg_color = Color::rgba8(12, 165, 255, 128);
+    let bg_color = Color::rgba8(255, 255, 255, 255);
+    x += 210.0;
+    add_seam_test(sb, x, -10.0, fg_color.into(), bg_color);
+    x += 210.0;
+    add_seam_test(sb, x, -10.0, gradient_color(128), bg_color);
+}
 fn labyrinth(sb: &mut SceneBuilder, _: &mut SceneParams) {
     use PathEl::*;
 
