@@ -56,9 +56,13 @@ var<storage, read_write> fine_slice: array<u32>;
 #else
 @group(0) @binding(8)
 var<storage, read_write> pp_input: array<u32>;
+@group(0) @binding(9)
+var<storage, read_write> pp_flag: array<u32>;
 #endif
 
 var<private> dashes_array: array<f32,MAX_DASHES_ARRAY_SIZE>;
+var<private> area: array<f32, PIXELS_PER_THREAD>;
+var<private> is_seam: array<u32,MAX_DASHES_ARRAY_SIZE>;
 var<private> dashes_line_length: f32;
 var<private> dashes_array_length: u32;
 
@@ -71,6 +75,30 @@ fn read_dashes_array_from_scene(start:u32, size:u32, length_modifier:f32){
     }
     dashes_array[length] = dashes_line_length;
     dashes_array_length = length + 1u;
+}
+
+fn pack_color_with_flag( color:vec4<f32>, flag: u32) -> u32{
+    let r = (u32(color.x * 255.0) << 24u);
+    let g = (u32(color.y * 255.0) << 16u);
+    let b = (u32(color.z * 255.0) << 8u);
+    let a = (u32(color.w * 127.0) << 1u);
+    let f = flag & 0x1u;
+    return  r|g|b|a|f;
+}
+
+// fn pack_color_with_flag( color:vec4<f32>, flag: u32) -> u32{
+//     let r = (u32(color.x * 255.0) << 24u);
+//     let g = (u32(color.y * 255.0) << 16u);
+//     let b = (u32(color.z * 255.0) << 8u);
+//     let a = (u32(color.w * 127.0));
+//     return  r|g|b|a;
+// }
+
+fn assign_seam() {
+    is_seam[0] |= select(0u, 1u,area[0] < 1.0 && area[0] > 0.0);
+    is_seam[1] |= select(0u, 1u,area[1] < 1.0 && area[1] > 0.0);
+    is_seam[2] |= select(0u, 1u,area[2] < 1.0 && area[2] > 0.0);
+    is_seam[3] |= select(0u, 1u,area[3] < 1.0 && area[3] > 0.0);
 }
 
 fn linear_find_index_of_offset(offset:f32) -> u32{
@@ -232,7 +260,6 @@ var output: texture_storage_2d<r8, write>;
 let PIXELS_PER_THREAD = 4u;
 
 fn fill_path(tile: Tile, xy: vec2<f32>, even_odd: bool) -> array<f32, PIXELS_PER_THREAD> {
-    var area: array<f32, PIXELS_PER_THREAD>;
     let backdrop_f = f32(tile.backdrop);
     for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
         area[i] = backdrop_f;
@@ -393,6 +420,7 @@ fn main(
                 let even_odd = (fill.tile & 1u) != 0u;
                 let tile = Tile(fill.backdrop, segments);
                 area = fill_path(tile, xy, even_odd);
+                assign_seam();
                 cmd_ix += 3u;
             }
             // CMD_STROKE
@@ -574,7 +602,9 @@ fn main(
             // store the premulitplied alpha color directly to texture
             //textureStore(output, vec2<i32>(coords), rgba_sep);
             let index = coords.x + coords.y * config.target_width;
+            //pp_input[index] = pack_color_with_flag(rgba_sep, is_seam[i]);
             pp_input[index] = pack4x8unorm(rgba_sep);
+            pp_flag[index] = is_seam[i];
 #endif
 
         }

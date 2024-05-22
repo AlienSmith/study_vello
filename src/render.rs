@@ -27,6 +27,8 @@ struct FineResources {
 
     out_image: ImageProxy,
     pp_input: ResourceProxy,
+    pp_input1: ResourceProxy,
+    pp_flag: ResourceProxy,
     #[cfg(feature = "ptcl_segmentation")]
     fine_index: ResourceProxy,
     #[cfg(feature = "ptcl_segmentation")]
@@ -451,6 +453,8 @@ impl Render {
         );
         let out_image = ImageProxy::new(params.width, params.height, ImageFormat::Rgba8);
         let pp_input = ResourceProxy::new_buf((params.width* params.height * 4).into(), "pp_input");
+        let pp_flag = ResourceProxy::new_buf((params.width* params.height * 4).into(), "pp_flag");
+        let pp_input1 = ResourceProxy::new_buf((params.width* params.height * 4).into(), "pp_input");
         self.fine_wg_count = Some(wg_counts.fine);
         self.fine_resources = Some(FineResources {
             config_buf,
@@ -464,6 +468,8 @@ impl Render {
             image_atlas: ResourceProxy::Image(image_atlas),
             out_image,
             pp_input,
+            pp_input1,
+            pp_flag,
             #[cfg(feature = "ptcl_segmentation")]
             fine_index: fine_index_buf,
             #[cfg(feature = "ptcl_segmentation")]
@@ -534,6 +540,7 @@ impl Render {
                     fine.image_atlas,
                     fine.bump_buf,
                     fine.pp_input,
+                    fine.pp_flag,
                 ],
             );
         }
@@ -544,10 +551,22 @@ impl Render {
             [
                 fine.config_buf,
                 fine.pp_input,
+                fine.pp_flag,
+                fine.pp_input1,
+            ],
+        );
+
+        recording.dispatch(
+            shaders.pp_adhoc1,
+            fine_wg_count,
+            [
+                fine.config_buf,
+                fine.pp_input1,
                 ResourceProxy::Image(fine.out_image),
             ],
         );
         recording.free_resource(fine.pp_input);
+        recording.free_resource(fine.pp_input1);
         recording.free_resource(fine.config_buf);
         recording.free_resource(fine.tile_buf);
         recording.free_resource(fine.segments_buf);
@@ -557,6 +576,7 @@ impl Render {
         recording.free_resource(fine.info_bin_data_buf);
         recording.free_resource(fine.scene_buf);
         recording.free_resource(fine.bump_buf);
+        recording.free_resource(fine.pp_flag);
     }
 
     /// Get the output image.

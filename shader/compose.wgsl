@@ -37,6 +37,19 @@ fn read_layer_blend_info(tile_ix: u32){
    }
 }
 
+fn unpack_color_with_flag( packed_color:u32, flag: ptr<function,u32>) -> vec4<f32>{
+    
+    let r = f32((packed_color >> 24u) & 0xfu) / 255.0;
+    let g = f32((packed_color >> 16u) & 0xfu) / 255.0;
+    let b = f32((packed_color >> 8u) & 0xfu) / 255.0;
+    let a = f32((packed_color >> 1u) & 0xfu) / 127.0;
+    let f = packed_color & 0x1u;
+    if a != 0.0 {
+        *flag = f;
+    }
+    return vec4<f32>(r,g,b,a);
+}
+
 @compute @workgroup_size(4, 16)
 fn main(
     @builtin(global_invocation_id) global_id: vec3<u32>,
@@ -52,6 +65,7 @@ fn main(
     let xy_uint = vec2<u32>(xy);
     var rgba_bg: array<vec4<f32>, PIXELS_PER_THREAD>;
     var rgba: array<vec4<f32>, PIXELS_PER_THREAD>;
+    var is_seam: array<u32, PIXELS_PER_THREAD>;
     var current_layer_index = 0u;
     read_layer_blend_info(tile_ix);
 
@@ -68,7 +82,9 @@ fn main(
         for(var j = 0u; j < PIXELS_PER_THREAD; j += 1u){
             let coords = xy_uint + vec2(j, 0u);
             if coords.x < config.target_width && coords.y < config.target_height {
-                let current = unpack4x8unorm(fine_slice[slice_buf_index_base + j]);
+                var temp = 0u;
+                let current = unpack_color_with_flag(fine_slice[slice_buf_index_base + j], &temp);
+                is_seam[j] = temp;
                 rgba[j] = rgba[j] * (1.0 - current.w) + current;
                 // if need_blend {
                 //     rgba[j] *= layer_blend_alpha[current_layer_index];

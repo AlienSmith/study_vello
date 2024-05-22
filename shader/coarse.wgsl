@@ -97,10 +97,10 @@ fn alloc_cmd(size: u32) {
         let index = (tile_index << 16u) | (slice_index & 0xffffu);
         slice_index += 1u;
         
-        //debug
-        // if tile_index == 0u {
-        //     bump.debug[slice_index - 2u] = new_cmd; 
-        // }
+        debug
+        if tile_index == 0u {
+            bump.debug[slice_index - 2u] = new_cmd; 
+        }
 
         cmd_offset = new_cmd;
         ptcl[cmd_offset] = index;
