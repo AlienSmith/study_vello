@@ -1,4 +1,5 @@
 use bevy::render::{Render, RenderSet};
+use bevy::utils::synccell::SyncCell;
 use vello::kurbo::{Affine, Point, Rect};
 use vello::peniko::{Color, Fill, Gradient, Stroke};
 use vello::{Renderer, RendererOptions, Scene, SceneBuilder, SceneFragment};
@@ -17,23 +18,24 @@ use bevy::{
 };
 
 #[derive(Resource)]
-struct VelloRenderer(Renderer);
+struct VelloRenderer(SyncCell<Renderer>);
 
 impl FromWorld for VelloRenderer {
     fn from_world(world: &mut World) -> Self {
         let device = world.resource::<RenderDevice>();
         let queue = world.resource::<RenderQueue>();
 
-        VelloRenderer(
+        VelloRenderer(SyncCell::new(
             Renderer::new(
                 device.wgpu_device(),
                 &RendererOptions {
                     surface_format: None,
                     timestamp_period: queue.0.get_timestamp_period(),
+                    use_cpu: false,
                 },
             )
             .unwrap(),
-        )
+        ))
     }
 }
 
@@ -68,6 +70,7 @@ fn render_scenes(
         };
         renderer
             .0
+            .get()
             .render_to_texture(
                 device.wgpu_device(),
                 &queue,
@@ -106,14 +109,14 @@ pub struct VelloFragment(SceneFragment);
 struct VelloScene(Scene, Handle<Image>);
 
 impl ExtractComponent for VelloScene {
-    type Query = (&'static VelloFragment, &'static VelloTarget);
+    type QueryData = (&'static VelloFragment, &'static VelloTarget);
 
-    type Filter = ();
+    type QueryFilter = ();
 
     type Out = Self;
 
     fn extract_component(
-        (fragment, target): bevy::ecs::query::QueryItem<'_, Self::Query>,
+        (fragment, target): bevy::ecs::query::QueryItem<'_, Self::QueryData>,
     ) -> Option<Self> {
         let mut scene = Scene::default();
         let mut builder = SceneBuilder::for_scene(&mut scene);
@@ -164,7 +167,7 @@ fn setup(
     });
 
     let cube_size = 4.0;
-    let cube_handle = meshes.add(Mesh::from(shape::Box::new(cube_size, cube_size, cube_size)));
+    let cube_handle = meshes.add(Cuboid::new(cube_size, cube_size, cube_size));
 
     // This material has the texture that has been rendered.
     let material_handle = materials.add(StandardMaterial {

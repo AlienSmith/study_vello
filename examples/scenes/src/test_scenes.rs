@@ -614,7 +614,7 @@ fn render_alpha_test(sb: &mut SceneBuilder) {
     sb.pop_layer();
 }
 
-fn render_blend_square(sb: &mut SceneBuilder, blend: BlendMode, transform: Affine) {
+fn render_blend_square(sb: &mut SceneBuilder, _blend: BlendMode, transform: Affine) {
     // Inspired by https://developer.mozilla.org/en-US/docs/Web/CSS/mix-blend-mode
     let rect = Rect::from_origin_size(Point::new(0., 0.), (200., 200.));
     let linear =

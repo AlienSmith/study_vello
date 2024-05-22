@@ -14,13 +14,14 @@
 //
 // Also licensed under MIT license, at your choice.
 
-use instant::{Duration, Instant};
+use instant::Instant;
+use winit::keyboard::{Key, NamedKey};
 use std::collections::HashSet;
-
+use std::sync::Arc;
 use anyhow::Result;
 use clap::{CommandFactory, Parser};
 use scenes::{ImageCache, SceneParams, SceneSet, SimpleText};
-use vello::peniko::Color;
+
 use vello::util::RenderSurface;
 use vello::{
     kurbo::{Affine, Vec2},
@@ -53,11 +54,33 @@ struct Args {
     use_cpu: bool,
 }
 
-struct RenderState {
+struct RenderState<'s> {
     // SAFETY: We MUST drop the surface before the `window`, so the fields
     // must be in this order
-    surface: RenderSurface,
-    window: Window,
+    surface: RenderSurface<'s>,
+    window: Arc<Window>,
+}
+
+#[cfg(feature = "wgpu-profiler")]
+/// A function extracted to fix rustfmt
+fn store_profiling(
+    renderer: &Renderer,
+    profile_stored: &Option<Vec<wgpu_profiler::GpuTimerQueryResult>>,
+) {
+    if let Some(profile_result) = &renderer.profile_result.as_ref().or(profile_stored.as_ref()) {
+        // There can be empty results if the required features aren't supported
+        if !profile_result.is_empty() {
+            let path = std::path::Path::new("trace.json");
+            match wgpu_profiler::chrometrace::write_chrometrace(path, profile_result) {
+                Ok(()) => {
+                    println!("Wrote trace to path {path:?}");
+                }
+                Err(e) => {
+                    log::warn!("Failed to write trace {e}");
+                }
+            }
+        }
+    }
 }
 
 fn run(
@@ -127,11 +150,16 @@ fn run(
     if let Some(set_scene) = args.scene {
         scene_ix = set_scene;
     }
+    #[cfg(feature = "wgpu-profiler")]
+    let mut gpu_profiling_on = true;
+    #[cfg(feature = "wgpu-profiler")]
     let mut profile_stored = None;
-    let mut prev_scene_ix = scene_ix - 1;
+    #[cfg(feature = "wgpu-profiler")]
     let mut profile_taken = Instant::now();
+    
+    let mut prev_scene_ix = scene_ix - 1;
     // _event_loop is used on non-wasm platforms to create new windows
-    event_loop.run(move |event, _event_loop, control_flow| match event {
+    event_loop.run(move |event, event_loop |  match event {
         Event::WindowEvent {
             ref event,
             window_id,
@@ -143,73 +171,89 @@ fn run(
                 return;
             }
             match event {
-                WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                WindowEvent::KeyboardInput { input, .. } => {
-                    if input.state == ElementState::Pressed {
-                        match input.virtual_keycode {
-                            Some(VirtualKeyCode::Left) => scene_ix = scene_ix.saturating_sub(1),
-                            Some(VirtualKeyCode::Right) => scene_ix = scene_ix.saturating_add(1),
-                            Some(VirtualKeyCode::Up) => complexity += 1,
-                            Some(VirtualKeyCode::Down) => complexity = complexity.saturating_sub(1),
-                            Some(key @ VirtualKeyCode::Q) | Some(key @ VirtualKeyCode::E) => {
-                                if let Some(prior_position) = prior_position {
-                                    let is_clockwise = key == VirtualKeyCode::E;
-                                    let angle = if is_clockwise { -0.05 } else { 0.05 };
-                                    transform = Affine::translate(prior_position)
-                                        * Affine::rotate(angle)
-                                        * Affine::translate(-prior_position)
-                                        * transform;
-                                }
+                WindowEvent::CloseRequested => event_loop.exit(),
+                WindowEvent::KeyboardInput { event, .. } => {
+                    if event.state == ElementState::Pressed {
+                        
+                        match event.logical_key.as_ref() {
+                            Key::Named(NamedKey::ArrowLeft) => {
+                                scene_ix = scene_ix.saturating_sub(1);
                             }
-                            Some(VirtualKeyCode::Space) => {
+                            Key::Named(NamedKey::ArrowRight) => {
+                                scene_ix = scene_ix.saturating_add(1);
+                            }
+                            Key::Named(NamedKey::ArrowUp) => complexity += 1,
+                            Key::Named(NamedKey::ArrowDown) => {
+                                complexity = complexity.saturating_sub(1);
+                            }
+                            Key::Named(NamedKey::Space) => {
                                 transform = Affine::IDENTITY;
                             }
-                            Some(VirtualKeyCode::S) => {
-                                stats_shown = !stats_shown;
-                            }
-                            Some(VirtualKeyCode::D) => {
-                                complexity_shown = !complexity_shown;
-                            }
-                            Some(VirtualKeyCode::C) => {
-                                stats.clear_min_and_max();
-                            }
-                            Some(VirtualKeyCode::P) => {
-                                if let Some(renderer) = &renderers[render_state.surface.dev_id] {
-                                    if let Some(profile_result) = &renderer
-                                        .profile_result
-                                        .as_ref()
-                                        .or(profile_stored.as_ref())
-                                    {
-                                        // There can be empty results if the required features aren't supported
-                                        if !profile_result.is_empty() {
-                                            let path = std::path::Path::new("trace.json");
-                                            match wgpu_profiler::chrometrace::write_chrometrace(
-                                                path,
-                                                profile_result,
-                                            ) {
-                                                Ok(()) => {
-                                                    println!("Wrote trace to path {path:?}")
-                                                }
-                                                Err(e) => eprintln!("Failed to write trace {e}"),
-                                            }
+                            Key::Character(char) => {
+                                // TODO: Have a more principled way of handling modifiers on keypress
+                                // see e.g. https://xi.zulipchat.com/#narrow/stream/351333-glazier/topic/Keyboard.20shortcuts
+                                let char = char.to_lowercase();
+                                match char.as_str() {
+                                    "q" | "e" => {
+                                        if let Some(prior_position) = prior_position {
+                                            let is_clockwise = char == "e";
+                                            let angle = if is_clockwise { -0.05 } else { 0.05 };
+                                            transform = Affine::translate(prior_position)
+                                                * Affine::rotate(angle)
+                                                * Affine::translate(-prior_position)
+                                                * transform;
                                         }
                                     }
+                                    "s" => {
+                                        stats_shown = !stats_shown;
+                                    }
+                                    "d" => {
+                                        complexity_shown = !complexity_shown;
+                                    }
+                                    "c" => {
+                                        stats.clear_min_and_max();
+                                    }
+                                    #[cfg(feature = "wgpu-profiler")]
+                                        "p" => {
+                                            if let Some(renderer) =
+                                                &renderers[render_state.surface.dev_id]
+                                            {
+                                                store_profiling(renderer, &profile_stored);
+                                            }
+                                        }
+                                        #[cfg(feature = "wgpu-profiler")]
+                                        "g" => {
+                                            gpu_profiling_on = !gpu_profiling_on;
+                                            if let Some(renderer) =
+                                                &mut renderers[render_state.surface.dev_id]
+                                            {
+                                                renderer
+                                                    .profiler
+                                                    .change_settings(
+                                                        wgpu_profiler::GpuProfilerSettings {
+                                                            enable_timer_queries: gpu_profiling_on,
+                                                            enable_debug_groups: gpu_profiling_on,
+                                                            ..Default::default()
+                                                        },
+                                                    )
+                                                    .expect("Not setting max_num_pending_frames");
+                                            }
+                                        }
+                                    "v" => {
+                                        vsync_on = !vsync_on;
+                                        render_cx.set_present_mode(
+                                            &mut render_state.surface,
+                                            if vsync_on {
+                                                wgpu::PresentMode::AutoVsync
+                                            } else {
+                                                wgpu::PresentMode::AutoNoVsync
+                                            },
+                                        );
+                                    }
+                                    _ => {}
                                 }
                             }
-                            Some(VirtualKeyCode::V) => {
-                                vsync_on = !vsync_on;
-                                render_cx.set_present_mode(
-                                    &mut render_state.surface,
-                                    if vsync_on {
-                                        wgpu::PresentMode::AutoVsync
-                                    } else {
-                                        wgpu::PresentMode::AutoNoVsync
-                                    },
-                                );
-                            }
-                            Some(VirtualKeyCode::Escape) => {
-                                *control_flow = ControlFlow::Exit;
-                            }
+                            Key::Named(NamedKey::Escape) => event_loop.exit(),
                             _ => {}
                         }
                     }
@@ -293,10 +337,147 @@ fn run(
                     }
                     prior_position = Some(position);
                 }
+                WindowEvent::RedrawRequested => {
+
+                    let width = render_state.surface.config.width;
+                    let height = render_state.surface.config.height;
+                    let device_handle = &render_cx.devices[render_state.surface.dev_id];
+                    let snapshot = stats.snapshot();
+        
+                    // Allow looping forever
+                    scene_ix = scene_ix.rem_euclid(scenes.scenes.len() as i32);
+                    let example_scene = &mut scenes.scenes[scene_ix as usize];
+                    if prev_scene_ix != scene_ix {
+                        transform = Affine::IDENTITY;
+                        prev_scene_ix = scene_ix;
+                        render_state
+                            .window
+                            .set_title(&format!("Vello demo - {}", example_scene.config.name));
+                    }
+                    let mut builder = SceneBuilder::for_fragment(&mut fragment);
+                    let mut scene_params = SceneParams {
+                        time: start.elapsed().as_secs_f64(),
+                        text: &mut simple_text,
+                        images: &mut images,
+                        resolution: None,
+                        base_color: None,
+                        interactive: true,
+                        complexity,
+                    };
+                    example_scene
+                        .function
+                        .render(&mut builder, &mut scene_params);
+        
+                    // If the user specifies a base color in the CLI we use that. Otherwise we use any
+                    // color specified by the scene. The default is black.
+                    //TODO support base_color or background color for ptcl segmentation
+                    let mut base_color = args
+                    .args
+                    .base_color
+                    .or(scene_params.base_color)
+                    .unwrap_or(vello::peniko::Color::TRANSPARENT);
+                    if base_color != vello::peniko::Color::TRANSPARENT {
+                        println!("at this point ptcl segmentation does not support none transparent base color");
+                    }
+                    base_color = vello::peniko::Color::TRANSPARENT;
+        
+                    let render_params = vello::RenderParams {
+                        base_color,
+                        width,
+                        height,
+                    };
+                    let mut builder = SceneBuilder::for_scene(&mut scene);
+                    let mut transform = transform;
+                    if let Some(resolution) = scene_params.resolution {
+                        // Automatically scale the rendering to fill as much of the window as possible
+                        // TODO: Apply svg view_box, somehow
+                        let factor = Vec2::new(width as f64, height as f64);
+                        let scale_factor = (factor.x / resolution.x).min(factor.y / resolution.y);
+                        transform *= Affine::scale(scale_factor);
+                    }
+                    builder.append(&fragment, Some(transform));
+                    if stats_shown {
+                        snapshot.draw_layer(
+                            &mut builder,
+                            scene_params.text,
+                            width as f64,
+                            height as f64,
+                            stats.samples(),
+                            complexity_shown.then_some(scene_complexity).flatten(),
+                            vsync_on,
+                        );
+                        #[cfg(feature = "wgpu-profiler")]
+                        if let Some(profiling_result) = renderers[render_state.surface.dev_id]
+                            .as_mut()
+                            .and_then(|it| it.profile_result.take())
+                        {
+                            if profile_stored.is_none() || profile_taken.elapsed() > Duration::from_secs(1)
+                            {
+                                profile_stored = Some(profiling_result);
+                                profile_taken = Instant::now();
+                            }
+                        }
+                        #[cfg(feature = "wgpu-profiler")]
+                        if let Some(profiling_result) = profile_stored.as_ref() {
+                            stats::draw_gpu_profiling(
+                                &mut builder,
+                                scene_params.text,
+                                width as f64,
+                                height as f64,
+                                profiling_result,
+                            );
+                        }
+                    }
+                    let surface_texture = render_state
+                        .surface
+                        .surface
+                        .get_current_texture()
+                        .expect("failed to get surface texture");
+                    #[cfg(not(target_arch = "wasm32"))]
+                    {
+                        scene_complexity = vello::block_on_wgpu(
+                            &device_handle.device,
+                            renderers[render_state.surface.dev_id]
+                                .as_mut()
+                                .unwrap()
+                                .render_to_surface_async(
+                                    &device_handle.device,
+                                    &device_handle.queue,
+                                    &scene,
+                                    &surface_texture,
+                                    &render_params,
+                                ),
+                        )
+                        .expect("failed to render to surface");
+                    }
+                    // Note: in the wasm case, we're currently not running the robust
+                    // pipeline, as it requires more async wiring for the readback.
+                    #[cfg(target_arch = "wasm32")]
+                    renderers[render_state.surface.dev_id]
+                        .as_mut()
+                        .unwrap()
+                        .render_to_surface(
+                            &device_handle.device,
+                            &device_handle.queue,
+                            &scene,
+                            &surface_texture,
+                            &render_params,
+                        )
+                        .expect("failed to render to surface");
+                    surface_texture.present();
+                    device_handle.device.poll(wgpu::Maintain::Poll);
+        
+                    let new_time = Instant::now();
+                    stats.add_sample(stats::Sample {
+                        frame_time_us: (new_time - frame_start_time).as_micros() as u64,
+                    });
+                    frame_start_time = new_time;
+                }
+                
                 _ => {}
             }
         }
-        Event::MainEventsCleared => {
+        Event::AboutToWait => {
             touch_state.end_frame();
             let touch_info = touch_state.info();
             if let Some(touch_info) = touch_info {
@@ -312,142 +493,6 @@ fn run(
             if let Some(render_state) = &mut render_state {
                 render_state.window.request_redraw();
             }
-        }
-        Event::RedrawRequested(_) => {
-            let Some(render_state) = &mut render_state else {
-                return;
-            };
-            let width = render_state.surface.config.width;
-            let height = render_state.surface.config.height;
-            let device_handle = &render_cx.devices[render_state.surface.dev_id];
-            let snapshot = stats.snapshot();
-
-            // Allow looping forever
-            scene_ix = scene_ix.rem_euclid(scenes.scenes.len() as i32);
-            let example_scene = &mut scenes.scenes[scene_ix as usize];
-            if prev_scene_ix != scene_ix {
-                transform = Affine::IDENTITY;
-                prev_scene_ix = scene_ix;
-                render_state
-                    .window
-                    .set_title(&format!("Vello demo - {}", example_scene.config.name));
-            }
-            let mut builder = SceneBuilder::for_fragment(&mut fragment);
-            let mut scene_params = SceneParams {
-                time: start.elapsed().as_secs_f64(),
-                text: &mut simple_text,
-                images: &mut images,
-                resolution: None,
-                base_color: None,
-                interactive: true,
-                complexity,
-            };
-            example_scene
-                .function
-                .render(&mut builder, &mut scene_params);
-
-            // If the user specifies a base color in the CLI we use that. Otherwise we use any
-            // color specified by the scene. The default is black.
-            //TODO support base_color or background color for ptcl segmentation
-            let mut base_color = args
-            .args
-            .base_color
-            .or(scene_params.base_color)
-            .unwrap_or(vello::peniko::Color::TRANSPARENT);
-            if base_color != vello::peniko::Color::TRANSPARENT {
-                println!("at this point ptcl segmentation does not support none transparent base color");
-            }
-            base_color = vello::peniko::Color::TRANSPARENT;
-
-            let render_params = vello::RenderParams {
-                base_color,
-                width,
-                height,
-            };
-            let mut builder = SceneBuilder::for_scene(&mut scene);
-            let mut transform = transform;
-            if let Some(resolution) = scene_params.resolution {
-                // Automatically scale the rendering to fill as much of the window as possible
-                // TODO: Apply svg view_box, somehow
-                let factor = Vec2::new(width as f64, height as f64);
-                let scale_factor = (factor.x / resolution.x).min(factor.y / resolution.y);
-                transform *= Affine::scale(scale_factor);
-            }
-            builder.append(&fragment, Some(transform));
-            if stats_shown {
-                snapshot.draw_layer(
-                    &mut builder,
-                    scene_params.text,
-                    width as f64,
-                    height as f64,
-                    stats.samples(),
-                    complexity_shown.then_some(scene_complexity).flatten(),
-                    vsync_on,
-                );
-                if let Some(profiling_result) = renderers[render_state.surface.dev_id]
-                    .as_mut()
-                    .and_then(|it| it.profile_result.take())
-                {
-                    if profile_stored.is_none() || profile_taken.elapsed() > Duration::from_secs(1)
-                    {
-                        profile_stored = Some(profiling_result);
-                        profile_taken = Instant::now();
-                    }
-                }
-                if let Some(profiling_result) = profile_stored.as_ref() {
-                    stats::draw_gpu_profiling(
-                        &mut builder,
-                        scene_params.text,
-                        width as f64,
-                        height as f64,
-                        profiling_result,
-                    )
-                }
-            }
-            let surface_texture = render_state
-                .surface
-                .surface
-                .get_current_texture()
-                .expect("failed to get surface texture");
-            #[cfg(not(target_arch = "wasm32"))]
-            {
-                scene_complexity = vello::block_on_wgpu(
-                    &device_handle.device,
-                    renderers[render_state.surface.dev_id]
-                        .as_mut()
-                        .unwrap()
-                        .render_to_surface_async(
-                            &device_handle.device,
-                            &device_handle.queue,
-                            &scene,
-                            &surface_texture,
-                            &render_params,
-                        ),
-                )
-                .expect("failed to render to surface");
-            }
-            // Note: in the wasm case, we're currently not running the robust
-            // pipeline, as it requires more async wiring for the readback.
-            #[cfg(target_arch = "wasm32")]
-            renderers[render_state.surface.dev_id]
-                .as_mut()
-                .unwrap()
-                .render_to_surface(
-                    &device_handle.device,
-                    &device_handle.queue,
-                    &scene,
-                    &surface_texture,
-                    &render_params,
-                )
-                .expect("failed to render to surface");
-            surface_texture.present();
-            device_handle.device.poll(wgpu::Maintain::Poll);
-
-            let new_time = Instant::now();
-            stats.add_sample(stats::Sample {
-                frame_time_us: (new_time - frame_start_time).as_micros() as u64,
-            });
-            frame_start_time = new_time;
         }
         Event::UserEvent(event) => match event {
             #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
@@ -470,13 +515,14 @@ fn run(
             }
         },
         Event::Suspended => {
-            eprintln!("Suspending");
+            log::info!("Suspending");
             #[cfg(not(target_arch = "wasm32"))]
             // When we suspend, we need to remove the `wgpu` Surface
             if let Some(render_state) = render_state.take() {
                 cached_window = Some(render_state.window);
             }
-            *control_flow = ControlFlow::Wait;
+            event_loop.set_control_flow(ControlFlow::Wait);
+  
         }
         Event::Resumed => {
             #[cfg(target_arch = "wasm32")]
@@ -485,11 +531,16 @@ fn run(
             {
                 let Option::None = render_state else { return };
                 let window = cached_window
-                    .take()
-                    .unwrap_or_else(|| create_window(_event_loop));
+                        .take()
+                        .unwrap_or_else(|| create_window(event_loop));
                 let size = window.inner_size();
-                let surface_future = render_cx.create_surface(&window, size.width, size.height);
-                // We need to block here, in case a Suspended event appeared
+                let present_mode = wgpu::PresentMode::AutoVsync;
+                let surface_future = render_cx.create_surface(
+                    window.clone(),
+                    size.width,
+                    size.height,
+                    present_mode,
+                );// We need to block here, in case a Suspended event appeared
                 let surface = pollster::block_on(surface_future).expect("Error creating surface");
                 render_state = {
                     let render_state = RenderState { window, surface };
@@ -511,22 +562,26 @@ fn run(
                     });
                     Some(render_state)
                 };
-                *control_flow = ControlFlow::Poll;
+                event_loop.set_control_flow(ControlFlow::Poll);
             }
         }
         _ => {}
-    });
+    }).expect("run to completion");
 }
 
-fn create_window(event_loop: &winit::event_loop::EventLoopWindowTarget<UserEvent>) -> Window {
-    use winit::{dpi::LogicalSize, window::WindowBuilder};
-    WindowBuilder::new()
-        .with_inner_size(LogicalSize::new(1044, 800))
-        .with_resizable(true)
-        .with_title("Vello demo")
-        .build(event_loop)
-        .unwrap()
+fn create_window(event_loop: &winit::event_loop::EventLoopWindowTarget<UserEvent>) -> Arc<Window> {
+    use winit::dpi::LogicalSize;
+    use winit::window::WindowBuilder;
+    Arc::new(
+        WindowBuilder::new()
+            .with_inner_size(LogicalSize::new(1044, 800))
+            .with_resizable(true)
+            .with_title("Vello demo")
+            .build(event_loop)
+            .unwrap(),
+    )
 }
+
 
 #[derive(Debug)]
 enum UserEvent {
@@ -563,7 +618,7 @@ pub fn main() -> Result<()> {
     let args = Args::parse();
     let scenes = args.args.select_scene_set(Args::command)?;
     if let Some(scenes) = scenes {
-        let event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build();
+        let event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build()?;
         #[allow(unused_mut)]
         let mut render_cx = RenderContext::new().unwrap();
         #[cfg(not(target_arch = "wasm32"))]

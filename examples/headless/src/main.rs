@@ -7,7 +7,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use clap::{CommandFactory, Parser};
 use scenes::{ImageCache, SceneParams, SceneSet, SimpleText};
 use vello::{
-    block_on_wgpu, glyph::fello::raw::tables::base, kurbo::{Affine, Vec2}, util::RenderContext, RendererOptions, Scene, SceneBuilder, SceneFragment
+    block_on_wgpu, kurbo::{Affine, Vec2}, util::RenderContext, RendererOptions, Scene, SceneBuilder, SceneFragment
 };
 use wgpu::{
     BufferDescriptor, BufferUsages, CommandEncoderDescriptor, Extent3d, ImageCopyBuffer,

@@ -161,7 +161,7 @@ fn main(
                 // Two-point conical gradient implementation based
                 // on the algorithm at <https://skia.org/docs/dev/design/conical/>
                 // This epsilon matches what Skia uses
-                let GRADIENT_EPSILON = 1.0 / f32(1 << 12u);
+                let GRADIENT_EPSILON = 1.0 / f32(1u << 12u);
                 info[di] = bitcast<u32>(linewidth);
                 var p0 = bitcast<vec2<f32>>(vec2(scene[dd + 1u], scene[dd + 2u]));
                 var p1 = bitcast<vec2<f32>>(vec2(scene[dd + 3u], scene[dd + 4u]));

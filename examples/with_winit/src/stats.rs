@@ -13,15 +13,13 @@
 // limitations under the License.
 //
 // Also licensed under MIT license, at your choice.
-
 use scenes::SimpleText;
-use std::{collections::VecDeque, time::Duration};
+use std::collections::VecDeque;
 use vello::{
-    kurbo::{Affine, Line, PathEl, Rect},
+    kurbo::{Affine, PathEl, Rect},
     peniko::{Brush, Color, Fill, Stroke},
     BumpAllocators, SceneBuilder,
 };
-use wgpu_profiler::GpuTimerScopeResult;
 
 const SLIDING_WINDOW_SIZE: usize = 100;
 
@@ -249,24 +247,38 @@ fn round_up(n: usize, f: usize) -> usize {
     n - 1 - (n - 1) % f + f
 }
 
-const COLORS: &[Color] = &[
-    Color::AQUA,
-    Color::RED,
-    Color::ALICE_BLUE,
-    Color::YELLOW,
-    Color::GREEN,
-    Color::BLUE,
-    Color::ORANGE,
-    Color::WHITE,
-];
+// const COLORS: &[Color] = &[
+//     Color::AQUA,
+//     Color::RED,
+//     Color::ALICE_BLUE,
+//     Color::YELLOW,
+//     Color::GREEN,
+//     Color::BLUE,
+//     Color::ORANGE,
+//     Color::WHITE,
+// ];
 
+#[cfg(feature = "wgpu-profiler")]
+use wgpu_profiler::GpuTimerQueryResult;
+#[cfg(feature = "wgpu-profiler")]
 pub fn draw_gpu_profiling(
     sb: &mut SceneBuilder,
     text: &mut SimpleText,
     viewport_width: f64,
     viewport_height: f64,
-    profiles: &[GpuTimerScopeResult],
+    profiles: &[GpuTimerQueryResult],
 ) {
+
+    const COLORS: &[Color] = &[
+        Color::AQUA,
+        Color::RED,
+        Color::ALICE_BLUE,
+        Color::YELLOW,
+        Color::GREEN,
+        Color::BLUE,
+        Color::ORANGE,
+        Color::WHITE,
+    ];
     if profiles.is_empty() {
         return;
     }
@@ -274,7 +286,6 @@ pub fn draw_gpu_profiling(
     let height = width * 1.5;
     let y_offset = viewport_height - height;
     let offset = Affine::translate((0., y_offset));
-
     // Draw the background
     sb.fill(
         Fill::NonZero,
@@ -305,7 +316,10 @@ pub fn draw_gpu_profiling(
     let total_time = max - min;
     {
         let labels = [
-            format!("GPU Time: {:.2?}", Duration::from_secs_f64(total_time)),
+            format!(
+                "GPU Time: {:.2?}",
+                instant::Duration::from_secs_f64(total_time)
+            ),
             "Press P to save a trace".to_string(),
         ];
 
@@ -367,7 +381,7 @@ pub fn draw_gpu_profiling(
             );
 
             let mut text_start = start_normalised;
-            let nested = !profile.nested_scopes.is_empty();
+            let nested = !profile.nested_queries.is_empty();
             if nested {
                 // If we have children, leave some more space for them
                 text_start -= text_height * 0.7;
@@ -388,11 +402,24 @@ pub fn draw_gpu_profiling(
             let text_size = (text_height * 0.9) as f32;
             // Text is specified by the baseline, but the y positions all refer to the top of the text
             cur_text_y = text_y + text_height;
-            let label = format!(
-                "{:.2?} - {:.30}",
-                Duration::from_secs_f64(this_time),
-                profile.label
-            );
+            let label = {
+                // Sometimes, the duration turns out to be negative
+                // We have not yet debugged this, but display the absolute value in that case
+                // see https://github.com/linebender/vello/pull/475 for more
+                if this_time < 0.0 {
+                    format!(
+                        "-{:.2?}(!!) - {:.30}",
+                        instant::Duration::from_secs_f64(this_time.abs()),
+                        profile.label
+                    )
+                } else {
+                    format!(
+                        "{:.2?} - {:.30}",
+                        instant::Duration::from_secs_f64(this_time),
+                        profile.label
+                    )
+                }
+            };
             sb.fill(
                 Fill::NonZero,
                 offset,
@@ -419,7 +446,7 @@ pub fn draw_gpu_profiling(
                     offset,
                     &Brush::Solid(color),
                     None,
-                    &Line::new(
+                    &vello::kurbo::Line::new(
                         (x + depth_size, (end_normalised + start_normalised) / 2.),
                         (width * 0.31, cur_text_y - text_size as f64 * 0.35),
                     ),
@@ -434,18 +461,19 @@ pub fn draw_gpu_profiling(
     });
 }
 
+#[cfg(feature = "wgpu-profiler")]
 enum TraversalStage {
     Enter,
     Leave,
 }
-
+#[cfg(feature = "wgpu-profiler")]
 fn traverse_profiling(
-    profiles: &[GpuTimerScopeResult],
-    callback: &mut impl FnMut(&GpuTimerScopeResult, TraversalStage),
+    profiles: &[GpuTimerQueryResult],
+    callback: &mut impl FnMut(&GpuTimerQueryResult, TraversalStage),
 ) {
     for profile in profiles {
         callback(profile, TraversalStage::Enter);
-        traverse_profiling(&profile.nested_scopes, &mut *callback);
+        traverse_profiling(&profile.nested_queries, &mut *callback);
         callback(profile, TraversalStage::Leave);
     }
 }

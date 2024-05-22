@@ -9,7 +9,7 @@ members = [
 
     "examples/headless",
     "examples/with_winit",
-    # "examples/with_bevy", # Disable for now until bevy is using wgpu 0.17
+    "examples/with_bevy",
     "examples/run_wasm",
     "examples/scenes",
 ]
@@ -37,9 +37,10 @@ edition.workspace = true
 repository.workspace = true
 
 [features]
-default = ["wgpu","ptcl_segmentation"]
+default = ["wgpu", "ptcl_segmentation"]
 hot_reload = []
 buffer_labels = []
+wgpu-profiler = ["dep:wgpu-profiler"]
 # Enables support for ptcl segmentation, ptcls' for each tile will
 # be break into fixed sized piece, and processed concurrently
 ptcl_segmentation = ["vello_encoding/ptcl_segmentation"]
@@ -60,7 +61,7 @@ fello = { git = "https://github.com/dfrg/fount", rev = "dadbcf75695f035ca46766bf
 peniko = { git = "https://github.com/linebender/peniko", rev = "cafdac9a211a0fb2fec5656bd663d1ac770bcc81" }
 
 # NOTE: Make sure to keep this in sync with the version badge in README.md
-wgpu = { version = "0.17" }                                              
+wgpu = { version = "0.19.3" }                                              
 
 
 # Used for examples
@@ -68,4 +69,4 @@ clap = "4.1.0"
 anyhow = "1.0"
 instant = { version = "0.1.12", features = ["wasm-bindgen"] }
 pollster = "0.3.0"
-wgpu-profiler = "0.13"
+wgpu-profiler = "0.16.1"

@@ -73,7 +73,9 @@ pub enum Command {
     Dispatch(ShaderId, (u32, u32, u32), Vec<ResourceProxy>),
     DispatchIndirect(ShaderId, BufProxy, u64, Vec<ResourceProxy>),
     Download(BufProxy),
-    Clear(BufProxy, u64, Option<NonZeroU64>),
+    /// Commands to clear the buffer from an offset on for a length of the given size.
+    /// If the size is [None], it clears until the end.
+    Clear(BufProxy, u64, Option<u64>),
     FreeBuf(BufProxy),
     FreeImage(ImageProxy),
 }

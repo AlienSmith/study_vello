@@ -20,9 +20,8 @@ use std::future::Future;
 
 use super::Result;
 
-use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use wgpu::{
-    Adapter, Device, Instance, Queue, Surface, SurfaceConfiguration, TextureFormat,
+    Adapter, Device, Instance, Queue, Surface, SurfaceConfiguration, SurfaceTarget, TextureFormat
 };
 
 /// Simple render context that maintains wgpu state for rendering the pipeline.
@@ -42,6 +41,7 @@ impl RenderContext {
         let instance = Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::PRIMARY,
             dx12_shader_compiler: wgpu::Dx12Compiler::Fxc,
+            ..Default::default()
         });
         Ok(Self {
             instance,
@@ -50,16 +50,15 @@ impl RenderContext {
     }
 
     /// Creates a new surface for the specified window and dimensions.
-    pub async fn create_surface<W>(
+    /// Creates a new surface for the specified window and dimensions.
+    pub async fn create_surface<'w>(
         &mut self,
-        window: &W,
+        window: impl Into<SurfaceTarget<'w>>,
         width: u32,
         height: u32,
-    ) -> Result<RenderSurface>
-    where
-        W: HasRawWindowHandle + HasRawDisplayHandle,
-    {
-        let surface = unsafe { self.instance.create_surface(window) }?;
+        present_mode: wgpu::PresentMode,
+    ) -> Result<RenderSurface<'w>> {
+        let surface = self.instance.create_surface(window.into())?;
         let dev_id = self
             .device(Some(&surface))
             .await
@@ -78,19 +77,25 @@ impl RenderContext {
             format,
             width,
             height,
-            present_mode: wgpu::PresentMode::AutoVsync,
+            present_mode,
+            desired_maximum_frame_latency: 2,
             alpha_mode: wgpu::CompositeAlphaMode::Auto,
             view_formats: vec![],
         };
-        surface.configure(&self.devices[dev_id].device, &config);
-        Ok(RenderSurface {
+        let surface = RenderSurface {
             surface,
             config,
             dev_id,
             format,
-        })
+        };
+        self.configure_surface(&surface);
+        Ok(surface)
     }
 
+    fn configure_surface(&self, surface: &RenderSurface) {
+        let device = &self.devices[surface.dev_id].device;
+        surface.surface.configure(device, &surface.config);
+    }
     /// Resizes the surface to the new dimensions.
     pub fn resize_surface(&self, surface: &mut RenderSurface, width: u32, height: u32) {
         surface.config.width = width;
@@ -108,7 +113,7 @@ impl RenderContext {
     }
 
     /// Finds or creates a compatible device handle id.
-    pub async fn device(&mut self, compatible_surface: Option<&Surface>) -> Option<usize> {
+    pub async fn device(&mut self, compatible_surface: Option<&Surface<'_>>) -> Option<usize> {
         let compatible = match compatible_surface {
             Some(s) => self
                 .devices
@@ -125,12 +130,13 @@ impl RenderContext {
     }
     #[allow(unused_mut)]
     /// Creates a compatible device handle id.
-    async fn new_device(&mut self, compatible_surface: Option<&Surface>) -> Option<usize> {
+    async fn new_device(&mut self, compatible_surface: Option<&Surface<'_>>) -> Option<usize> {
         let adapter =
             wgpu::util::initialize_adapter_from_env_or_default(&self.instance, compatible_surface)
                 .await?;
         let features = adapter.features();
         let limits = adapter.limits();
+        #[allow(unused_mut)]
         let mut maybe_features = wgpu::Features::CLEAR_TEXTURE;
         #[cfg(feature = "wgpu-profiler")]
         {
@@ -140,8 +146,8 @@ impl RenderContext {
             .request_device(
                 &wgpu::DeviceDescriptor {
                     label: None,
-                    features: features & maybe_features,
-                    limits,
+                    required_features: features & maybe_features,
+                    required_limits: limits,
                 },
                 None,
             )
@@ -159,8 +165,8 @@ impl RenderContext {
 
 /// Combination of surface and its configuration.
 #[derive(Debug)]
-pub struct RenderSurface {
-    pub surface: Surface,
+pub struct RenderSurface<'s> {
+    pub surface: Surface<'s>,
     pub config: SurfaceConfiguration,
     pub dev_id: usize,
     pub format: TextureFormat,
