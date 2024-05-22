@@ -386,6 +386,24 @@ impl Render {
     pub fn record_fine(&mut self, shaders: &FullShaders, recording: &mut Recording) {
         let fine_wg_count = self.fine_wg_count.take().unwrap();
         let fine = self.fine_resources.take().unwrap();
+        #[cfg(not(feature = "pp"))]
+        {
+            recording.dispatch(
+                shaders.fine,
+                fine_wg_count,
+                [
+                    fine.config_buf,
+                    fine.segments_buf,
+                    fine.ptcl_buf,
+                    fine.info_bin_data_buf,
+                    fine.gradient_image,
+                    fine.image_atlas,
+                    ResourceProxy::Image(fine.out_image),
+                ],
+            );
+        }
+        #[cfg(feature = "pp")]
+        {
         recording.dispatch(
             shaders.fine,
             fine_wg_count,
@@ -420,6 +438,7 @@ impl Render {
                 ResourceProxy::Image(fine.out_image),
             ],
         );
+        }
         recording.free_resource(fine.pp_input);
         recording.free_resource(fine.pp_input1);
         recording.free_resource(fine.pp_flag);

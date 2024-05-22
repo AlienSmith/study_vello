@@ -92,6 +92,9 @@ pub fn full_shaders(
         .collect::<std::collections::HashMap<_, _>>();
     let empty = HashSet::new();
     let mut full_config = HashSet::new();
+    #[cfg(feature = "pp")]
+    full_config.insert("pp".into());
+    
     full_config.insert("full".into());
     let mut small_config = HashSet::new();
     small_config.insert("full".into());
@@ -282,7 +285,11 @@ pub fn full_shaders(
             BindType::BufReadOnly,
             BindType::ImageRead(ImageFormat::Rgba8),
             BindType::ImageRead(ImageFormat::Rgba8),
+            #[cfg(not(feature = "pp"))]
+            BindType::Image(ImageFormat::Rgba8),
+            #[cfg(feature = "pp")]
             BindType::Buffer,
+            #[cfg(feature = "pp")]
             BindType::Buffer,
         ],
     )?;

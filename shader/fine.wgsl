@@ -36,12 +36,16 @@ var gradients: texture_2d<f32>;
 
 @group(0) @binding(5)
 var image_atlas: texture_2d<f32>;
-
+#ifdef pp
 @group(0) @binding(6)
 var<storage, read_write> pp_input: array<u32>;
 
 @group(0) @binding(7)
 var<storage, read_write> pp_flag: array<u32>;
+#else
+@group(0) @binding(6)
+var output: texture_storage_2d<rgba8unorm, write>;
+#endif
 
 var<private> area: array<f32, PIXELS_PER_THREAD>;
 var<private> is_seam: array<u32,PIXELS_PER_THREAD>;
@@ -417,9 +421,14 @@ fn main(
             // Max with a small epsilon to avoid NaNs
             let a_inv = 1.0 / max(fg.a, 1e-6);
             let rgba_sep = vec4(fg.rgb * a_inv, fg.a);
+            
+#ifdef pp
             let index = coords.x + coords.y * config.target_width;
             pp_input[index] = pack4x8unorm(rgba_sep);
             pp_flag[index] = is_seam[i];
+#else
+            textureStore(output, vec2<i32>(coords), rgba_sep);
+#endif
 #endif
         }
     } 
