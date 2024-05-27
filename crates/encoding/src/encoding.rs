@@ -99,7 +99,7 @@ impl Encoding {
     }
 
     /// Clears the encoding.
-    pub fn reset(&mut self, is_fragment: bool) {
+    pub fn reset(&mut self) {
         self.pattern_data.clear();
         self.transforms.clear();
         self.path_tags.clear();
@@ -115,12 +115,6 @@ impl Encoding {
         self.n_open_clips = 0;
         #[cfg(feature = "full")]
         self.resources.reset();
-        if !is_fragment {
-            self.transforms.push(Transform::IDENTITY);
-            self.linewidths.push(-1.0);
-            self.linewidths.push(0.0);
-            self.linewidths.push(0.0);
-        }
     }
     pub fn set_transform(&mut self, transform:&Transform){
         self.camera_transform = *transform;

@@ -30,70 +30,20 @@ impl Scene {
     pub fn new() -> Self {
         Self::default()
     }
-
+    pub fn reset(&mut self) {
+        self.data.reset()
+    }
     /// Returns the raw encoded scene data streams.
     pub fn data(&self) -> &Encoding {
         &self.data
     }
-}
-
-/// Encoded definition of a scene fragment and associated resources.
-#[derive(Default)]
-pub struct SceneFragment {
-    data: Encoding,
-}
-
-impl SceneFragment {
-    /// Creates a new scene fragment.
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Returns true if the fragment does not contain any paths.
-    pub fn is_empty(&self) -> bool {
-        self.data.is_empty()
-    }
-
-    /// Returns the the entire sequence of points in the scene fragment.
-    pub fn points(&self) -> &[[f32; 2]] {
-        if self.is_empty() {
-            &[]
-        } else {
-            bytemuck::cast_slice(&self.data.path_data)
-        }
-    }
-}
-
-/// Builder for constructing a scene or scene fragment.
-pub struct SceneBuilder<'a> {
-    scene: &'a mut Encoding,
-}
-
-impl<'a> SceneBuilder<'a> {
-    /// Creates a new builder for filling a scene. Any current content in the scene
-    /// will be cleared.
-    pub fn for_scene(scene: &'a mut Scene) -> Self {
-        Self::new(&mut scene.data, false)
-    }
-
-    /// Creates a new builder for filling a scene fragment. Any current content in
-    /// the fragment will be cleared.    
-    pub fn for_fragment(fragment: &'a mut SceneFragment) -> Self {
-        Self::new(&mut fragment.data, true)
-    }
-
-    /// Creates a new builder for constructing a scene.
-    fn new(scene: &'a mut Encoding, is_fragment: bool) -> Self {
-        scene.reset(is_fragment);
-        Self { scene }
-    }
 
     pub fn push_pattern(&mut self,start: Vec2, box_scale:Vec2, rotation: f32, is_screen_space:bool){
-        self.scene.encode_begin_pattern(start, box_scale, rotation, is_screen_space);
+        self.data.encode_begin_pattern(start, box_scale, rotation, is_screen_space);
     }
 
     pub fn pop_pattern(&mut self){
-        self.scene.encode_end_pattern();
+        self.data.encode_end_pattern();
     }
 
     /// Pushes a new layer bound by the specifed shape and composed with
@@ -105,22 +55,22 @@ impl<'a> SceneBuilder<'a> {
         shape: &impl Shape,
     ) {
         let filter_color = LinearColor::new(filter_color.0, filter_color.1, filter_color.2, filter_color.3);
-        self.scene
+        self.data
             .encode_transform(Transform::from_kurbo(&transform));
-        self.scene.encode_linewidth(-1.0,None);
-        if !self.scene.encode_shape(shape, true) {
+        self.data.encode_linewidth(-1.0,None);
+        if !self.data.encode_shape(shape, true) {
             // If the layer shape is invalid, encode a valid empty path. This suppresses
             // all drawing until the layer is popped.
-            self.scene
+            self.data
                 .encode_shape(&Rect::new(0.0, 0.0, 0.0, 0.0), true);
         }
         //the last byte was used as the blend flag
-        self.scene.encode_begin_clip_filter(filter_color.pack_color(), filter_color.a);
+        self.data.encode_begin_clip_filter(filter_color.pack_color(), filter_color.a);
     }
 
     /// Pops the current layer.
     pub fn pop_layer(&mut self) {
-        self.scene.encode_end_clip();
+        self.data.encode_end_clip();
     }
 
     /// Fills a shape using the specified style and brush.
@@ -132,22 +82,22 @@ impl<'a> SceneBuilder<'a> {
         brush_transform: Option<Affine>,
         shape: &impl Shape,
     ) {
-        self.scene
+        self.data
             .encode_transform(Transform::from_kurbo(&transform));
-        self.scene.encode_linewidth(match style {
+        self.data.encode_linewidth(match style {
             Fill::NonZero => -1.0,
             Fill::EvenOdd => -2.0,
         }, None);
-        if self.scene.encode_shape(shape, true) {
+        if self.data.encode_shape(shape, true) {
             if let Some(brush_transform) = brush_transform {
                 if self
-                    .scene
+                    .data
                     .encode_transform(Transform::from_kurbo(&(transform * brush_transform)))
                 {
-                    self.scene.swap_last_path_tags();
+                    self.data.swap_last_path_tags();
                 }
             }
-            self.scene.encode_brush(brush, 1.0);
+            self.data.encode_brush(brush, 1.0);
         }
     }
     //TODO modify Stroke in peniko and remove this function
@@ -160,20 +110,20 @@ impl<'a> SceneBuilder<'a> {
         shape: &impl Shape,
         dash_array: Vec<f32>,
     ) {
-        self.scene
+        self.data
             .encode_transform(Transform::from_kurbo(&transform));
-        self.scene.encode_linewidth(style.width, None);
-        self.scene.encode_linewidth(style.width, Some(dash_array));
-        if self.scene.encode_shape(shape, false) {
+        self.data.encode_linewidth(style.width, None);
+        self.data.encode_linewidth(style.width, Some(dash_array));
+        if self.data.encode_shape(shape, false) {
             if let Some(brush_transform) = brush_transform {
                 if self
-                    .scene
+                    .data
                     .encode_transform(Transform::from_kurbo(&(transform * brush_transform)))
                 {
-                    self.scene.swap_last_path_tags();
+                    self.data.swap_last_path_tags();
                 }
             }
-            self.scene.encode_brush(brush, 1.0);
+            self.data.encode_brush(brush, 1.0);
         }
     }
     /// Strokes a shape using the specified style and brush.
@@ -185,19 +135,19 @@ impl<'a> SceneBuilder<'a> {
         brush_transform: Option<Affine>,
         shape: &impl Shape,
     ) {
-        self.scene
+        self.data
             .encode_transform(Transform::from_kurbo(&transform));
-        self.scene.encode_linewidth(style.width, None);
-        if self.scene.encode_shape(shape, false) {
+        self.data.encode_linewidth(style.width, None);
+        if self.data.encode_shape(shape, false) {
             if let Some(brush_transform) = brush_transform {
                 if self
-                    .scene
+                    .data
                     .encode_transform(Transform::from_kurbo(&(transform * brush_transform)))
                 {
-                    self.scene.swap_last_path_tags();
+                    self.data.swap_last_path_tags();
                 }
             }
-            self.scene.encode_brush(brush, 1.0);
+            self.data.encode_brush(brush, 1.0);
         }
     }
 
@@ -214,20 +164,21 @@ impl<'a> SceneBuilder<'a> {
 
     /// Returns a builder for encoding a glyph run.
     pub fn draw_glyphs(&mut self, font: &Font) -> DrawGlyphs {
-        DrawGlyphs::new(self.scene, font)
+        DrawGlyphs::new(&mut self.data, font)
     }
 
     pub fn set_transform(&mut self, transform:Affine){
-        self.scene.set_transform(&Transform::from_kurbo(&transform));
+        self.data.set_transform(&Transform::from_kurbo(&transform));
     }
 
     /// Appends a fragment to the scene.
-    pub fn append(&mut self, fragment: &SceneFragment, transform: Option<Affine>) {
-        self.scene.append(
+    pub fn append(&mut self, fragment: &Scene, transform: Option<Affine>) {
+        self.data.append(
             &fragment.data,
             &transform.map(|xform| Transform::from_kurbo(&xform)),
         );
     }
+
 }
 
 /// Builder for encoding a glyph run.

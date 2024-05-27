@@ -26,9 +26,9 @@ use vello::util::RenderSurface;
 use vello::{
     kurbo::{Affine, Vec2},
     util::RenderContext,
-    Renderer, Scene, SceneBuilder,
+    Renderer, Scene,
+    BumpAllocators, RendererOptions
 };
-use vello::{BumpAllocators, RendererOptions, SceneFragment};
 
 use winit::{
     event_loop::{EventLoop, EventLoopBuilder},
@@ -124,7 +124,7 @@ fn run(
     let mut cached_window = None;
 
     let mut scene = Scene::new();
-    let mut fragment = SceneFragment::new();
+    let mut fragment = Scene::new();
     let mut simple_text = SimpleText::new();
     let mut images = ImageCache::new();
     let mut stats = stats::Stats::new();
@@ -338,7 +338,6 @@ fn run(
                     prior_position = Some(position);
                 }
                 WindowEvent::RedrawRequested => {
-
                     let width = render_state.surface.config.width;
                     let height = render_state.surface.config.height;
                     let device_handle = &render_cx.devices[render_state.surface.dev_id];
@@ -354,7 +353,7 @@ fn run(
                             .window
                             .set_title(&format!("Vello demo - {}", example_scene.config.name));
                     }
-                    let mut builder = SceneBuilder::for_fragment(&mut fragment);
+                    fragment.reset();
                     let mut scene_params = SceneParams {
                         time: start.elapsed().as_secs_f64(),
                         text: &mut simple_text,
@@ -366,7 +365,7 @@ fn run(
                     };
                     example_scene
                         .function
-                        .render(&mut builder, &mut scene_params);
+                        .render(&mut fragment, &mut scene_params);
         
                     // If the user specifies a base color in the CLI we use that. Otherwise we use any
                     // color specified by the scene. The default is black.
@@ -386,7 +385,7 @@ fn run(
                         width,
                         height,
                     };
-                    let mut builder = SceneBuilder::for_scene(&mut scene);
+                    scene.reset();
                     let mut transform = transform;
                     if let Some(resolution) = scene_params.resolution {
                         // Automatically scale the rendering to fill as much of the window as possible
@@ -395,11 +394,11 @@ fn run(
                         let scale_factor = (factor.x / resolution.x).min(factor.y / resolution.y);
                         transform *= Affine::scale(scale_factor);
                     }
-                    builder.set_transform(transform);
-                    builder.append(&fragment, Some(Affine::IDENTITY));
+                    scene.set_transform(transform);
+                    scene.append(&fragment, Some(Affine::IDENTITY));
                     if stats_shown {
                         snapshot.draw_layer(
-                            &mut builder,
+                            &mut scene,
                             scene_params.text,
                             width as f64,
                             height as f64,

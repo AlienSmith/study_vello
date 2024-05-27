@@ -134,9 +134,10 @@ fn main(
 
     let out = &path_bboxes[tm.path_ix];
 
-    let linewidth = bitcast<f32>(scene[config.linewidth_base + tm.linewidth_ix * 3u]);
-    let dash_array_start = bitcast<f32>(scene[config.linewidth_base + tm.linewidth_ix * 3u + 1u]);
-    let dash_array_end = bitcast<f32>(scene[config.linewidth_base + tm.linewidth_ix * 3u + 2u]);
+    let linewidth_ix = tm.linewidth_ix - 1u;
+    let linewidth = bitcast<f32>(scene[config.linewidth_base + linewidth_ix * 3u]);
+    let dash_array_start = bitcast<f32>(scene[config.linewidth_base + linewidth_ix * 3u + 1u]);
+    let dash_array_end = bitcast<f32>(scene[config.linewidth_base + linewidth_ix * 3u + 2u]);
     let dash_start = u32(dash_array_start);
     let dash_size = u32(dash_array_end - dash_array_start); 
 
@@ -170,7 +171,7 @@ fn main(
                 }
             }
         }
-        let local_to_world = read_transform(config.transform_base, tm.trans_ix);
+        let local_to_world = read_transform(config.transform_base, tm.trans_ix - 1u);
         let transform = transform_mul(world_to_screen, local_to_world);
         p0 = transform_apply(transform, p0);
         p1 = transform_apply(transform, p1);

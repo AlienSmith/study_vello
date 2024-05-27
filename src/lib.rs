@@ -37,7 +37,7 @@ pub mod glyph;
 pub mod util;
 
 pub use render::Render;
-pub use scene::{DrawGlyphs, Scene, SceneBuilder, SceneFragment};
+pub use scene::{DrawGlyphs, Scene};
 #[cfg(feature = "wgpu")]
 pub use util::block_on_wgpu;
 

@@ -16,17 +16,12 @@
 
 //! Support for glyph rendering.
 
-use crate::scene::{SceneBuilder, SceneFragment};
 use {
-    fello::{
-        raw::types::GlyphId,
-        raw::FontRef,
+    crate::Scene, fello::{
+        raw::{types::GlyphId, FontRef},
         scale::{Context, Pen, Scaler},
         FontKey, Setting, Size,
-    },
-    peniko::kurbo::Affine,
-    peniko::{Brush, Color, Fill, Style},
-    vello_encoding::Encoding,
+    }, peniko::{kurbo::Affine, Brush, Color, Fill, Style}, vello_encoding::Encoding
 };
 
 pub use fello;
@@ -86,12 +81,11 @@ pub struct GlyphProvider<'a> {
 impl<'a> GlyphProvider<'a> {
     /// Returns a scene fragment containing the commands to render the
     /// specified glyph.
-    pub fn get(&mut self, gid: u16, brush: Option<&Brush>) -> Option<SceneFragment> {
-        let mut fragment = SceneFragment::default();
-        let mut builder = SceneBuilder::for_fragment(&mut fragment);
+    pub fn get(&mut self, gid: u16, brush: Option<&Brush>) -> Option<Scene> {
+        let mut fragment = Scene::default();
         let mut path = BezPathPen::default();
         self.scaler.outline(GlyphId::new(gid), &mut path).ok()?;
-        builder.fill(
+        fragment.fill(
             Fill::NonZero,
             Affine::IDENTITY,
             brush.unwrap_or(&Brush::Solid(Color::rgb8(255, 255, 255))),

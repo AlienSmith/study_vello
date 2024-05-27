@@ -18,7 +18,7 @@ use std::collections::VecDeque;
 use vello::{
     kurbo::{Affine, PathEl, Rect},
     peniko::{Brush, Color, Fill, Stroke},
-    BumpAllocators, SceneBuilder,
+    BumpAllocators, Scene
 };
 
 const SLIDING_WINDOW_SIZE: usize = 100;
@@ -35,7 +35,7 @@ impl Snapshot {
     #[allow(clippy::too_many_arguments)]
     pub fn draw_layer<'a, T>(
         &self,
-        sb: &mut SceneBuilder,
+        sb: &mut Scene,
         text: &mut SimpleText,
         viewport_width: f64,
         viewport_height: f64,

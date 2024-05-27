@@ -61,7 +61,7 @@ pub fn test_scenes() -> SceneSet {
 
 // Scenes
 
-fn funky_paths(sb: &mut SceneBuilder, _: &mut SceneParams) {
+fn funky_paths(sb: &mut Scene, _: &mut SceneParams) {
     use PathEl::*;
     let missing_movetos = [
         LineTo((100.0, 100.0).into()),
@@ -102,14 +102,14 @@ fn funky_paths(sb: &mut SceneBuilder, _: &mut SceneParams) {
     );
 }
 
-fn cardioid_and_friends(sb: &mut SceneBuilder, _: &mut SceneParams) {
+fn cardioid_and_friends(sb: &mut Scene, _: &mut SceneParams) {
     render_cardioid(sb);
     render_clip_test(sb);
     render_alpha_test(sb);
     //render_tiger(sb, false);
 }
 
-fn animated_text(sb: &mut SceneBuilder, params: &mut SceneParams) {
+fn animated_text(sb: &mut Scene, params: &mut SceneParams) {
     // Uses the static array address as a cache key for expedience. Real code
     // should use a better strategy.
     let piet_logo = params
@@ -226,7 +226,7 @@ fn animated_text(sb: &mut SceneBuilder, params: &mut SceneParams) {
     );
 }
 
-fn brush_transform(sb: &mut SceneBuilder, params: &mut SceneParams) {
+fn brush_transform(sb: &mut Scene, params: &mut SceneParams) {
     let th = params.time;
     let linear = Gradient::new_linear((0.0, 0.0), (0.0, 200.0)).with_stops([
         Color::RED,
@@ -260,8 +260,8 @@ fn brush_transform(sb: &mut SceneBuilder, params: &mut SceneParams) {
     );
 }
 
-fn gradient_extend(sb: &mut SceneBuilder, params: &mut SceneParams) {
-    fn square(sb: &mut SceneBuilder, is_radial: bool, transform: Affine, extend: Extend) {
+fn gradient_extend(sb: &mut Scene, params: &mut SceneParams) {
+    fn square(sb: &mut Scene, is_radial: bool, transform: Affine, extend: Extend) {
         let colors = [Color::RED, Color::rgb8(0, 255, 0), Color::BLUE];
         let width = 300f64;
         let height = 300f64;
@@ -308,9 +308,9 @@ fn gradient_extend(sb: &mut SceneBuilder, params: &mut SceneParams) {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn two_point_radial(sb: &mut SceneBuilder, _params: &mut SceneParams) {
+fn two_point_radial(sb: &mut Scene, _params: &mut SceneParams) {
     fn make(
-        sb: &mut SceneBuilder,
+        sb: &mut Scene,
         x0: f64,
         y0: f64,
         r0: f32,
@@ -472,7 +472,7 @@ fn two_point_radial(sb: &mut SceneBuilder, _params: &mut SceneParams) {
     }
 }
 
-fn blend_grid(sb: &mut SceneBuilder, _: &mut SceneParams) {
+fn blend_grid(sb: &mut Scene, _: &mut SceneParams) {
     const BLEND_MODES: &[Mix] = &[
         Mix::Normal,
         // Mix::Multiply,
@@ -502,7 +502,7 @@ fn blend_grid(sb: &mut SceneBuilder, _: &mut SceneParams) {
 
 // Support functions
 
-fn render_cardioid(sb: &mut SceneBuilder) {
+fn render_cardioid(sb: &mut Scene) {
     let n = 601;
     let dth = std::f64::consts::PI * 2.0 / (n as f64);
     let center = Point::new(1024.0, 768.0);
@@ -548,7 +548,7 @@ fn cardioid() -> BezPath {
     }
     path
 }
-fn render_clip_test(sb: &mut SceneBuilder) {
+fn render_clip_test(sb: &mut Scene) {
     //we only support at most 4 nested clips
     const N: usize = 4;
     const X0: f64 = 50.0;
@@ -583,7 +583,7 @@ fn render_clip_test(sb: &mut SceneBuilder) {
     }
 }
 
-fn render_alpha_test(sb: &mut SceneBuilder) {
+fn render_alpha_test(sb: &mut Scene) {
     // Alpha compositing tests.
     sb.fill(
         Fill::NonZero,
@@ -614,7 +614,7 @@ fn render_alpha_test(sb: &mut SceneBuilder) {
     sb.pop_layer();
 }
 
-fn render_blend_square(sb: &mut SceneBuilder, _blend: BlendMode, transform: Affine) {
+fn render_blend_square(sb: &mut Scene, _blend: BlendMode, transform: Affine) {
     // Inspired by https://developer.mozilla.org/en-US/docs/Web/CSS/mix-blend-mode
     let rect = Rect::from_origin_size(Point::new(0., 0.), (200., 200.));
     let linear =
@@ -658,14 +658,13 @@ fn render_blend_square(sb: &mut SceneBuilder, _blend: BlendMode, transform: Affi
     sb.pop_layer();
 }
 
-fn blend_square(blend: BlendMode) -> SceneFragment {
-    let mut fragment = SceneFragment::default();
-    let mut sb = SceneBuilder::for_fragment(&mut fragment);
-    render_blend_square(&mut sb, blend, Affine::IDENTITY);
+fn blend_square(blend: BlendMode) -> Scene {
+    let mut fragment = Scene::default();
+    render_blend_square(&mut fragment, blend, Affine::IDENTITY);
     fragment
 }
 
-fn conflation_artifacts(sb: &mut SceneBuilder, _: &mut SceneParams) {
+fn conflation_artifacts(sb: &mut Scene, _: &mut SceneParams) {
     use PathEl::*;
     const N: f64 = 50.0;
     const S: f64 = 4.0;
@@ -754,7 +753,7 @@ fn conflation_artifacts(sb: &mut SceneBuilder, _: &mut SceneParams) {
     );
 }
 
-fn labyrinth(sb: &mut SceneBuilder, _: &mut SceneParams) {
+fn labyrinth(sb: &mut Scene, _: &mut SceneParams) {
     use PathEl::*;
 
     let rows: &[[u8; 12]] = &[
@@ -831,7 +830,7 @@ fn labyrinth(sb: &mut SceneBuilder, _: &mut SceneParams) {
     )
 }
 
-fn base_color_test(sb: &mut SceneBuilder, params: &mut SceneParams) {
+fn base_color_test(sb: &mut Scene, params: &mut SceneParams) {
     // Cycle through the hue value every 5 seconds (t % 5) * 360/5
     let color = Color::hlc((params.time % 5.0) * 72.0, 80.0, 80.0);
     params.base_color = Some(color);
@@ -846,7 +845,7 @@ fn base_color_test(sb: &mut SceneBuilder, params: &mut SceneParams) {
     );
 }
 
-fn pattern_test(sb: &mut SceneBuilder,_params: &mut SceneParams) {
+fn pattern_test(sb: &mut Scene,_params: &mut SceneParams) {
     let transform = Affine::IDENTITY;
     let transform = transform.then_translate(Vec2 { x: 10.0, y: 10.0 });
     let clip1 = {
@@ -934,7 +933,7 @@ fn pattern_test(sb: &mut SceneBuilder,_params: &mut SceneParams) {
     
 }
 
-fn gpu_dash_test(sb: &mut SceneBuilder,_params: &mut SceneParams) {
+fn gpu_dash_test(sb: &mut Scene,_params: &mut SceneParams) {
     let path = cardioid();
     sb.stroke_dash(
         &Stroke::new(2.0),
@@ -945,7 +944,7 @@ fn gpu_dash_test(sb: &mut SceneBuilder,_params: &mut SceneParams) {
         vec![0.0,10.0, 10.0, 20.0, 5.0, 20.0]
     );
 }
-// fn rectangle_test(sb: &mut SceneBuilder,_params: &mut SceneParams){
+// fn rectangle_test(sb: &mut Scene,_params: &mut SceneParams){
 //     sb.fill(
 //         peniko::Fill::NonZero,
 //         Affine::IDENTITY,
@@ -955,7 +954,7 @@ fn gpu_dash_test(sb: &mut SceneBuilder,_params: &mut SceneParams) {
 //     );
 // }
 
-fn clip_test(sb: &mut SceneBuilder, params: &mut SceneParams) {
+fn clip_test(sb: &mut Scene, params: &mut SceneParams) {
     let clip = {
         const X0: f64 = 50.0;
         const Y0: f64 = 0.0;
@@ -1056,7 +1055,7 @@ fn make_diamond(cx: f64, cy: f64) -> [PathEl; 5] {
     ]
 }
 
-fn splash_screen(sb: &mut SceneBuilder, params: &mut SceneParams) {
+fn splash_screen(sb: &mut Scene, params: &mut SceneParams) {
     let strings = [
         "Vello test",
         "  Arrow keys: switch scenes",
@@ -1080,7 +1079,7 @@ fn splash_screen(sb: &mut SceneBuilder, params: &mut SceneParams) {
     }
 }
 
-fn splash_with_tiger() -> impl FnMut(&mut SceneBuilder, &mut SceneParams) {
+fn splash_with_tiger() -> impl FnMut(&mut Scene, &mut SceneParams) {
     let contents = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/../assets/Ghostscript_Tiger.svg"

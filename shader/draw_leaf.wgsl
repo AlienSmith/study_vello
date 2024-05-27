@@ -129,7 +129,7 @@ fn main(
         if linewidth >= 0.0 || tag_word == DRAWTAG_FILL_LIN_GRADIENT || tag_word == DRAWTAG_FILL_RAD_GRADIENT ||
             tag_word == DRAWTAG_FILL_IMAGE 
         {
-            transform = read_transform(config.transform_base, bbox.trans_ix);
+            transform = read_transform(config.transform_base, bbox.trans_ix - 1u);
         }
         if linewidth >= 0.0 {
             // Note: doesn't deal with anisotropic case
