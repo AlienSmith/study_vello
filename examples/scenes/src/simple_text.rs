@@ -164,6 +164,7 @@ impl SimpleText {
                 let xform = transform
                     * Affine::translate((pen_x, pen_y))
                     * Affine::scale_non_uniform(1.0, -1.0);
+                    
                 builder.append(&glyph, Some(xform));
             }
             pen_x += advance;

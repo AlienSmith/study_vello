@@ -127,7 +127,7 @@ pub struct RenderConfig {
 }
 
 impl RenderConfig {
-    pub fn new(layout: &Layout, width: u32, height: u32, base_color: &peniko::Color, camera_transform: Option<math::Transform>) -> Self {
+    pub fn new(layout: &Layout, width: u32, height: u32, base_color: &peniko::Color, camera_transform: math::Transform) -> Self {
         let new_width = next_multiple_of(width, TILE_WIDTH);
         let new_height = next_multiple_of(height, TILE_HEIGHT);
         let width_in_tiles = new_width / TILE_WIDTH;
@@ -137,15 +137,13 @@ impl RenderConfig {
             WorkgroupCounts::new(layout, width_in_tiles, height_in_tiles, n_path_tags);
         let tile_counts = width_in_tiles * height_in_tiles;
         let buffer_sizes = BufferSizes::new(tile_counts, layout, &workgroup_counts, n_path_tags);
-        let transform = if let Some(t) = camera_transform{
+        let transform =
             TransformUniform{
-                matrix: t.matrix,
-                translation: t.translation,
+                matrix: camera_transform.matrix,
+                translation: camera_transform.translation,
                 ..Default::default()
-            }
-        }else{
-            TransformUniform::default()
-        };
+            };
+        
         Self {
             gpu: ConfigUniform {
                 width_in_tiles,

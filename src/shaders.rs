@@ -161,6 +161,7 @@ pub fn full_shaders(
         preprocess::preprocess(shader!("pathseg"), &full_config, &imports).into(),
         &[
             BindType::Uniform,
+            BindType::Uniform,
             BindType::BufReadOnly,
             BindType::BufReadOnly,
             BindType::Buffer,

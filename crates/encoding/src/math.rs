@@ -24,7 +24,11 @@ pub struct Transform {
     /// Translation.
     pub translation: [f32; 2],
 }
-
+impl Default for Transform {
+    fn default() -> Self {
+        Transform::IDENTITY
+    }
+}
 impl Transform {
     /// Identity transform.
     pub const IDENTITY: Self = Self {

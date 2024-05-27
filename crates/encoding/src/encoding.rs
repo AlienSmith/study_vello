@@ -46,28 +46,6 @@ impl  LinearColor {
     }
 }
 
-pub struct TransformState(pub u8);
-impl TransformState{
-    pub const DEFAULT: Self = Self(0x0);
-    pub const IGNORED: Self = Self(0x1);
-}
-
-impl Default for TransformState{
-    fn default() -> Self {
-        TransformState::DEFAULT
-    }
-}
-impl Clone for TransformState{
-    fn clone(&self) -> Self {
-        Self(self.0)
-    }
-}
-impl PartialEq for TransformState{
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-
 /// Encoded data streams for a scene.
 #[derive(Clone, Default)]
 pub struct Encoding {
@@ -85,10 +63,6 @@ pub struct Encoding {
     pub linewidths: Vec<f32>,
     /// The dash array stream.
     pub dasharrays: Vec<f32>,
-    /// the following transform would be in screen space
-    pub transform_state: TransformState,
-    /// whether the corresponding transform is in screen space
-    pub should_ignore_camera_transforms:Vec<TransformState>, 
     /// The pattern data stream.
     pub pattern_data: Vec<PatternData>,
     /// Late bound resource data.
@@ -105,7 +79,7 @@ pub struct Encoding {
     /// Number of unclosed clips/layers.
     pub n_open_clips: u32,
     /// camera_transform
-    pub camera_transform: Option<Transform>,
+    pub camera_transform: Transform,
 }
 
 fn angle_to_radians(angle: f32) -> f32{
@@ -128,7 +102,6 @@ impl Encoding {
     pub fn reset(&mut self, is_fragment: bool) {
         self.pattern_data.clear();
         self.transforms.clear();
-        self.should_ignore_camera_transforms.clear();
         self.path_tags.clear();
         self.path_data.clear();
         self.linewidths.clear();
@@ -147,10 +120,11 @@ impl Encoding {
             self.linewidths.push(-1.0);
             self.linewidths.push(0.0);
             self.linewidths.push(0.0);
-            self.should_ignore_camera_transforms.push(TransformState::DEFAULT);
         }
     }
-
+    pub fn set_transform(&mut self, transform:&Transform){
+        self.camera_transform = *transform;
+    }
     /// Appends another encoding to this one with an optional transform.
     pub fn append(&mut self, other: &Self, transform: &Option<Transform>) {
         #[cfg(feature = "full")]
@@ -216,7 +190,6 @@ impl Encoding {
         self.path_data.extend_from_slice(&other.path_data);
         self.draw_tags.extend_from_slice(&other.draw_tags);
         self.draw_data.extend_from_slice(&other.draw_data);
-        self.should_ignore_camera_transforms.extend_from_slice(&other.should_ignore_camera_transforms);
         self.n_paths += other.n_paths;
         self.n_path_segments += other.n_path_segments;
         self.n_clips += other.n_clips;
@@ -226,21 +199,14 @@ impl Encoding {
             let mut ignore_translate = transform;
             ignore_translate.translation = [0.0,0.0];
             self.transforms
-                .extend(other.transforms.iter().enumerate().map(|(index,x)| {
-                    if other.should_ignore_camera_transforms[index] == TransformState::DEFAULT {
-                        transform * *x
-                    }else {
-                        *x
-                    }
-                    }));
+                .extend(other.transforms.iter().enumerate().map(|(_,x)| {
+                        transform * *x}));
             #[cfg(feature = "full")]
             for run in &mut self.resources.glyph_runs[glyph_runs_base..] {
                 run.transform = transform * run.transform;
             }
-            self.camera_transform = Some(transform);
         } else {
             self.transforms.extend_from_slice(&other.transforms);
-            self.camera_transform = None;
         }
         self.linewidths.extend_from_slice(&other.linewidths);
         self.dasharrays.extend_from_slice(&other.dasharrays);
@@ -280,10 +246,9 @@ impl Encoding {
     /// If the given transform is different from the current one, encodes it and
     /// returns true. Otherwise, encodes nothing and returns false.
     pub fn encode_transform(&mut self, transform: Transform) -> bool {
-        if self.transforms.last() != Some(&transform) || self.should_ignore_camera_transforms.last() != Some(&self.transform_state){
+        if self.transforms.last() != Some(&transform){
             self.path_tags.push(PathTag::TRANSFORM);
             self.transforms.push(transform);
-            self.should_ignore_camera_transforms.push(self.transform_state.clone());
             true
         } else {
             false
@@ -442,11 +407,6 @@ impl Encoding {
     /// Encode start of pattern
     /// start is pivot offset from clip boundary
     pub fn encode_begin_pattern(&mut self, start: Vec2, box_scale:Vec2, rotation: f32, is_screen_space: bool){
-        self.transform_state = if is_screen_space{
-            TransformState::IGNORED
-        }else{
-            TransformState::DEFAULT
-        };
         let radians  = angle_to_radians(rotation);
         let is_screen_space:u32 = 
         if is_screen_space{
@@ -463,7 +423,6 @@ impl Encoding {
 
     ///Encode a end of pattern command.
     pub fn encode_end_pattern(&mut self){
-        self.transform_state = TransformState::DEFAULT;
         self.draw_tags.push(DrawTag::END_PATTERN);
         self.n_patterns += 1;
         self.path_tags.push(PathTag::PATH);

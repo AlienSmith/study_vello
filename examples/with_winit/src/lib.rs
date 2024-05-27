@@ -395,7 +395,8 @@ fn run(
                         let scale_factor = (factor.x / resolution.x).min(factor.y / resolution.y);
                         transform *= Affine::scale(scale_factor);
                     }
-                    builder.append(&fragment, Some(transform));
+                    builder.set_transform(transform);
+                    builder.append(&fragment, Some(Affine::IDENTITY));
                     if stats_shown {
                         snapshot.draw_layer(
                             &mut builder,

@@ -217,6 +217,10 @@ impl<'a> SceneBuilder<'a> {
         DrawGlyphs::new(self.scene, font)
     }
 
+    pub fn set_transform(&mut self, transform:Affine){
+        self.scene.set_transform(&Transform::from_kurbo(&transform));
+    }
+
     /// Appends a fragment to the scene.
     pub fn append(&mut self, fragment: &SceneFragment, transform: Option<Affine>) {
         self.scene.append(

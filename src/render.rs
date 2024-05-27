@@ -138,6 +138,10 @@ impl Render {
         let segments_buf =
             ResourceProxy::new_buf(buffer_sizes.segments.size_in_bytes().into(), "segments_buf");
         let ptcl_buf = ResourceProxy::new_buf(buffer_sizes.ptcl.size_in_bytes().into(), "ptcl_buf");
+        
+        let camera_buf = ResourceProxy::Buf(
+            recording.upload_uniform("camera", bytemuck::bytes_of(&cpu_config.camera_transform)),
+        );
         #[cfg(feature = "ptcl_segmentation")]
         let fine_index_buf = ResourceProxy::new_buf(buffer_sizes.fine_index.size_in_bytes().into(), "ptcl_buf");
         #[cfg(feature = "ptcl_segmentation")]
@@ -220,6 +224,7 @@ impl Render {
             wg_counts.path_seg,
             [
                 config_buf,
+                camera_buf,
                 scene_buf,
                 tagmonoid_buf,
                 path_bbox_buf,
@@ -298,10 +303,6 @@ impl Render {
         recording.free_resource(clip_inp_buf);
         recording.free_resource(clip_bic_buf);
         recording.free_resource(clip_el_buf);
-
-        let camera_buf = ResourceProxy::Buf(
-            recording.upload_uniform("camera", bytemuck::bytes_of(&cpu_config.camera_transform)),
-        );
 
         if wg_counts.use_patterns{
             recording.dispatch(

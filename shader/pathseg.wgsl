@@ -21,9 +21,12 @@
 var<uniform> config: Config;
 
 @group(0) @binding(1)
-var<storage> scene: array<u32>;
+var<uniform> camera: InputTransform;
 
 @group(0) @binding(2)
+var<storage> scene: array<u32>;
+
+@group(0) @binding(3)
 var<storage> tag_monoids: array<TagMonoid>;
 
 struct AtomicPathBbox {
@@ -35,13 +38,13 @@ struct AtomicPathBbox {
     trans_ix: u32,
 }
 
-@group(0) @binding(3)
+@group(0) @binding(4)
 var<storage, read_write> path_bboxes: array<AtomicPathBbox>;
 
-@group(0) @binding(4)
+@group(0) @binding(5)
 var<storage, read_write> cubics: array<Cubic>;
 
-@group(0) @binding(5)
+@group(0) @binding(6)
 var<storage, read_write> bump: BumpAllocators;
 
 // Monoid is yagni, for future optimization
@@ -115,6 +118,7 @@ fn main(
     @builtin(global_invocation_id) global_id: vec3<u32>,
     @builtin(local_invocation_id) local_id: vec3<u32>,
 ) {
+    let world_to_screen = Transform(camera.matrx, camera.translate);
     let ix = global_id.x;
     //the cubic buffer is always bigger than path_tag_count so it will never fail here
     if ix == 0u {
@@ -166,7 +170,8 @@ fn main(
                 }
             }
         }
-        let transform = read_transform(config.transform_base, tm.trans_ix);
+        let local_to_world = read_transform(config.transform_base, tm.trans_ix);
+        let transform = transform_mul(world_to_screen, local_to_world);
         p0 = transform_apply(transform, p0);
         p1 = transform_apply(transform, p1);
         var bbox = vec4(min(p0, p1), max(p0, p1));
