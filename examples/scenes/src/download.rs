@@ -6,6 +6,7 @@ use std::{
 use anyhow::{bail, Context, Result};
 use byte_unit::Byte;
 use clap::Args;
+use inquire::Confirm;
 use std::io::Read;
 mod default_downloads;
 
@@ -56,6 +57,7 @@ impl Download {
                     println!(
                         "Would you like to download a set of default svg files? These files are:"
                     );
+                    let mut total_bytes = 0;
                     for download in &downloads {
                         let builtin = download.builtin.as_ref().unwrap();
                         println!(
@@ -66,15 +68,11 @@ impl Download {
                             builtin.license,
                             builtin.info
                         );
+                        total_bytes += builtin.expected_size;
                     }
 
                     // For rustfmt, split prompt into its own line
-                    const PROMPT: &str =
-                "Would you like to download a set of default svg files, as explained above?";
-                    accepted = dialoguer::Confirm::new()
-                        .with_prompt(PROMPT)
-                        .wait_for_newline(true)
-                        .interact()?;
+                    accepted = download_prompt(total_bytes)?;
                 } else {
                     println!("Nothing to download! All default downloads already created");
                 }
@@ -83,25 +81,61 @@ impl Download {
                 to_download = downloads;
             }
         }
+        let mut completed_count = 0;
+        let mut failed_count = 0;
         for (index, download) in to_download.iter().enumerate() {
             println!(
                 "{index}: Downloading {} from {}",
                 download.name, download.url
             );
-            download.fetch(&self.directory, self.size_limit)?
+            match download.fetch(&self.directory, self.size_limit) {
+                Ok(()) => completed_count += 1,
+                Err(e) => {
+                    failed_count += 1;
+                    eprintln!("Download failed with error: {e}");
+                    let cont = if self.auto {
+                        false
+                    } else {
+                        Confirm::new("Would you like to try other downloads?")
+                            .with_default(false)
+                            .prompt()?
+                    };
+                    if !cont {
+                        println!("{} downloads complete", completed_count);
+                        if failed_count > 0 {
+                            println!("{} downloads failed", failed_count);
+                        }
+                        let remaining = to_download.len() - (completed_count + failed_count);
+                        if remaining > 0 {
+                            println!("{} downloads skipped", remaining);
+                        }
+                        return Err(e);
+                    }
+                }
+            }
         }
-        println!("{} downloads complete", to_download.len());
+        println!("{} downloads complete", completed_count);
+        if failed_count > 0 {
+            println!("{} downloads failed", failed_count);
+        }
+        debug_assert!(completed_count + failed_count == to_download.len());
         Ok(())
     }
 
-    fn parse_download(value: &str) -> SVGDownload {
+    fn parse_download(value: &str) -> AssetsDownload {
         if let Some(at_index) = value.find('@') {
             let name = &value[0..at_index];
-            let url = &value[at_index + 1..];
-            SVGDownload {
+            let following = &value[at_index + 1..];
+            let (extension, url) = if let Some(at_index) = following.find('@') {
+                (&following[0..at_index], &following[at_index + 1..])
+            }else{
+                ("svg", &following[at_index + 1..])
+            };
+            AssetsDownload {
                 name: name.to_string(),
                 url: url.to_string(),
                 builtin: None,
+                extension: extension.to_owned(),
             }
         } else {
             let end_index = value.rfind(".svg").unwrap_or(value.len());
@@ -110,24 +144,35 @@ impl Download {
                 .rfind('/')
                 .map(|v| &url_with_name[v + 1..])
                 .unwrap_or(url_with_name);
-            SVGDownload {
+            AssetsDownload {
                 name: name.to_string(),
                 url: value.to_string(),
                 builtin: None,
+                extension: "svg".to_owned(),
             }
         }
     }
 }
 
-struct SVGDownload {
-    name: String,
-    url: String,
-    builtin: Option<BuiltinSvgProps>,
+fn download_prompt(total_bytes: u64) -> Result<bool> {
+    let prompt = format!(
+        "Would you like to download a set of default lottie files, as explained above? ({})",
+        byte_unit::Byte::from_bytes(total_bytes.into()).get_appropriate_unit(false)
+    );
+    let accepted = Confirm::new(&prompt).with_default(false).prompt()?;
+    Ok(accepted)
 }
 
-impl SVGDownload {
+struct AssetsDownload {
+    name: String,
+    extension:String,
+    url: String,
+    builtin: Option<BuiltinAssetsProps>,
+}
+
+impl AssetsDownload {
     fn file_path(&self, directory: &Path) -> PathBuf {
-        directory.join(&self.name).with_extension("svg")
+        directory.join(&self.name).with_extension(&self.extension)
     }
 
     fn fetch(&self, directory: &Path, size_limit: Byte) -> Result<()> {
@@ -136,6 +181,21 @@ impl SVGDownload {
         if let Some(builtin) = &self.builtin {
             size_limit = builtin.expected_size;
             limit_exact = true;
+        }
+        // If we're expecting an exact version of the file, it's worth not fetching
+        // the file if we know it will fail
+        if limit_exact {
+            let head_response = ureq::head(&self.url).call()?;
+            let content_length = head_response.header("content-length");
+            if let Some(Ok(content_length)) = content_length.map(|it| it.parse::<u64>()) {
+                if content_length != size_limit {
+                    bail!(
+                        "Size is not as expected for download. Expected {}, server reported {}",
+                        Byte::from_bytes(size_limit.into()).get_appropriate_unit(true),
+                        Byte::from_bytes(content_length.into()).get_appropriate_unit(true)
+                    )
+                }
+            }
         }
         let mut file = std::fs::OpenOptions::new()
             .create_new(true)
@@ -152,14 +212,19 @@ impl SVGDownload {
         if reader.read_exact(&mut [0]).is_ok() {
             bail!("Size limit exceeded");
         }
-        if limit_exact && file.stream_position().context("Checking file limit")? != size_limit {
-            bail!("Builtin downloaded file was not as expected");
+        if limit_exact {
+            let bytes_downloaded = file.stream_position().context("Checking file limit")?;
+            if bytes_downloaded != size_limit {
+                bail!(
+                    "Builtin downloaded file was not as expected. Expected {size_limit}, received {bytes_downloaded}.",
+                );
+            }
         }
         Ok(())
     }
 }
 
-struct BuiltinSvgProps {
+struct BuiltinAssetsProps {
     expected_size: u64,
     license: &'static str,
     info: &'static str,

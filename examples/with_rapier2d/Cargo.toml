@@ -1,0 +1,22 @@
+[package]
+name = "with_rapier2d"
+description = "Example of using rapier2d in a Bevy application."
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+
+[dependencies]
+vello = { path = "../../" }
+bevy = { version = "0.13.1", features = [
+  "bevy_winit",
+  "bevy_core_pipeline",
+  "bevy_pbr",
+  "bevy_render",
+  "multi-threaded",
+  "x11",
+  "tonemapping_luts",
+], default-features = false }
+rapier2d = "0.19.0"
+bevy_rapier2d = "0.26.0"

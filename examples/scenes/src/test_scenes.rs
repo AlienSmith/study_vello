@@ -13,12 +13,15 @@ macro_rules! scene {
         scene!($name: true)
     };
     ($name: ident: $animated: literal) => {
+        scene!($name, stringify!($name), $animated)
+    };
+    ($func:expr, $name: expr, $animated: literal) => {
         ExampleScene {
             config: SceneConfig {
                 animated: $animated,
-                name: stringify!($name).to_owned(),
+                name: $name.to_owned(),
             },
-            function: Box::new($name),
+            function: Box::new($func),
         }
     };
 }
@@ -29,7 +32,7 @@ pub fn test_scenes() -> SceneSet {
             animated: false,
             name: "splash_with_tiger".to_owned(),
         },
-        function: Box::new(splash_with_tiger()),
+        function: Box::new(splash_with_svg_tiger()),
     };
     let mmark_scene = ExampleScene {
         config: SceneConfig {
@@ -54,6 +57,7 @@ pub fn test_scenes() -> SceneSet {
         scene!(labyrinth),
         scene!(base_color_test: animated),
         scene!(clip_test: animated),
+        scene!(splash_with_lottie_tiger(), "Tiger", true)
     ];
 
     SceneSet { scenes }
@@ -1079,7 +1083,7 @@ fn splash_screen(sb: &mut Scene, params: &mut SceneParams) {
     }
 }
 
-fn splash_with_tiger() -> impl FnMut(&mut Scene, &mut SceneParams) {
+fn splash_with_svg_tiger() -> impl FnMut(&mut Scene, &mut SceneParams) {
     let contents = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/../assets/Ghostscript_Tiger.svg"
@@ -1088,5 +1092,17 @@ fn splash_with_tiger() -> impl FnMut(&mut Scene, &mut SceneParams) {
     move |sb, params| {
         tiger(sb, params);
         splash_screen(sb, params);
+    }
+}
+
+fn splash_with_lottie_tiger() -> impl FnMut(&mut Scene, &mut SceneParams) {
+    let contents = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../assets/google_fonts/Tiger.json"
+    ));
+    let mut lottie = crate::lottie::lottie_function_of("Tiger".to_string(), move || contents);
+    move |scene, params| {
+        lottie(scene, params);
+        splash_screen(scene, params);
     }
 }

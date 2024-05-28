@@ -4,6 +4,7 @@ mod images;
 mod mmark;
 mod simple_text;
 mod svg;
+mod lottie;
 mod test_scenes;
 use std::path::PathBuf;
 
@@ -13,6 +14,7 @@ use download::Download;
 pub use images::ImageCache;
 pub use simple_text::SimpleText;
 pub use svg::{default_scene, scene_from_files};
+pub use lottie::{default_lottie_scene, scene_from_lottie_files};
 pub use test_scenes::test_scenes;
 
 use vello::{kurbo::Vec2, peniko::Color, Scene};

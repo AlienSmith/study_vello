@@ -6,6 +6,7 @@ members = [
     "crates/shaders",
 
     "integrations/vello_svg",
+    "integrations/velato",
 
     "examples/headless",
     "examples/with_winit",
