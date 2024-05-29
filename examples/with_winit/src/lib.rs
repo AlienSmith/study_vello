@@ -386,7 +386,8 @@ fn run(
                         height,
                     };
                     scene.reset();
-                    let mut transform = transform;
+                    scene.set_transform(transform);
+                    let mut transform = Affine::IDENTITY;
                     if let Some(resolution) = scene_params.resolution {
                         // Automatically scale the rendering to fill as much of the window as possible
                         // TODO: Apply svg view_box, somehow
@@ -394,8 +395,7 @@ fn run(
                         let scale_factor = (factor.x / resolution.x).min(factor.y / resolution.y);
                         transform *= Affine::scale(scale_factor);
                     }
-                    scene.set_transform(transform);
-                    scene.append(&fragment, Some(Affine::IDENTITY));
+                    scene.append(&fragment, Some(transform));
                     if stats_shown {
                         snapshot.draw_layer(
                             &mut scene,
