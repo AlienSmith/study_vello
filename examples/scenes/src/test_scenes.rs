@@ -42,6 +42,7 @@ pub fn test_scenes() -> SceneSet {
         function: Box::new(crate::mmark::MMark::new(80_000)),
     };
     let scenes = vec![
+        scene!(splash_with_lottie_tiger(), "Tiger", true),
         scene!(gpu_dash_test),
         scene!(pattern_test),
         splash_scene,
@@ -57,7 +58,6 @@ pub fn test_scenes() -> SceneSet {
         scene!(labyrinth),
         scene!(base_color_test: animated),
         scene!(clip_test: animated),
-        scene!(splash_with_lottie_tiger(), "Tiger", true)
     ];
 
     SceneSet { scenes }
@@ -1103,6 +1103,6 @@ fn splash_with_lottie_tiger() -> impl FnMut(&mut Scene, &mut SceneParams) {
     let mut lottie = crate::lottie::lottie_function_of("Tiger".to_string(), move || contents);
     move |scene, params| {
         lottie(scene, params);
-        splash_screen(scene, params);
+        //splash_screen(scene, params);
     }
 }

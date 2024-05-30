@@ -1,6 +1,9 @@
 // Copyright 2024 the Velato Authors
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+use crate::schema::helpers::transform;
+use crate::schema::shapes::group;
+
 use super::model::*;
 use super::Composition;
 use std::ops::Range;
@@ -80,12 +83,6 @@ impl Renderer {
         sink: &mut impl RenderSink,
     ) {
         self.batch.clear();
-        sink.push_layer(
-            Mix::Clip,
-            1.0,
-            transform,
-            &Rect::new(0.0, 0.0, animation.width as _, animation.height as _),
-        );
         for layer in animation.layers.iter().rev() {
             if layer.is_mask {
                 continue;
@@ -100,7 +97,6 @@ impl Renderer {
                 sink,
             );
         }
-        sink.pop_layer();
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -119,24 +115,15 @@ impl Renderer {
         }
         let parent_transform = transform;
         let transform = self.compute_transform(layer_set, layer, parent_transform, frame);
-        let full_rect = Rect::new(0.0, 0.0, animation.width as f64, animation.height as f64);
-        if let Some((mode, mask_index)) = layer.mask_layer {
-            // todo: re-enable masking when it is more understood (and/or if
-            // it's currently supported in vello?) Extra layer to
-            // isolate blending for the mask
-            sink.push_layer(Mix::Normal, 1.0, parent_transform, &full_rect);
-            if let Some(mask) = layer_set.get(mask_index) {
-                self.render_layer(
-                    animation,
-                    layer_set,
-                    mask,
-                    parent_transform,
-                    alpha,
-                    frame,
-                    sink,
-                );
+        if let Some((_mode, mask_index)) = layer.mask_layer {
+            if let Some(layer) = layer_set.get(mask_index){
+                if let Content::Shape(shapes) = &layer.content {
+                    let transform = self.compute_transform(layer_set, layer, parent_transform, frame);
+                    self.render_shapes(shapes, transform, alpha, frame);
+                    self.batch.push_layer(sink);
+                    self.batch.clear();
+                }
             }
-            sink.push_layer(mode, 1.0, parent_transform, &full_rect);
         }
         let alpha = alpha * layer.opacity.evaluate(frame) / 100.0;
         for mask in &layer.masks {
@@ -181,7 +168,7 @@ impl Renderer {
                 self.batch.clear();
             }
         }
-        for _ in 0..layer.masks.len() + (layer.mask_layer.is_some() as usize * 2) {
+        for _ in 0..layer.masks.len() + layer.mask_layer.is_some() as usize {
             sink.pop_layer();
         }
     }
@@ -377,7 +364,15 @@ impl Batch {
         // Prevent merging until new geometries are pushed
         self.drawn_geometry = self.geometries.len();
     }
-
+    fn push_layer(&self, sink: &mut impl RenderSink){
+        if let Some(draw) = self.draws.first() {
+            if let Some(geometry) = self.geometries[draw.geometry.clone()].first() {
+                let path = &self.elements[geometry.elements.clone()];
+                let transform = geometry.transform;
+                sink.push_layer(Mix::Clip, 1.0, transform, &path);
+            }
+        }
+    }
     fn render(&self, sink: &mut impl RenderSink) {
         // Process all draws in reverse
         for draw in self.draws.iter().rev() {
