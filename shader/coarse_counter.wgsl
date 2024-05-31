@@ -208,14 +208,17 @@ fn main(
     // At this point bit drawobj % 32 is set in sh_bitmaps[drawobj / 32][y * N_TILE_X + x]
     // if drawobj touches tile (x, y).
     // Write per-tile command list for this tile
-
+    let within_range = bin_tile_x + tile_x < config.width_in_tiles && bin_tile_y + tile_y < config.height_in_tiles;
+    
+    if !within_range {
+        return;
+    }
     //space for indexing info
     cmd_offset += 1u;
-    let within_range = bin_tile_x + tile_x < config.width_in_tiles && bin_tile_y + tile_y < config.height_in_tiles;
    
     var slice_ix = 0u;
     var bitmap = atomicLoad(&sh_bitmaps[0u][local_id.x]);
-    while within_range {
+    while true {
         if bitmap == 0u {
             slice_ix += 1u;
             // potential optimization: make iteration limit dynamic
@@ -272,9 +275,8 @@ fn main(
     
     
 
-    if within_range {
-        let count = ptcl_segment_count + select(0, 1, cmd_offset > 0u);
-        counter[this_tile_ix * 2u] = (select(count, 0, zero_contribution) << 4u) | i32(layer_counter & 0xfu);
-        counter[this_tile_ix * 2u + 1u] = clip_count;
-    }
+    let count = ptcl_segment_count + select(0, 1, cmd_offset > 0u);
+    counter[this_tile_ix * 2u] = (select(count, 0, zero_contribution) << 4u) | i32(layer_counter & 0xfu);
+    counter[this_tile_ix * 2u + 1u] = clip_count;
+    
 }

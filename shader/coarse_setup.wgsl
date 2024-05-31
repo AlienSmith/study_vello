@@ -85,7 +85,7 @@ fn main(
 
         let indirect_clip_offset = atomicAdd(&bump.indirect_clips, current_clip_index);
         fine_index[this_tile_ix * 4u + 2u] = indirect_clip_offset;
-        if base_size + size > config.ptcl_size || indirect_clip_offset + current_clip_index > config.indirect_clip_count{
+        if ((base_size + size) > config.ptcl_size) || ((indirect_clip_offset + current_clip_index) > config.indirect_clip_count){
             atomicOr(&bump.failed, STAGE_COARSE);
         }
     }

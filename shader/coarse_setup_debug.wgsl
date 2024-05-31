@@ -25,7 +25,7 @@ fn main(
 
         fine_index[i * 4u + 2u] = indirect_clip_counter;
         let indirect_clip_space = fine_index[i * 4u + 3u];
-        counter += indirect_clip_space;
+        indirect_clip_counter += indirect_clip_space;
     }
 
     let current_size = counter * PTCL_INCREMENT;

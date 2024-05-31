@@ -330,7 +330,7 @@ fn main(
     let within_range = bin_tile_x + tile_x < config.width_in_tiles && bin_tile_y + tile_y < config.height_in_tiles;
         
     //early exit on empty section
-    if (counter[2u * (this_tile_ix + offset_of_partition)] == 0){
+    if (counter[2u * (this_tile_ix + offset_of_partition)] == 0) || !within_range{
         return;
     }
 
@@ -396,9 +396,7 @@ fn main(
     }
     workgroupBarrier();
     
-    if within_range {
-        write_end();
-        ptcl[cmd_offset] = CMD_END;
-        write_clips(this_tile_ix);
-    }
+    write_end();
+    ptcl[cmd_offset] = CMD_END;
+    write_clips(this_tile_ix);
 }
