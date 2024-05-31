@@ -17,6 +17,7 @@ pub struct Render {
 struct FineResources {
     config_buf: ResourceProxy,
     scene_buf: ResourceProxy,
+    draw_monoid_buf: ResourceProxy,
     bump_buf: ResourceProxy,
     tile_buf: ResourceProxy,
     segments_buf: ResourceProxy,
@@ -27,15 +28,15 @@ struct FineResources {
 
     out_image: ImageProxy,
 
+    indirect_dispatch_count: BufProxy,
     #[cfg(feature = "ptcl_segmentation")]
     fine_index: ResourceProxy,
     #[cfg(feature = "ptcl_segmentation")]
     fine_slice: ResourceProxy,
     #[cfg(feature = "ptcl_segmentation")]
     layer_info: ResourceProxy,
-    #[cfg(feature = "ptcl_segmentation")]
-    indirect_dispatch_count: BufProxy,
-
+    #[cfg(feature = "coarse_segmentation")]
+    indirect_clip_index_buf: ResourceProxy,
 }
 
 pub fn render_full(
@@ -138,6 +139,23 @@ impl Render {
         let segments_buf =
             ResourceProxy::new_buf(buffer_sizes.segments.size_in_bytes().into(), "segments_buf");
         let ptcl_buf = ResourceProxy::new_buf(buffer_sizes.ptcl.size_in_bytes().into(), "ptcl_buf");
+        
+        #[cfg(feature = "coarse_segmentation")]
+        let coarse_counter_buf = ResourceProxy::new_buf(
+            buffer_sizes.coarse_counter.size_in_bytes().into(),
+            "coarse_counter_buf",
+        );
+        #[cfg(feature = "coarse_segmentation")]
+        let coarse_index_buf = ResourceProxy::new_buf(
+            buffer_sizes.coarse_index.size_in_bytes().into(),
+            "coarse_index_buf",
+        );
+        #[cfg(feature = "coarse_segmentation")]
+        let indirect_clip_index_buf = ResourceProxy::new_buf(
+            buffer_sizes.indirect_clip_index.size_in_bytes().into(),
+            "indirect_clip_index_buf",
+        );
+
         #[cfg(feature = "ptcl_segmentation")]
         let fine_index_buf = ResourceProxy::new_buf(buffer_sizes.fine_index.size_in_bytes().into(), "ptcl_buf");
         #[cfg(feature = "ptcl_segmentation")]
@@ -344,7 +362,6 @@ impl Render {
                 bin_header_buf,
             ],
         );
-        recording.free_resource(draw_monoid_buf);
         recording.free_resource(path_bbox_buf);
         recording.free_resource(clip_bbox_buf);
         // Note: this only needs to be rounded up because of the workaround to store the tile_offset
@@ -415,45 +432,124 @@ impl Render {
             [config_buf, path_buf, tile_buf],
         );
         
-        recording.dispatch(
-            shaders.coarse_original,
-            wg_counts.coarse,
-            [
-                config_buf,
-                scene_buf,
-                draw_monoid_buf,
-                bin_header_buf,
-                info_bin_data_buf,
-                path_buf,
-                tile_buf,
-                bump_buf,
-                ptcl_buf,
-                #[cfg(feature = "ptcl_segmentation")]
-                fine_index_buf,
-                #[cfg(feature = "ptcl_segmentation")]
-                layer_info_buf,
-            ],
-        );
-        recording.free_resource(draw_monoid_buf);
-        recording.free_resource(bin_header_buf);
-        recording.free_resource(path_buf);
 
-        #[cfg(feature = "ptcl_segmentation")]
-        recording.dispatch(
-            shaders.fine_setup_original, 
-            (1,1,1), 
-            [
-                config_buf,
-                fine_index_buf,
-                indirect_count_buf.into(),
-                bump_buf,
-            ],
-        );
+        #[cfg(not(feature = "coarse_segmentation"))]
+        let mut run_coarse = || {
+                recording.dispatch(
+                shaders.coarse_original,
+                wg_counts.coarse,
+                [
+                    config_buf,
+                    scene_buf,
+                    draw_monoid_buf,
+                    bin_header_buf,
+                    info_bin_data_buf,
+                    path_buf,
+                    tile_buf,
+                    bump_buf,
+                    ptcl_buf,
+                    #[cfg(feature = "ptcl_segmentation")]
+                    fine_index_buf,
+                    #[cfg(feature = "ptcl_segmentation")]
+                    layer_info_buf,
+                ],
+            );
+            recording.free_resource(draw_monoid_buf);
+            recording.free_resource(bin_header_buf);
+            recording.free_resource(path_buf);
+
+            #[cfg(feature = "ptcl_segmentation")]
+            recording.dispatch(
+                shaders.fine_setup_original, 
+                (1,1,1), 
+                [
+                    config_buf,
+                    fine_index_buf,
+                    indirect_count_buf.into(),
+                    bump_buf,
+                ],
+            );
+        };
+
+        #[cfg(feature = "coarse_segmentation")]
+        let mut run_coarse = || {
+            recording.dispatch(
+                shaders.coarse_counter,
+                wg_counts.coarse_counter,
+                [
+                    config_buf,
+                    scene_buf,
+                    draw_monoid_buf,
+                    bin_header_buf,
+                    info_bin_data_buf,
+                    path_buf,
+                    tile_buf,
+                    bump_buf,
+                    coarse_counter_buf,
+                ],
+            );
+
+            recording.dispatch(
+                shaders.coarse_setup,
+                wg_counts.coarse,
+                [
+                    config_buf,
+                    bump_buf,
+                    coarse_counter_buf,
+                    coarse_index_buf,
+                    fine_index_buf,
+                ],
+            );
+
+            // recording.dispatch(
+            //     shaders.coarse_setup_debug,
+            //     (1, 1, 1),
+            //     [config_buf, bump_buf, fine_index_buf],
+            // );
+
+            recording.dispatch(
+                shaders.coarse,
+                wg_counts.coarse_counter,
+                [
+                    config_buf,
+                    scene_buf,
+                    draw_monoid_buf,
+                    bin_header_buf,
+                    info_bin_data_buf,
+                    path_buf,
+                    tile_buf,
+                    bump_buf,
+                    ptcl_buf,
+                    layer_info_buf,
+                    coarse_index_buf,
+                    indirect_clip_index_buf,
+                    coarse_counter_buf,
+                    fine_index_buf,
+                ],
+            );
+            recording.free_resource(coarse_index_buf);
+            recording.free_resource(coarse_counter_buf);
+
+            recording.dispatch(
+                shaders.fine_setup,
+                (1, 1, 1),
+                [
+                    config_buf,
+                    fine_index_buf,
+                    indirect_count_buf.into(),
+                    bump_buf,
+                ],
+            );
+        };
+
+        run_coarse();
+
         let out_image = ImageProxy::new(params.width, params.height, ImageFormat::Rgba8);
         self.fine_wg_count = Some(wg_counts.fine);
         self.fine_resources = Some(FineResources {
             config_buf,
             scene_buf,
+            draw_monoid_buf,
             bump_buf,
             tile_buf,
             segments_buf,
@@ -462,14 +558,15 @@ impl Render {
             info_bin_data_buf,
             image_atlas: ResourceProxy::Image(image_atlas),
             out_image,
+            indirect_dispatch_count: indirect_count_buf,
             #[cfg(feature = "ptcl_segmentation")]
             fine_index: fine_index_buf,
             #[cfg(feature = "ptcl_segmentation")]
             fine_slice: fine_slice_buf,
             #[cfg(feature = "ptcl_segmentation")]
             layer_info: layer_info_buf,
-            #[cfg(feature = "ptcl_segmentation")]
-            indirect_dispatch_count: indirect_count_buf,
+            #[cfg(feature = "coarse_segmentation")]
+            indirect_clip_index_buf,
         });
         if robust {
             recording.download(*bump_buf.as_buf().unwrap());
@@ -481,27 +578,30 @@ impl Render {
     pub fn record_fine(&mut self, shaders: &FullShaders, recording: &mut Recording) {
         let fine_wg_count = self.fine_wg_count.take().unwrap();
         let fine = self.fine_resources.take().unwrap();
-        #[cfg(feature = "ptcl_segmentation")]
+        #[cfg(feature = "coarse_segmentation")]
         {
             recording.dispatch_indirect(
-                shaders.fine_original,
+                shaders.fine,
                 fine.indirect_dispatch_count,
                 0,
                 [
                     fine.config_buf,
                     fine.scene_buf,
+                    fine.tile_buf,
                     fine.segments_buf,
                     fine.ptcl_buf,
-                    fine.info_bin_data_buf,
                     fine.gradient_image,
+                    fine.info_bin_data_buf,
                     fine.image_atlas,
+                    fine.draw_monoid_buf,
+                    fine.indirect_clip_index_buf,
                     fine.bump_buf,
                     fine.fine_index,
                     fine.fine_slice,
                 ],
             );
             recording.dispatch(
-                shaders.compose_original,
+                shaders.compose,
                 fine_wg_count,
                 [
                     fine.config_buf,
@@ -514,26 +614,64 @@ impl Render {
             );
             recording.free_resource(fine.fine_index);
             recording.free_resource(fine.fine_slice);
-            recording.free_buf(fine.indirect_dispatch_count);
             recording.free_resource(fine.layer_info);
+            recording.free_resource(fine.indirect_clip_index_buf);
         }
-        #[cfg(not(feature = "ptcl_segmentation"))]
+        #[cfg(not(feature = "coarse_segmentation"))]
         {
-            recording.dispatch(
-                shaders.fine,
-                fine_wg_count,
-                [
-                    fine.config_buf,
-                    fine.scene_buf,
-                    fine.segments_buf,
-                    fine.ptcl_buf,
-                    fine.info_bin_data_buf,
-                    fine.gradient_image,
-                    fine.image_atlas,
-                    fine.bump_buf,
-                    ResourceProxy::Image(fine.out_image),
-                ],
-            );
+            #[cfg(feature = "ptcl_segmentation")]
+            {
+                recording.dispatch_indirect(
+                    shaders.fine_original,
+                    fine.indirect_dispatch_count,
+                    0,
+                    [
+                        fine.config_buf,
+                        fine.scene_buf,
+                        fine.segments_buf,
+                        fine.ptcl_buf,
+                        fine.info_bin_data_buf,
+                        fine.gradient_image,
+                        fine.image_atlas,
+                        fine.bump_buf,
+                        fine.fine_index,
+                        fine.fine_slice,
+                    ],
+                );
+                recording.dispatch(
+                    shaders.compose_original,
+                    fine_wg_count,
+                    [
+                        fine.config_buf,
+                        ResourceProxy::Image(fine.out_image),
+                        fine.fine_index,
+                        fine.fine_slice,
+                        fine.bump_buf,
+                        fine.layer_info,
+                    ],
+                );
+                recording.free_resource(fine.fine_index);
+                recording.free_resource(fine.fine_slice);
+                recording.free_resource(fine.layer_info);
+            }
+            #[cfg(not(feature = "ptcl_segmentation"))]
+            {
+                recording.dispatch(
+                    shaders.fine,
+                    fine_wg_count,
+                    [
+                        fine.config_buf,
+                        fine.scene_buf,
+                        fine.segments_buf,
+                        fine.ptcl_buf,
+                        fine.info_bin_data_buf,
+                        fine.gradient_image,
+                        fine.image_atlas,
+                        fine.bump_buf,
+                        ResourceProxy::Image(fine.out_image),
+                    ],
+                );
+            }
         }
         recording.free_resource(fine.config_buf);
         recording.free_resource(fine.tile_buf);
@@ -544,6 +682,8 @@ impl Render {
         recording.free_resource(fine.info_bin_data_buf);
         recording.free_resource(fine.scene_buf);
         recording.free_resource(fine.bump_buf);
+        recording.free_resource(fine.draw_monoid_buf);
+        recording.free_buf(fine.indirect_dispatch_count);
     }
 
     /// Get the output image.

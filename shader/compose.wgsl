@@ -20,7 +20,7 @@ var<storage> fine_slice: array<u32>;
 @group(0) @binding(4)
 var<storage> bump: BumpAllocators;
 
-@group(0) @binding(6)
+@group(0) @binding(5)
 var<storage> layer_info: array<f32>;
 
 var<private> layer_blend_index: array<u32, MAX_LAYER_COUNT>;
@@ -74,11 +74,11 @@ fn main(
             if coords.x < config.target_width && coords.y < config.target_height {
                 let current = unpack4x8unorm(fine_slice[slice_buf_index_base + j]);
                 rgba[j] = rgba[j] * (1.0 - current.w) + current;
-                if need_blend {
-                    rgba[j] *= layer_blend_alpha[current_layer_index];
-                    rgba_bg[j] = rgba_bg[j] * (1.0 - rgba[j].w) + rgba[j];
-                    rgba[j] = vec4<f32>(0.0, 0.0, 0.0, 0.0);
-                }
+                // if need_blend {
+                //     rgba[j] *= layer_blend_alpha[current_layer_index];
+                //     rgba_bg[j] = rgba_bg[j] * (1.0 - rgba[j].w) + rgba[j];
+                //     rgba[j] = vec4<f32>(0.0, 0.0, 0.0, 0.0);
+                // }
             }
         }    
         current_layer_index += select(0u,1u, need_blend);
@@ -88,10 +88,10 @@ fn main(
     for(var i = 0u; i < PIXELS_PER_THREAD; i += 1u){
         let coords = xy_uint + vec2(i, 0u);
         if coords.x < config.target_width && coords.y < config.target_height {
-            let fg = rgba_bg[i];
+            //let fg = rgba_bg[i];
 
             //disable layer blend;
-            //let fg = rgba[i];
+            let fg = rgba[i];
 
             let a_inv = 1.0 / max(fg.a, 1e-6);
             let rgba_sep = vec4(fg.rgb * a_inv, fg.a);

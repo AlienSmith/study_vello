@@ -137,7 +137,7 @@ impl RenderConfig {
         let workgroup_counts =
             WorkgroupCounts::new(layout, width_in_tiles, height_in_tiles, n_path_tags);
         let tile_counts = width_in_tiles * height_in_tiles;
-        let buffer_sizes = BufferSizes::new(tile_counts, layout, &workgroup_counts, n_path_tags);
+        let buffer_sizes = BufferSizes::new(tile_counts, layout, &workgroup_counts, n_path_tags, width_in_tiles, height_in_tiles);
         let transform = if let Some(t) = camera_transform{
             TransformUniform{
                 matrix: t.matrix,
@@ -163,6 +163,9 @@ impl RenderConfig {
                 ptcl_slice_count: buffer_sizes.fine_slice.len(),
                 #[cfg(not(feature = "ptcl_segmentation"))]
                 ptcl_slice_count: 0,
+                #[cfg(feature = "coarse_segmentation")]
+                indirect_clip_count: buffer_sizes.indirect_clip_index.len(),
+                #[cfg(not(feature = "coarse_segmentation"))]
                 indirect_clip_count: 0,
                 layout: *layout,
             },
@@ -197,6 +200,7 @@ pub struct WorkgroupCounts {
     pub path_coarse: WorkgroupSize,
     pub backdrop: WorkgroupSize,
     pub coarse: WorkgroupSize,
+    pub coarse_counter: WorkgroupSize,
     pub fine: WorkgroupSize,
 }
 
@@ -244,6 +248,7 @@ impl WorkgroupCounts {
             path_coarse: (path_coarse_wgs, 1, 1),
             backdrop: (path_wgs, 1, 1),
             coarse: (width_in_bins, height_in_bins, 1),
+            coarse_counter: (width_in_bins, height_in_bins, draw_object_wgs),
             fine: (width_in_tiles, height_in_tiles, 1),
         }
     }
@@ -334,6 +339,12 @@ pub struct BufferSizes {
     pub tiles: BufferSize<Tile>,
     pub segments: BufferSize<PathSegment>,
     pub ptcl: BufferSize<u32>,
+    #[cfg(feature = "coarse_segmentation")]
+    pub coarse_counter: BufferSize<i32>,
+    #[cfg(feature = "coarse_segmentation")]
+    pub coarse_index: BufferSize<u32>,
+    #[cfg(feature = "coarse_segmentation")]
+    pub indirect_clip_index: BufferSize<u32>,
     #[cfg(feature = "ptcl_segmentation")]
     pub fine_index: BufferSize<u32>,
     #[cfg(feature = "ptcl_segmentation")]
@@ -341,7 +352,7 @@ pub struct BufferSizes {
 }
 
 impl BufferSizes {
-    pub fn new(tile_count:u32, layout: &Layout, workgroups: &WorkgroupCounts, n_path_tags: u32) -> Self {
+    pub fn new(tile_count:u32, layout: &Layout, workgroups: &WorkgroupCounts, n_path_tags: u32, _width_in_tiles: u32, _height_in_tiles: u32 ) -> Self {
         let n_paths = layout.n_paths;
         let n_draw_objects = layout.n_draw_objects;
         let n_clips = layout.n_clips;
@@ -380,11 +391,27 @@ impl BufferSizes {
         let segments = BufferSize::new(1 << 21);
         let ptcl = BufferSize::new(1 << 23);
         let cubics = BufferSize::new(n_path_tags + (1 << 18));
+        let partition_count = (n_draw_objects + 255) / 256;
+        //one for ptcl segments one for clips
+        #[cfg(feature = "coarse_segmentation")]
+        let coarse_counter = BufferSize::new(partition_count * _width_in_tiles * _height_in_tiles * 2);
+        
+        //one for relative ptcl segments offset one for absolute ptcl segments offset consider combine them
+        //two for 4 potentially unclosed clip_ix
+        #[cfg(feature = "coarse_segmentation")]
+        let coarse_index = BufferSize::new(partition_count * _width_in_tiles * _height_in_tiles * 3);
+    
+        //path index of unclosed clips this could be dynamic sized use the max number valid
+        //TODO use dynamic size 
+        #[cfg(feature = "coarse_segmentation")]
+        let indirect_clip_index = BufferSize::new(_width_in_tiles * _height_in_tiles * 65536);
+        
+        //TODO use dynamic size 
         #[cfg(feature = "ptcl_segmentation")]
         let fine_slice = BufferSize::new(65536);
 
         #[cfg(feature = "ptcl_segmentation")]
-        let fine_index = BufferSize::new(tile_count);
+        let fine_index = BufferSize::new(tile_count * 4);
         #[cfg(feature = "ptcl_segmentation")]
         //each tile need 3 layer ends index and its blend alpha
         let layer_info = BufferSize::new(tile_count * 6);
@@ -414,6 +441,12 @@ impl BufferSizes {
             tiles,
             segments,
             ptcl,
+            #[cfg(feature = "coarse_segmentation")]
+            coarse_counter,
+            #[cfg(feature = "coarse_segmentation")]
+            coarse_index,
+            #[cfg(feature = "coarse_segmentation")]
+            indirect_clip_index,
             #[cfg(feature = "ptcl_segmentation")]
             fine_index,
             #[cfg(feature = "ptcl_segmentation")]

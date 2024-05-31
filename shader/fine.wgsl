@@ -10,11 +10,6 @@
 #import bump
 let MAX_DASHES_ARRAY_SIZE = 20u;
 
-struct Tile {
-    backdrop: i32,
-    segments: u32,
-}
-
 @group(0) @binding(0)
 var<uniform> config: Config;
 
@@ -145,7 +140,7 @@ fn read_lin_grad(index_mode: u32, info_offset: u32) -> CmdLinGrad{
     let line_x = bitcast<f32>(info[info_offset]);
     let line_y = bitcast<f32>(info[info_offset + 1u]);
     let line_c = bitcast<f32>(info[info_offset + 2u]);
-    return CmdLinGrad(index, line_x, line_y, line_c);
+    return CmdLinGrad(index, extend_mode, line_x, line_y, line_c);
 }
 
 fn read_rad_grad(index_mode: u32, info_offset: u32) -> CmdRadGrad {
