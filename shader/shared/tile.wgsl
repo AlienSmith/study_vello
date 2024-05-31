@@ -12,4 +12,11 @@ struct Path {
 struct Tile {
     backdrop: i32,
     segments: u32,
+    next_ix: i32,
+}
+
+struct AtomicTile {
+    backdrop: atomic<i32>,
+    segments: atomic<u32>,
+    next_ix: i32,
 }

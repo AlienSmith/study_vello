@@ -213,6 +213,8 @@ pub struct Tile {
     pub backdrop: i32,
     /// Index of first path segment.
     pub segments: u32,
+    /// Index to next supplementary tile.
+    pub next_ix: i32,
 }
 
 /// Encoder for path segments.

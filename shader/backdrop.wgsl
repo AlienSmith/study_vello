@@ -1,11 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT OR Unlicense
 
 // Note: this is the non-atomic version
-struct Tile {
-    backdrop: i32,
-    segments: u32,
-}
-
+#import tile
 #import config
 
 @group(0) @binding(0)

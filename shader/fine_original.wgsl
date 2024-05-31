@@ -6,11 +6,7 @@
 // This is a cut'n'paste w/ backdrop.
 let MAX_DASHES_ARRAY_SIZE = 20u;
 
-struct Tile {
-    backdrop: i32,
-    segments: u32,
-}
-
+#import tile
 #import segment
 #import config
 #import bump
@@ -392,7 +388,7 @@ fn main(
                 let fill = read_fill(cmd_ix);
                 let segments = fill.tile >> 1u;
                 let even_odd = (fill.tile & 1u) != 0u;
-                let tile = Tile(fill.backdrop, segments);
+                let tile = Tile(fill.backdrop, segments, -1);
                 area = fill_path(tile, xy, even_odd);
                 cmd_ix += 3u;
             }
