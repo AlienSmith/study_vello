@@ -25,12 +25,6 @@ var<storage> cubics: array<Cubic>;
 @group(0) @binding(4)
 var<storage> paths: array<Path>;
 
-// We don't get this from import as it's the atomic version
-struct AtomicTile {
-    backdrop: atomic<i32>,
-    segments: atomic<u32>,
-}
-
 @group(0) @binding(5)
 var<storage, read_write> bump: BumpAllocators;
 

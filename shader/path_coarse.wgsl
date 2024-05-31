@@ -17,11 +17,8 @@ var<storage> tag_monoids: array<TagMonoid>;
 var<storage, read_write> output: array<vec2<f32>>;
 #else
 // We don't get this from import as it's the atomic version
-struct AtomicTile {
-    backdrop: atomic<i32>,
-    segments: atomic<u32>,
-}
 
+#import tile
 #import segment
 
 @group(0) @binding(3)
