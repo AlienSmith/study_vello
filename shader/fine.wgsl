@@ -442,14 +442,14 @@ fn main(
                     let d = lin.line_x * xy.x + lin.line_y * xy.y + lin.line_c;
                     for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
                         let my_d = d + lin.line_x * f32(i);
-                        let x = i32(round(clamp(my_d, 0.0, 1.0) * f32(GRADIENT_WIDTH - 1)));
+                        let x = i32(round(extend_mode(my_d, lin.extend_mode) * f32(GRADIENT_WIDTH - 1)));
                         let fg_rgba = textureLoad(gradients, vec2(x, i32(lin.index)), 0);
                         let fg_i = fg_rgba * area[i];
                         rgba[i] = rgba[i] * (1.0 - fg_i.a) + fg_i;
                     }
                 }
                 // CMD_RAD_GRAD
-                case 0x2dcu: {
+                case 0x29cu: {
                     let index = scene[dd];
                     let info_offset = di + 1u;
                     let rad = read_rad_grad(index, info_offset);
@@ -496,7 +496,7 @@ fn main(
                     }
                 }
                 // CMD_IMAGE
-                case 0x28eu: {
+                case 0x248u: {
                     let image = read_image(di + 1u);
                     let atlas_extents = image.atlas_offset + image.extents;
                     for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {

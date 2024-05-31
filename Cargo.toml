@@ -37,7 +37,7 @@ edition.workspace = true
 repository.workspace = true
 
 [features]
-default = ["wgpu", "ptcl_segmentation"]
+default = ["wgpu", "coarse_segmentation"]
 hot_reload = []
 buffer_labels = []
 wgpu-profiler = ["dep:wgpu-profiler"]
