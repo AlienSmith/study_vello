@@ -416,7 +416,7 @@ impl Render {
         );
         
         recording.dispatch(
-            shaders.coarse,
+            shaders.coarse_original,
             wg_counts.coarse,
             [
                 config_buf,
@@ -440,7 +440,7 @@ impl Render {
 
         #[cfg(feature = "ptcl_segmentation")]
         recording.dispatch(
-            shaders.fine_setup, 
+            shaders.fine_setup_original, 
             (1,1,1), 
             [
                 config_buf,
@@ -484,7 +484,7 @@ impl Render {
         #[cfg(feature = "ptcl_segmentation")]
         {
             recording.dispatch_indirect(
-                shaders.fine,
+                shaders.fine_original,
                 fine.indirect_dispatch_count,
                 0,
                 [
@@ -501,7 +501,7 @@ impl Render {
                 ],
             );
             recording.dispatch(
-                shaders.compose,
+                shaders.compose_original,
                 fine_wg_count,
                 [
                     fine.config_buf,

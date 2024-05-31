@@ -44,6 +44,9 @@ wgpu-profiler = ["dep:wgpu-profiler"]
 # Enables support for ptcl segmentation, ptcls' for each tile will
 # be break into fixed sized piece, and processed concurrently
 ptcl_segmentation = ["vello_encoding/ptcl_segmentation"]
+# Enables support for coarse segmentation with ptcl_segmentation, the process of generating
+# ptcls' for each tile will be break into fixed sized piece will be processed concurrently
+coarse_segmentation = ["ptcl_segmentation", "vello_encoding/coarse_segmentation"]
 
 [dependencies]
 bytemuck = { workspace = true }

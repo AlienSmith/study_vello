@@ -8,15 +8,23 @@ let PTCL_INCREMENT = 64u;
 // Amount of space taken by jump
 let JUMP_HEADROOM = 2u;
 
-// Amount of space taken by clips
-let PTCL_HEADROOM = 30u;
+//1 end command + 4 * 2(endclips)
+let PTCL_ENDROOM = 9u;
 
 let MAX_LAYER_COUNT = 3u;
 //3 layer ends index and its blend alpha
 let LAYER_INFOR_SIZE = 6u;
 
 // Tags for PTCL commands
+let CMD_DRAW = 1u;
+let CMD_BEGIN_CLIP_DIRECT = 2u;
+let CMD_DRAW_INDIRECT = 3u;
 let CMD_END = 0u;
+
+//Values for original shaders
+// Amount of space taken by clips
+let PTCL_HEADROOM = 30u;
+
 let CMD_FILL = 1u;
 let CMD_STROKE = 2u;
 let CMD_SOLID = 3u;

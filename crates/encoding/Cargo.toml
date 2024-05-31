@@ -11,7 +11,7 @@ default = ["full"]
 # resources (gradients, images and glyph runs)
 full = ["fello", "guillotiere"]
 ptcl_segmentation = ["full"]
-
+coarse_segmentation = ["ptcl_segmentation"]
 [dependencies]
 bytemuck = { workspace = true }
 fello = { workspace = true, optional = true }

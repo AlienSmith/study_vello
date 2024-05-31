@@ -32,10 +32,9 @@ pub struct BumpAllocators {
     pub ptcl: u32,
     pub tile: u32,
     pub segments: u32,
-    pub blend: u32,
-    pub cubic: u32,
-    pub padding: u32,
-    pub debug: [u32; 4],
+    pub indirect_clips: u32,
+    pub cubics: u32,
+    pub fine_slices: u32,
 }
 
 /// Storage of indirect dispatch size values.
@@ -95,6 +94,8 @@ pub struct ConfigUniform {
     pub cubic_size: u32,
     /// number of ptcl slices.
     pub ptcl_slice_count: u32,
+    /// number of indirect clips.
+    pub indirect_clip_count: u32,
 }
 
 #[derive(Clone, Copy, Debug, Zeroable, Pod)]
@@ -162,6 +163,7 @@ impl RenderConfig {
                 ptcl_slice_count: buffer_sizes.fine_slice.len(),
                 #[cfg(not(feature = "ptcl_segmentation"))]
                 ptcl_slice_count: 0,
+                indirect_clip_count: 0,
                 layout: *layout,
             },
             workgroup_counts,

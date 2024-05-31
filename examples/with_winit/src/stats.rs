@@ -75,7 +75,9 @@ impl Snapshot {
             labels.push(format!("ptcl: {}", bump.ptcl));
             labels.push(format!("tile: {}", bump.tile));
             labels.push(format!("segments: {}", bump.segments));
-            labels.push(format!("blend: {}", bump.blend));
+            labels.push(format!("indirect_clips: {}", bump.indirect_clips));
+            labels.push(format!("cubics: {}", bump.cubics));
+            labels.push(format!("fine_slices: {}", bump.fine_slices));
         }
 
         // height / 2 is dedicated to the text labels and the rest is filled by the bar graph.

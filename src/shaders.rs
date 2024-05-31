@@ -76,10 +76,10 @@ pub struct FullShaders {
     pub path_coarse_counter: ShaderId,
     pub path_coarse: ShaderId,
     pub backdrop: ShaderId,
-    pub coarse: ShaderId,
-    pub fine_setup: ShaderId,
-    pub fine: ShaderId,
-    pub compose: ShaderId,
+    pub coarse_original: ShaderId,
+    pub fine_setup_original: ShaderId,
+    pub fine_original: ShaderId,
+    pub compose_original: ShaderId,
 }
 
 #[cfg(feature = "wgpu")]
@@ -291,10 +291,10 @@ pub fn full_shaders(
         preprocess::preprocess(shader!("backdrop_dyn"), &empty, &imports).into(),
         &[BindType::Uniform, BindType::BufReadOnly, BindType::Buffer],
     )?;
-    let coarse = engine.add_shader(
+    let coarse_original = engine.add_shader(
         device,
-        "coarse",
-        preprocess::preprocess(shader!("coarse"), &full_config, &imports).into(),
+        "coarse_original",
+        preprocess::preprocess(shader!("coarse_original"), &full_config, &imports).into(),
         &[
             BindType::Uniform,
             BindType::BufReadOnly,
@@ -311,10 +311,10 @@ pub fn full_shaders(
             BindType::Buffer,
         ],
     )?;
-    let fine_setup = engine.add_shader(
+    let fine_setup_original = engine.add_shader(
         device, 
-        "fine_setup", 
-        preprocess::preprocess(shader!("fine_setup"), &full_config, &imports).into(), 
+        "fine_setup_original", 
+        preprocess::preprocess(shader!("fine_setup_original"), &full_config, &imports).into(), 
         &[
             BindType::Uniform,
             BindType::Buffer,
@@ -322,10 +322,10 @@ pub fn full_shaders(
             BindType::Buffer,
         ],
     )?;
-    let fine = engine.add_shader(
+    let fine_original = engine.add_shader(
         device,
-        "fine",
-        preprocess::preprocess(shader!("fine"), &full_config, &imports).into(),
+        "fine_original",
+        preprocess::preprocess(shader!("fine_original"), &full_config, &imports).into(),
         &[
             BindType::Uniform,
             BindType::BufReadOnly,
@@ -344,10 +344,10 @@ pub fn full_shaders(
 
         ],
     )?;
-    let compose = engine.add_shader(
+    let compose_original = engine.add_shader(
         device, 
-        "compose", 
-        preprocess::preprocess(shader!("compose"), &full_config, &imports).into(), 
+        "compose_original", 
+        preprocess::preprocess(shader!("compose_original"), &full_config, &imports).into(), 
         &[
             BindType::Uniform,
             BindType::Image(ImageFormat::Rgba8),
@@ -375,10 +375,10 @@ pub fn full_shaders(
         path_coarse_counter,
         path_coarse,
         backdrop,
-        coarse,
-        fine_setup,
-        fine,
-        compose
+        coarse_original,
+        fine_setup_original,
+        fine_original,
+        compose_original
     })
 }
 

@@ -40,22 +40,7 @@ var<storage> tiles: array<Tile>;
 var<storage, read_write> bump: BumpAllocators;
 
 @group(0) @binding(8)
-var<storage, read_write> ptcl: array<u32>;
-
-@group(0) @binding(9)
-var<storage, read_write> layer_info: array<f32>;
-
-@group(0) @binding(10)
-var<storage, read_write> coarse_index: array<u32>;
-
-@group(0) @binding(11)
-var<storage, read_write> clip_path_index: array<u32>;
-
-@group(0) @binding(12)
-var<storage> counter: array<i32>;
-
-@group(0) @binding(13)
-var<storage> fine_index: array<u32>;
+var<storage, read_write> counter: array<i32>;
 
 // Much of this code assumes WG_SIZE == N_TILE. If these diverge, then
 // a fair amount of fixup is needed.
@@ -74,122 +59,19 @@ var<workgroup> sh_tile_x0y0: array<u32, WG_SIZE>;
 var<workgroup> sh_tile_count: array<u32, WG_SIZE>;
 var<workgroup> sh_tile_base: array<u32, WG_SIZE>;
 
-var<private> ptcl_segment_base: u32;
-var<private> ptcl_slice_offset: u32;
-var<private> layer_counter: u32;
-
+// Make sure there is space for a command of given size, plus a jump if needed
 var<private> cmd_offset: u32;
-var<private> new_cmd_offset:u32;
 var<private> cmd_limit: u32;
-var<private> alloc_cmd_failed: bool;
-
-var<private> clip_stack: array<vec3<u32>,N_CLIPS>;
-
-var<private> clip_stack_end: u32;
-var<private> slice_index: u32;
-var<private> tile_index: u32;
-var<private> indirect_clips_base : u32;
-
-fn write_clips(this_tile_ix:u32){
-    var offset = 0u;
-    for(var i = 0u; i < clip_stack_end; i++){
-        if(clip_stack[i].z == CMD_DRAW){
-            clip_path_index[indirect_clips_base + offset] = clip_stack[i].x;
-            offset += 1u;
-        }
-    }
-}
-
-fn push_indirect(item:u32){
-    if item == 0u{
-        return;
-    }
-    clip_stack[clip_stack_end] = vec3<u32>(item, 0u, CMD_DRAW_INDIRECT);
-    clip_stack_end += 1u;
-}
-
-//unpack coarse indexing data
-fn initialize_coarse_index(tile_offset: u32, partition_offset: u32){
-    let this_tile_ix = tile_offset + partition_offset;
-    let packed_value = coarse_index[this_tile_ix * 3u];
-    ptcl_slice_offset = packed_value & 0xfffu;
-    layer_counter = (packed_value >> 12u) & 0xfu;
-    let clip_index_slice_offset = packed_value >> 16u;
-    ptcl_segment_base = fine_index[tile_offset * 4u];
-    let clip_index_tile_base = fine_index[tile_offset * 4u + 2u];
-    indirect_clips_base = clip_index_tile_base + clip_index_slice_offset;
-    push_indirect(coarse_index[this_tile_ix * 3u + 1u] & 0xffffu);
-    push_indirect(coarse_index[this_tile_ix * 3u + 1u] >> 16u);
-    push_indirect(coarse_index[this_tile_ix * 3u + 2u] & 0xffffu);
-    push_indirect(coarse_index[this_tile_ix * 3u + 2u] >> 16u);
-    cmd_offset = (ptcl_slice_offset + ptcl_segment_base) * PTCL_INCREMENT;
-    new_cmd_offset = cmd_offset + PTCL_INCREMENT;
-    cmd_limit = cmd_offset + (PTCL_INCREMENT - PTCL_ENDROOM);
-    slice_index = ptcl_slice_offset;
-}
+var<private> ptcl_segment_count:i32;
 
 fn alloc_cmd(size: u32) {
     if cmd_offset + size > cmd_limit {
-        write_end();
-        
-        // We might be able to save a little bit of computation here
-        // by setting the initial value of the bump allocator.
-        ptcl[cmd_offset] = CMD_END;       
-
-        cmd_offset = new_cmd_offset;
-        cmd_limit = cmd_offset + (PTCL_INCREMENT - PTCL_ENDROOM);
-        new_cmd_offset = cmd_offset + PTCL_INCREMENT;
-
-        
-        write_begin();
+        ptcl_segment_count += 1;
+        cmd_offset = 0u;
+        cmd_limit = cmd_offset + PTCL_INCREMENT - PTCL_ENDROOM;
+        //space for indexing info
+        cmd_offset += 1u;
     }
-}
-
-fn write_begin(){
-    let begin_clip_count = clip_stack_end;
-    let index = (tile_index << 16u) | (begin_clip_count << 12u) | (slice_index & 0xfffu);
-    slice_index += 1u;
-    ptcl[cmd_offset] = index;
-    cmd_offset += 1u;
-}
-
-fn write_end(){
-    var clip_end = clip_stack_end;
-    while clip_end > 0u{
-        clip_end -=  1u;
-        let clip = clip_stack[clip_end];
-        write_cmd(clip.x, clip.y, clip.z);
-    }
-}
-
-fn start_new_segment(){
-    ptcl[cmd_offset] = CMD_END;
-    cmd_offset = cmd_limit;
-}
-
-fn write_cmd(tile_ix: u32, draw_object_ix: u32, command: u32){
-    if alloc_cmd_failed {
-        return;
-    }
-
-    
-    //debug
-    //{
-        // ptcl[cmd_offset] = 0xffffffffu;
-        // if command == CMD_DRAW{
-        //     let tag = scene[config.drawtag_base + draw_object_ix];
-        //     ptcl[cmd_offset + 1u] = select(tag,0x21u,tag == 0x9u);
-        // }else if command == CMD_BEGIN_CLIP_DIRECT{
-        //     ptcl[cmd_offset + 1u] = 0x9u;
-        // }else if command == CMD_DRAW_INDIRECT{
-        //     ptcl[cmd_offset + 1u] = 0x21u;
-        // }
-    //}
-    ptcl[cmd_offset] = (draw_object_ix << 2u) | (command & 0x3u);
-    ptcl[cmd_offset + 1u] = tile_ix;
-
-
-    cmd_offset += 2u;
 }
 
 @compute @workgroup_size(256)
@@ -198,6 +80,9 @@ fn main(
     @builtin(workgroup_id) wg_id: vec3<u32>,
     @builtin(global_invocation_id) global_id: vec3<u32>,
 ) {
+    cmd_offset = 0u;
+    cmd_limit = PTCL_INCREMENT - PTCL_ENDROOM;
+    ptcl_segment_count = 0;
     // Exit early if prior stages failed, as we can't run this stage.
     // We need to check only prior stages, as if this stage has failed in another workgroup, 
     // we still want to know this workgroup's memory requirement.   
@@ -210,17 +95,24 @@ fn main(
 
     let tile_x = local_id.x % N_TILE_X;
     let tile_y = local_id.x / N_TILE_X;
-    let this_tile_ix = (bin_tile_y + tile_y) * config.width_in_tiles + bin_tile_x + tile_x;
-    let offset_of_partition = wg_id.z * config.width_in_tiles * config.height_in_tiles;
-
-    clip_stack_end = 0u;
-    tile_index = this_tile_ix;
-    layer_counter = 0u;
+    let this_tile_ix = (bin_tile_y + tile_y) * config.width_in_tiles + bin_tile_x + tile_x + wg_id.z * config.width_in_tiles * config.height_in_tiles;
+    var layer_counter = 0u;
 
     var partition_ix = wg_id.z;
+    var rd_ix = 0u;
+    var wr_ix = 0u;
+    var part_start_ix = 0u;
+    var ready_ix = 0u;
+    
+    var zero_contribution = true;
 
-    initialize_coarse_index(this_tile_ix, offset_of_partition);
-    //dummy_coarse_index();
+    // blend state
+    var clip_count = 0;
+
+    let ptcl_segment_size = i32(PTCL_INCREMENT - PTCL_ENDROOM);
+
+    //we are processing 256 draw_obj at a time cause each bin_header contains info of 256 draw_obj
+    ready_ix = 0u;
 
     //initialize everythings to zero
     for (var i = 0u; i < N_SLICE; i += 1u) {
@@ -236,6 +128,9 @@ fn main(
         drawobj_ix = info_bin_data[sh_part_offsets + local_id.x];
         sh_drawobj_ix[local_id.x] = drawobj_ix;
         tag = scene[config.drawtag_base + drawobj_ix];
+        // if wg_id.x == 0u && wg_id.y == 0u{
+        //     counter[local_id.x] = i32(tag);
+        // }
     }
 
     // At this point, sh_drawobj_ix[0.. sh_part_count] contains merged binning results.
@@ -304,41 +199,23 @@ fn main(
         }
         let include_tile = tile.segments != 0u || (tile.backdrop == 0) == is_clip || is_blend;
         if include_tile {
-            let el_slice = el_ix / 32u;
-            let el_mask = 1u << (el_ix & 31u);
+        let el_slice = el_ix / 32u;
+        let el_mask = 1u << (el_ix & 31u);
             atomicOr(&sh_bitmaps[el_slice][y * N_TILE_X + x], el_mask);
         }
     }
     workgroupBarrier();
-
     // At this point bit drawobj % 32 is set in sh_bitmaps[drawobj / 32][y * N_TILE_X + x]
     // if drawobj touches tile (x, y).
-
-    //debug
-    //{
-    // if(wg_id.x != 0u || wg_id.y != 0u || local_id.x != 17u){
-    //     return;
-    // }
-    // for(var i = 0u; i < sh_part_count; i+=1u){
-    //     let drawtag = scene[config.drawtag_base + sh_drawobj_ix[i] ];
-    //     layer_info[i] = f32(drawtag);
-    // }
-    // layer_info[sh_part_count] = f32(0xffffffffu);
-    //}
-
-    //|| (wg_id.y == 3u && local_id.x == 32u)
-    let within_range = bin_tile_x + tile_x < config.width_in_tiles && bin_tile_y + tile_y < config.height_in_tiles;
-        
-    //early exit on empty section
-    if (counter[2u * (this_tile_ix + offset_of_partition)] == 0){
-        return;
-    }
-
-    write_begin();
     // Write per-tile command list for this tile
+
+    //space for indexing info
+    cmd_offset += 1u;
+    let within_range = bin_tile_x + tile_x < config.width_in_tiles && bin_tile_y + tile_y < config.height_in_tiles;
+   
     var slice_ix = 0u;
     var bitmap = atomicLoad(&sh_bitmaps[0u][local_id.x]);
-    while true {
+    while within_range {
         if bitmap == 0u {
             slice_ix += 1u;
             // potential optimization: make iteration limit dynamic
@@ -362,43 +239,42 @@ fn main(
         if true {
             let tile_ix = sh_tile_base[el_ix] + sh_tile_stride[el_ix] * tile_y + tile_x;
             let tile = tiles[tile_ix];
+            zero_contribution = false;
             switch drawtag {
                 // DRAWTAG_BEGIN_CLIP
                 case 0x9u: {
                     alloc_cmd(2u);
-                    write_cmd(tile_ix, drawobj_ix, CMD_BEGIN_CLIP_DIRECT);
-                    clip_stack[clip_stack_end] = vec3<u32>(tile_ix, drawobj_ix, CMD_DRAW);
-                    clip_stack_end += 1u;           
+                    cmd_offset += 2u;                  
+                    clip_count += 1;
                 }
                 // DRAWTAG_END_CLIP
                 case 0x21u: {
                     alloc_cmd(2u);
-                    write_cmd(tile_ix, drawobj_ix, CMD_DRAW);
+                    cmd_offset += 2u;
+                    clip_count -= 1;
                     let blend = scene[dd];
                     let alpha = bitcast<f32>(scene[dd + 1u]);
-                    clip_stack_end -= select(1u, 0u, clip_stack_end == 0u);
                     //extract the blend flag
                     let packed_color = unpack4x8unorm(blend).wzyx;
-                    if packed_color.a != 1.0 && layer_counter < MAX_LAYER_COUNT {
-                        let index = tile_index * LAYER_INFOR_SIZE + layer_counter * 2u;
-                        layer_info[index] = f32(slice_index);
-                        layer_info[index + 1u] = alpha;
+                    if packed_color.a != 1.0 && layer_counter < MAX_LAYER_COUNT{
                         layer_counter += 1u;
-                        start_new_segment();
+                        cmd_offset = cmd_limit;
                     }
                 }
                 default: {
                     alloc_cmd(2u);
-                    write_cmd(tile_ix, drawobj_ix, CMD_DRAW);
+                    cmd_offset += 2u;
                 }
             }
         }
     }
     workgroupBarrier();
     
+    
+
     if within_range {
-        write_end();
-        ptcl[cmd_offset] = CMD_END;
-        write_clips(this_tile_ix);
+        let count = ptcl_segment_count + select(0, 1, cmd_offset > 0u);
+        counter[this_tile_ix * 2u] = (select(count, 0, zero_contribution) << 4u) | i32(layer_counter & 0xfu);
+        counter[this_tile_ix * 2u + 1u] = clip_count;
     }
 }
