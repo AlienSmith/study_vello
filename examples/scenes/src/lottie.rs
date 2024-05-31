@@ -103,6 +103,7 @@ pub fn lottie_function_of<R: AsRef<str>>(
         let frame = ((start.elapsed().as_secs_f64() * lottie.frame_rate)
             % (lottie.frames.end - lottie.frames.start))
             + lottie.frames.start;
+        let frame = 0.0;
         velato::Renderer::new().render(lottie, frame, Affine::IDENTITY, 1.0, &mut new_scene);
         let resolution = Vec2::new(lottie.width as f64, lottie.height as f64);
         (new_scene, resolution)

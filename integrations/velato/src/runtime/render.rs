@@ -7,6 +7,7 @@ use crate::schema::shapes::group;
 use super::model::*;
 use super::Composition;
 use std::ops::Range;
+use image::math;
 use vello::kurbo::{self, Affine, PathEl, Rect};
 use vello::peniko::{self, Fill, Mix};
 
@@ -365,13 +366,23 @@ impl Batch {
         self.drawn_geometry = self.geometries.len();
     }
     fn push_layer(&self, sink: &mut impl RenderSink){
-        if let Some(draw) = self.draws.first() {
-            if let Some(geometry) = self.geometries[draw.geometry.clone()].first() {
+        let mut total_path:Vec<PathEl> = Vec::new();
+        for draw in self.draws.iter().rev() {
+            for geometry in self.geometries[draw.geometry.clone()].iter() {
                 let path = &self.elements[geometry.elements.clone()];
                 let transform = geometry.transform;
-                sink.push_layer(Mix::Clip, 1.0, transform, &path);
+                for path in path{
+                    match path{
+                        PathEl::MoveTo(p) => {total_path.push(PathEl::MoveTo(transform ** p))},
+                        PathEl::LineTo(p) => {total_path.push(PathEl::MoveTo(transform ** p))},
+                        PathEl::QuadTo(p1, p2) => {total_path.push(PathEl::QuadTo(transform ** p1, transform ** p2))},
+                        PathEl::CurveTo(p1, p2, p3) => {total_path.push(PathEl::CurveTo(transform ** p1, transform ** p2, transform ** p3))},
+                        PathEl::ClosePath => {total_path.push(PathEl::ClosePath)},
+                    } 
+                }
             }
         }
+        sink.push_layer(Mix::Clip, 1.0, Affine::IDENTITY, &total_path.as_slice());
     }
     fn render(&self, sink: &mut impl RenderSink) {
         // Process all draws in reverse
