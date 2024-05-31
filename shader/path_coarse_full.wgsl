@@ -115,7 +115,7 @@ fn main(
         return;
     }
     let ix = global_id.x;
-    if ix >= atomicLoad(&bump.cubic){
+    if ix >= atomicLoad(&bump.cubics){
         return;
     }
 

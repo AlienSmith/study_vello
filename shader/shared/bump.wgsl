@@ -15,10 +15,9 @@ struct BumpAllocators {
     ptcl: atomic<u32>,
     tile: atomic<u32>,
     segments: atomic<u32>,
-    blend: atomic<u32>,
-    cubic: atomic<u32>,
-    padding: atomic<u32>,
-    debug: vec4<u32>,
+    indirect_clips: atomic<u32>,
+    cubics: atomic<u32>,
+    fine_slices: atomic<u32>,
 }
 
 struct IndirectCount {

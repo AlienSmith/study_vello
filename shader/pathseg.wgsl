@@ -123,7 +123,7 @@ fn main(
     //the cubic buffer is always bigger than path_tag_count so it will never fail here
     if ix == 0u {
         let path_tag_count = 4u*(config.pathdata_base - config.pathtag_base);
-        atomicStore(&bump.cubic, path_tag_count);
+        atomicStore(&bump.cubics, path_tag_count);
     }
     let tag_word = scene[config.pathtag_base + (ix >> 2u)];
     pathdata_base = config.pathdata_base;

@@ -43,7 +43,7 @@ fn main(
     @builtin(local_invocation_id) local_id: vec3<u32>,
     @builtin(workgroup_id) wg_id: vec3<u32>,
 ) {
-    if (atomicLoad(&bump.failed) & STAGE_FINE_SETUP) != 0u {
+    if atomicLoad(&bump.failed) != 0u {
         return;
     }
 
@@ -55,8 +55,8 @@ fn main(
     var current_layer_index = 0u;
     read_layer_blend_info(tile_ix);
 
-    let start_index = fine_index[4u * tile_ix];
-    let slice_count = fine_index[4u * tile_ix + 1u];
+    let start_index = select(0u, fine_index[tile_ix - 1u], tile_ix > 0u);
+    let slice_count = fine_index[tile_ix] - start_index;
     for(var j = 0u; j < PIXELS_PER_THREAD; j += 1u){
         rgba[j] = vec4<f32>(0.0, 0.0, 0.0, 0.0);
         rgba_bg[j] = vec4<f32>(0.0, 0.0, 0.0, 0.0);
@@ -65,10 +65,6 @@ fn main(
     for(var i = 0u; i < slice_count; i += 1u){
         let slice_buf_index_base = (start_index + i) * TILE_SIZE + local_id.x * 4u + local_id.y * 16u;
         let need_blend = i == layer_blend_index[current_layer_index];
-
-        //disable layer blend;
-        //let need_blend = false;
-
         for(var j = 0u; j < PIXELS_PER_THREAD; j += 1u){
             let coords = xy_uint + vec2(j, 0u);
             if coords.x < config.target_width && coords.y < config.target_height {
@@ -89,10 +85,7 @@ fn main(
         let coords = xy_uint + vec2(i, 0u);
         if coords.x < config.target_width && coords.y < config.target_height {
             //let fg = rgba_bg[i];
-
-            //disable layer blend;
             let fg = rgba[i];
-
             let a_inv = 1.0 / max(fg.a, 1e-6);
             let rgba_sep = vec4(fg.rgb * a_inv, fg.a);
             textureStore(output, vec2<i32>(coords), rgba_sep);

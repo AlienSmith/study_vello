@@ -41,6 +41,7 @@ struct Config {
     ptcl_size: u32,
     cubic_size: u32,
     ptcl_slice_count: u32,
+    indirect_clip_count: u32,
 }
 
 //let TILE_SIZE = TILE_WIDTH * TILE_HEIGHT;

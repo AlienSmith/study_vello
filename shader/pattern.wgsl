@@ -173,7 +173,7 @@ fn main(
     let max_y = round_up(bbox.w * SX);
 
     var line_count = max(0u, u32(max_x - min_x + 1) * u32(max_y - min_y + 1) - 1u);
-    let line_ix = atomicAdd(&bump.cubic, line_count);
+    let line_ix = atomicAdd(&bump.cubics, line_count);
     if line_ix + line_count > config.cubic_size{
         atomicOr(&bump.failed, STAGE_PATTERN);
         return;
