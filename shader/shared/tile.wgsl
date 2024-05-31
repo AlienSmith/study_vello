@@ -12,4 +12,5 @@ struct Path {
 struct Tile {
     backdrop: i32,
     segments: u32,
+    suplementary_tile: i32,
 }
