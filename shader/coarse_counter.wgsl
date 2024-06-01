@@ -34,7 +34,7 @@ var<storage> info_bin_data: array<u32>;
 var<storage> paths: array<Path>;
 
 @group(0) @binding(6)
-var<storage> tiles: array<Tile>;
+var<storage, read_write> tiles: array<Tile>;
 
 @group(0) @binding(7)
 var<storage, read_write> bump: BumpAllocators;
@@ -60,6 +60,8 @@ var<workgroup> sh_tile_count: array<u32, WG_SIZE>;
 var<workgroup> sh_tile_base: array<u32, WG_SIZE>;
 
 // Make sure there is space for a command of given size, plus a jump if needed
+var<private> last_draw_tag: u32;
+var<private> last_tile_ix: u32;
 var<private> cmd_offset: u32;
 var<private> cmd_limit: u32;
 var<private> ptcl_segment_count:i32;
@@ -80,6 +82,7 @@ fn main(
     @builtin(workgroup_id) wg_id: vec3<u32>,
     @builtin(global_invocation_id) global_id: vec3<u32>,
 ) {
+    last_tile_ix = 0u;
     cmd_offset = 0u;
     cmd_limit = PTCL_INCREMENT - PTCL_ENDROOM;
     ptcl_segment_count = 0;
@@ -250,6 +253,11 @@ fn main(
                     cmd_offset += 2u;                  
                     clip_count += 1;
                 }
+                case 0x1009u:{
+                    alloc_cmd(2u);
+                    cmd_offset += 2u;                  
+                    clip_count += 1;
+                }
                 // DRAWTAG_END_CLIP
                 case 0x21u: {
                     alloc_cmd(2u);
@@ -264,11 +272,17 @@ fn main(
                         cmd_offset = cmd_limit;
                     }
                 }
+                // DRAWTAG_SUPPLEMENT
+                case 0x1000u:{
+
+                }
                 default: {
                     alloc_cmd(2u);
                     cmd_offset += 2u;
                 }
             }
+            last_draw_tag = drawtag;
+            last_tile_ix = tile_ix;
         }
     }
     workgroupBarrier();

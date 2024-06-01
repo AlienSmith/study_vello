@@ -64,6 +64,7 @@ var<private> rgba: array<vec4<f32>, PIXELS_PER_THREAD>;
 var<private> blend_stack: array<array<u32, PIXELS_PER_THREAD>, BLEND_STACK_SPLIT>;
 var<private> clip_depth: u32;
 var<private> area: array<f32, PIXELS_PER_THREAD>;
+var<private> temp_area: array<f32, PIXELS_PER_THREAD>;
 
 fn read_dashes_array_from_scene(start:u32, size:u32, length_modifier:f32){
     let length = min(size, MAX_DASHES_ARRAY_SIZE - 1u);
@@ -294,6 +295,15 @@ fn draw_path(tile: Tile, linewidth: f32, xy:vec2<f32>) -> bool {
         let even_odd = linewidth < -1.0;
         if tile.segments != 0u {
             area = fill_path(tile, xy, even_odd);
+            // var current_tile = tile;
+            // while current_tile.next_ix != 1 {
+            //     area = fill_path(current_tile, xy, even_odd);
+            //     // for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
+            //     //     area[i] = max(area[i], temp_area[i]);
+            //     // }
+            //     current_tile = tiles[current_tile.next_ix];
+            // }
+            // area = fill_path(current_tile, xy, even_odd);
         } else {
             if (even_odd && even_odd_backdrop_draw(tile)){
                 return false;

@@ -370,6 +370,12 @@ fn main(
                     clip_stack[clip_stack_end] = vec3<u32>(tile_ix, drawobj_ix, CMD_DRAW);
                     clip_stack_end += 1u;           
                 }
+                case 0x1009u:{
+                    alloc_cmd(2u);
+                    write_cmd(tile_ix, drawobj_ix, CMD_BEGIN_CLIP_DIRECT);
+                    clip_stack[clip_stack_end] = vec3<u32>(tile_ix, drawobj_ix, CMD_DRAW);
+                    clip_stack_end += 1u;
+                }
                 // DRAWTAG_END_CLIP
                 case 0x21u: {
                     alloc_cmd(2u);

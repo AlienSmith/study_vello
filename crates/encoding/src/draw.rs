@@ -30,6 +30,9 @@ impl DrawTag {
     /// Begin layer/clip.
     pub const BEGIN_CLIP: Self = Self(0x9);
 
+    /// Begin clip with supplementary path
+    pub const BEGIN_CLIP_WITH_SUPPLEMENT: Self = Self(0x1009);
+
     /// End layer/clip.
     pub const END_CLIP: Self = Self(0x21);
 
@@ -38,6 +41,9 @@ impl DrawTag {
 
     /// End pattern
     pub const END_PATTERN: Self = Self(0xC00);
+
+    /// End pattern
+    pub const PLACE_HOLDER: Self = Self(0x1000);
 
 }
 

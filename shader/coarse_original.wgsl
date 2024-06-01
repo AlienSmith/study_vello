@@ -501,6 +501,21 @@ fn main(
                         }
                         clip_depth += 1u;
                     }
+                    case 0x1009u{
+                        if tile.segments == 0u && tile.backdrop == 0 {
+                            clip_zero_depth = clip_depth + 1u;
+                        } else {
+                                alloc_cmd(1u);
+                            write_begin_clip();
+#ifdef ptcl_segmentation
+                                clip_stack[clip_stack_end] = vec2<u32>(tile_ix, dd);
+                                clip_stack_end += 1u;
+#endif
+                            render_blend_depth += 1u;
+                            max_blend_depth = max(max_blend_depth, render_blend_depth);
+                        }
+                        clip_depth += 1u;
+                    }
                     // DRAWTAG_END_CLIP
                     case 0x21u: {
                             alloc_cmd(6u);
@@ -530,6 +545,9 @@ fn main(
                 switch drawtag {
                     // DRAWTAG_BEGIN_CLIP
                     case 0x9u: {
+                        clip_depth += 1u;
+                    }
+                    case 0x1009u{
                         clip_depth += 1u;
                     }
                     // DRAWTAG_END_CLIP

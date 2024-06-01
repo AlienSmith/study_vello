@@ -107,11 +107,11 @@ fn main(
     let di = m.info_offset;
     if tag_word == DRAWTAG_FILL_COLOR || tag_word == DRAWTAG_FILL_LIN_GRADIENT ||
         tag_word == DRAWTAG_FILL_RAD_GRADIENT || tag_word == DRAWTAG_FILL_IMAGE ||
-        tag_word == DRAWTAG_BEGIN_CLIP
+        tag_word == DRAWTAG_BEGIN_CLIP || tag_word == DRAWTAG_BEGIN_CLIP_WITH_SUPPLEMENT
     {
         let bbox = path_bbox[m.path_ix];
         let pattern_ix = &path_to_pattern[m.path_ix].pattern_ix;
-        if ((m.pattern_ix & 1u) != 0u) && (tag_word != DRAWTAG_BEGIN_CLIP) {
+        if ((m.pattern_ix & 1u) != 0u) && (tag_word != DRAWTAG_BEGIN_CLIP) && (tag_word != DRAWTAG_BEGIN_CLIP_WITH_SUPPLEMENT){
             atomicMax(pattern_ix,(m.pattern_ix >> 1u) + 1u);
             path_to_pattern[m.path_ix].clip_ix = m.clip_ix;
         }else{
@@ -256,9 +256,9 @@ fn main(
             default: {}
         }
     }
-    if tag_word == DRAWTAG_BEGIN_CLIP || tag_word == DRAWTAG_END_CLIP {
+    if tag_word == DRAWTAG_BEGIN_CLIP || tag_word == DRAWTAG_END_CLIP || tag_word == DRAWTAG_BEGIN_CLIP_WITH_SUPPLEMENT{
         var path_ix = ~ix;
-        if tag_word == DRAWTAG_BEGIN_CLIP {
+        if tag_word == DRAWTAG_BEGIN_CLIP || tag_word == DRAWTAG_BEGIN_CLIP_WITH_SUPPLEMENT {
             path_ix = m.path_ix;
         }
         clip_inp[m.clip_ix] = ClipInp(ix, i32(path_ix));
