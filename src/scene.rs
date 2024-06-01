@@ -56,16 +56,12 @@ impl Scene {
         &mut self,
         filter_color: (f32, f32, f32, f32),
         transform: Affine,
-        shape: &impl Shape,
-        supplement: Vec<(Affine, &impl Shape)>
+        shape: &impl Shape
     ) {
         self.push_layer_with_supplement(filter_color, transform, shape, true);
-        for item in supplement {
-            self.push_supplementary_path(item.0, item.1);
-        }
     }
 
-    fn push_supplementary_path(&mut self, transform: Affine, shape: &impl Shape) {
+    pub fn push_supplementary_path(&mut self, transform: Affine, shape: &impl Shape) {
         self.data.encode_transform(Transform::from_kurbo(&transform));
         if !self.data.encode_shape(shape, true) {
             // If the shape is invalid, encode a valid empty path.

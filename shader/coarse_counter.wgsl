@@ -274,7 +274,7 @@ fn main(
                 }
                 // DRAWTAG_SUPPLEMENT
                 case 0x1000u:{
-
+                    tiles[last_tile_ix].next_ix = i32(tile_ix);
                 }
                 default: {
                     alloc_cmd(2u);

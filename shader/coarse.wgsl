@@ -379,7 +379,9 @@ fn main(
                 // DRAWTAG_END_CLIP
                 case 0x21u: {
                     alloc_cmd(2u);
-                    write_cmd(tile_ix, drawobj_ix, CMD_DRAW);
+                    let clip_end = clip_stack_end -1;
+                    let clip = clip_stack[clip_end];
+                    write_cmd(clip.x, clip.y, clip.z);
                     let blend = scene[dd];
                     let alpha = bitcast<f32>(scene[dd + 1u]);
                     clip_stack_end -= select(1u, 0u, clip_stack_end == 0u);

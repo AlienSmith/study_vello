@@ -441,11 +441,11 @@ impl Encoding {
         with_supplement: bool
     ) {
         use super::DrawBeginClip;
-        // if with_supplement {
-        //     self.draw_tags.push(DrawTag::BEGIN_CLIP_WITH_SUPPLEMENT);
-        // } else {
-        self.draw_tags.push(DrawTag::BEGIN_CLIP);
-        //}
+        if with_supplement {
+            self.draw_tags.push(DrawTag::BEGIN_CLIP_WITH_SUPPLEMENT);
+        } else {
+            self.draw_tags.push(DrawTag::BEGIN_CLIP);
+        }
         self.draw_data.extend_from_slice(
             bytemuck::bytes_of(&DrawBeginClip::new_filter(packed_color, alpha))
         );

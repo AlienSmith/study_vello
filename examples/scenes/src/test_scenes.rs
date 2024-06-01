@@ -1,4 +1,5 @@
 use crate::{ ExampleScene, SceneConfig, SceneParams, SceneSet };
+use kurbo::Shape;
 use vello::kurbo::{ Affine, BezPath, Ellipse, PathEl, Point, Rect, Vec2 };
 use vello::peniko::*;
 use vello::*;
@@ -886,32 +887,21 @@ fn gpu_dash_test(sb: &mut Scene, _params: &mut SceneParams) {
     );
 }
 fn rectangle_test(sb: &mut Scene, _params: &mut SceneParams) {
+    sb.push_layer_with_supplementary_path(
+        (1.0, 1.0, 1.0, 1.0),
+        Affine::IDENTITY,
+        &kurbo::Rect::new(0.0, 0.0, 1000.0, 1000.0)
+    );
+    sb.push_supplementary_path(Affine::IDENTITY, &kurbo::Rect::new(0.0, 0.0, 100.0, 100.0));
+    sb.push_supplementary_path(Affine::IDENTITY, &kurbo::Rect::new(50.0, 250.0, 150.0, 350.0));
     sb.fill(
         peniko::Fill::NonZero,
         Affine::IDENTITY,
         peniko::Color::rgb8(78, 210, 176),
         None,
-        &kurbo::Rect::new(0.0, 0.0, 100.0, 100.0)
+        &kurbo::Rect::new(0.0, 0.0, 1000.0, 1000.0)
     );
-    sb.fill(
-        peniko::Fill::NonZero,
-        Affine::IDENTITY,
-        peniko::Color::rgb8(78, 210, 176),
-        None,
-        &kurbo::Rect::new(50.0, 50.0, 150.0, 150.0)
-    );
-
-    sb.fill(
-        peniko::Fill::NonZero,
-        Affine::IDENTITY,
-        peniko::Color::rgb8(78, 210, 176),
-        None,
-        &kurbo::Rect::new(0.0, 200.0, 100.0, 300.0)
-    );
-    // sb.push_supplementary_path(
-    //     Affine::IDENTITY,
-    //     &kurbo::Rect::new(50.0, 250.0, 150.0, 350.0)
-    // );
+    sb.pop_layer();
 }
 
 fn clip_test(sb: &mut Scene, params: &mut SceneParams) {

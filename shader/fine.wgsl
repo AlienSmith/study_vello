@@ -289,21 +289,47 @@ fn stroke_path(seg: u32, half_width: f32, xy: vec2<f32>) -> array<f32, PIXELS_PE
 fn even_odd_backdrop_draw(tile: Tile) -> bool{
     return abs(tile.backdrop & 1) == 0;
 }
+
+fn draw_supplement_path(tile: Tile, linewidth: f32, xy:vec2<f32>) -> bool {
+    //no supplementary path founded
+    if tile.next_ix == -1 {
+        for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
+            area[i] = 0.0;
+        }
+        return true;
+    }
+    //initialize
+    for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
+        area[i] = 1.0;
+    }
+    let even_odd = linewidth < -1.0;
+    var current_tile = tiles[tile.next_ix];
+    while true {
+        temp_area = fill_path(current_tile, xy, even_odd);
+        for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
+            area[i] = max(area[i], temp_area[i]);
+        }
+        if current_tile.next_ix == -1{
+            break;
+        }else{
+            current_tile = tiles[current_tile.next_ix];
+        }
+    }
+    return true;
+}
+fn draw_path_with_supplement(tile: Tile, linewidth: f32, xy:vec2<f32>, with_supplement: bool) -> bool{
+    if with_supplement{
+        return draw_supplement_path(tile,linewidth,xy);
+    }else{
+        return draw_path(tile,linewidth,xy);
+    }
+}
 fn draw_path(tile: Tile, linewidth: f32, xy:vec2<f32>) -> bool {
     // TODO: take flags
     if linewidth < 0.0 {
         let even_odd = linewidth < -1.0;
         if tile.segments != 0u {
             area = fill_path(tile, xy, even_odd);
-            // var current_tile = tile;
-            // while current_tile.next_ix != 1 {
-            //     area = fill_path(current_tile, xy, even_odd);
-            //     // for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
-            //     //     area[i] = max(area[i], temp_area[i]);
-            //     // }
-            //     current_tile = tiles[current_tile.next_ix];
-            // }
-            // area = fill_path(current_tile, xy, even_odd);
         } else {
             if (even_odd && even_odd_backdrop_draw(tile)){
                 return false;
@@ -409,9 +435,9 @@ fn main(
         let dd = config.drawdata_base + dm.scene_offset;
         let di = dm.info_offset;
         let tile = tiles[tile_ix];
-        let is_end_clip = drawtag == 0x9u || drawtag == 0x21u;
+        let is_end_clip = drawtag == 0x9u || drawtag == 0x21u || drawtag == 0x1009u;
         let linewidth = select(bitcast<f32>(info[di]), -1.0, is_end_clip);
-        if draw_path(tile, linewidth, xy) {
+        if draw_path_with_supplement(tile, linewidth, xy, drawtag == DRAWTAG_BEGIN_CLIP_WITH_SUPPLEMENT) {
             //End Clips
             if is_end_clip {
                     let blend = scene[dd];
