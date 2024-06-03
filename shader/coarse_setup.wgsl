@@ -59,9 +59,9 @@ fn main(
             coarse_index[index * 3u] = (ptcl_slice_offsets & 0xfffu) | ((layer_counter & 0xfu) << 12u) | (current_clip_index << 16u);
             coarse_index[index * 3u + 1u] = (clip_stack[0] & 0xffffu) | (clip_stack[1] << 16u);
             coarse_index[index * 3u + 2u] = (clip_stack[2] & 0xffffu) | (clip_stack[3] << 16u);
-            ptcl_slice_offsets += u32(counter[index * 2u] >> 4u);
-            layer_counter += u32(counter[index * 2u] & 0xf);
-            let clips = counter[index * 2u + 1u];
+            ptcl_slice_offsets += u32(counter[index * 3u] >> 4u);
+            layer_counter += u32(counter[index * 3u] & 0xf);
+            let clips = counter[index * 3u + 1u];
             let delta = abs(clips);
             for(var j = 0; j < delta; j += 1){
                 if clips > 0{

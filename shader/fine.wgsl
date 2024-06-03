@@ -292,20 +292,23 @@ fn even_odd_backdrop_draw(tile: Tile) -> bool{
 
 fn draw_supplement_path(tile: Tile, linewidth: f32, xy:vec2<f32>) -> bool {
     //no supplementary path founded
-    if tile.next_ix == -1 {
-        for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
-            area[i] = 0.0;
-        }
-        return true;
-    }
-    //initialize
     for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
-        area[i] = 1.0;
+        area[i] = 0.0;
+    }
+    if tile.next_ix == -1 {
+        return true;
     }
     let even_odd = linewidth < -1.0;
     var current_tile = tiles[tile.next_ix];
     while true {
-        temp_area = fill_path(current_tile, xy, even_odd);
+        if current_tile.segments != 0u {
+            temp_area = fill_path(current_tile, xy, even_odd);
+        }else{
+            let value = select(1.0, 0.0, current_tile.backdrop == 0);
+            for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
+                area[i] = value;
+            }
+        }
         for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
             area[i] = max(area[i], temp_area[i]);
         }
@@ -335,7 +338,7 @@ fn draw_path(tile: Tile, linewidth: f32, xy:vec2<f32>) -> bool {
                 return false;
             }
             //none zero
-            let value = select(1.0, 0.0, tile.segments == 0u && tile.backdrop == 0);
+            let value = select(1.0, 0.0, tile.backdrop == 0);
             for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
                 area[i] = value;
             }

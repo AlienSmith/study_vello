@@ -23,16 +23,15 @@ use std::collections::HashSet;
 #[cfg(feature = "wgpu")]
 use wgpu::Device;
 
-use crate::{
-    cpu_shader,
-    engine::{BindType, Error, ImageFormat, ShaderId},
-};
+use crate::{ cpu_shader, engine::{ BindType, Error, ImageFormat, ShaderId } };
 
 #[cfg(feature = "wgpu")]
 use crate::wgpu_engine::WgpuEngine;
 
 macro_rules! shader {
-    ($name:expr) => {&{
+    (
+        $name:expr
+    ) => {&{
         let shader = include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/shader/",
@@ -81,7 +80,7 @@ pub struct FullShaders {
     pub coarse_setup: ShaderId,
     pub coarse_setup_debug: ShaderId,
     pub coarse: ShaderId,
-    pub fine_setup:ShaderId,
+    pub fine_setup: ShaderId,
     pub fine: ShaderId,
     pub compose: ShaderId,
     //use for ptcl segmentation logic
@@ -95,12 +94,9 @@ pub struct FullShaders {
 pub fn full_shaders(
     device: &Device,
     engine: &mut WgpuEngine,
-    use_cpu: bool,
+    use_cpu: bool
 ) -> Result<FullShaders, Error> {
-    let imports = SHARED_SHADERS
-        .iter()
-        .copied()
-        .collect::<std::collections::HashMap<_, _>>();
+    let imports = SHARED_SHADERS.iter().copied().collect::<std::collections::HashMap<_, _>>();
     let empty = HashSet::new();
     let mut full_config = HashSet::new();
     full_config.insert("full".into());
@@ -115,7 +111,7 @@ pub fn full_shaders(
         device,
         "pathtag_reduce",
         preprocess::preprocess(shader!("pathtag_reduce"), &full_config, &imports).into(),
-        &[BindType::Uniform, BindType::BufReadOnly, BindType::Buffer],
+        &[BindType::Uniform, BindType::BufReadOnly, BindType::Buffer]
     )?;
     if use_cpu {
         engine.set_cpu_shader(pathtag_reduce, cpu_shader::pathtag_reduce);
@@ -124,45 +120,31 @@ pub fn full_shaders(
         device,
         "pathtag_reduce2",
         preprocess::preprocess(shader!("pathtag_reduce2"), &full_config, &imports).into(),
-        &[BindType::BufReadOnly, BindType::Buffer],
+        &[BindType::BufReadOnly, BindType::Buffer]
     )?;
     let pathtag_scan1 = engine.add_shader(
         device,
         "pathtag_scan1",
         preprocess::preprocess(shader!("pathtag_scan1"), &full_config, &imports).into(),
-        &[
-            BindType::BufReadOnly,
-            BindType::BufReadOnly,
-            BindType::Buffer,
-        ],
+        &[BindType::BufReadOnly, BindType::BufReadOnly, BindType::Buffer]
     )?;
     let pathtag_scan = engine.add_shader(
         device,
         "pathtag_scan",
         preprocess::preprocess(shader!("pathtag_scan"), &small_config, &imports).into(),
-        &[
-            BindType::Uniform,
-            BindType::BufReadOnly,
-            BindType::BufReadOnly,
-            BindType::Buffer,
-        ],
+        &[BindType::Uniform, BindType::BufReadOnly, BindType::BufReadOnly, BindType::Buffer]
     )?;
     let pathtag_scan_large = engine.add_shader(
         device,
         "pathtag_scan",
         preprocess::preprocess(shader!("pathtag_scan"), &full_config, &imports).into(),
-        &[
-            BindType::Uniform,
-            BindType::BufReadOnly,
-            BindType::BufReadOnly,
-            BindType::Buffer,
-        ],
+        &[BindType::Uniform, BindType::BufReadOnly, BindType::BufReadOnly, BindType::Buffer]
     )?;
     let bbox_clear = engine.add_shader(
         device,
         "bbox_clear",
         preprocess::preprocess(shader!("bbox_clear"), &empty, &imports).into(),
-        &[BindType::Uniform, BindType::Buffer],
+        &[BindType::Uniform, BindType::Buffer]
     )?;
     let pathseg = engine.add_shader(
         device,
@@ -176,13 +158,13 @@ pub fn full_shaders(
             BindType::Buffer,
             BindType::Buffer,
             BindType::Buffer,
-        ],
+        ]
     )?;
     let draw_reduce = engine.add_shader(
         device,
         "draw_reduce",
         preprocess::preprocess(shader!("draw_reduce"), &empty, &imports).into(),
-        &[BindType::Uniform, BindType::BufReadOnly, BindType::Buffer],
+        &[BindType::Uniform, BindType::BufReadOnly, BindType::Buffer]
     )?;
     let draw_leaf = engine.add_shader(
         device,
@@ -197,18 +179,13 @@ pub fn full_shaders(
             BindType::Buffer,
             BindType::Buffer,
             BindType::Buffer,
-        ],
+        ]
     )?;
     let clip_reduce = engine.add_shader(
         device,
         "clip_reduce",
         preprocess::preprocess(shader!("clip_reduce"), &empty, &imports).into(),
-        &[
-            BindType::BufReadOnly,
-            BindType::BufReadOnly,
-            BindType::Buffer,
-            BindType::Buffer,
-        ],
+        &[BindType::BufReadOnly, BindType::BufReadOnly, BindType::Buffer, BindType::Buffer]
     )?;
     let clip_leaf = engine.add_shader(
         device,
@@ -222,7 +199,7 @@ pub fn full_shaders(
             BindType::BufReadOnly,
             BindType::Buffer,
             BindType::Buffer,
-        ],
+        ]
     )?;
 
     let pattern = engine.add_shader(
@@ -238,7 +215,7 @@ pub fn full_shaders(
             BindType::Buffer,
             BindType::Buffer,
             BindType::Buffer,
-        ],
+        ]
     )?;
 
     let binning = engine.add_shader(
@@ -254,7 +231,7 @@ pub fn full_shaders(
             BindType::Buffer,
             BindType::Buffer,
             BindType::Buffer,
-        ],
+        ]
     )?;
     let tile_alloc = engine.add_shader(
         device,
@@ -267,17 +244,14 @@ pub fn full_shaders(
             BindType::Buffer,
             BindType::Buffer,
             BindType::Buffer,
-        ],
+        ]
     )?;
 
     let path_coarse_counter = engine.add_shader(
         device,
         "path_coarse_counter",
         preprocess::preprocess(shader!("path_coarse_counter"), &full_config, &imports).into(),
-        &[
-            BindType::BufReadOnly,
-            BindType::Buffer,
-        ],
+        &[BindType::BufReadOnly, BindType::Buffer]
     )?;
 
     let path_coarse = engine.add_shader(
@@ -293,13 +267,13 @@ pub fn full_shaders(
             BindType::Buffer,
             BindType::Buffer,
             BindType::Buffer,
-        ],
+        ]
     )?;
     let backdrop = engine.add_shader(
         device,
         "backdrop_dyn",
         preprocess::preprocess(shader!("backdrop_dyn"), &empty, &imports).into(),
-        &[BindType::Uniform, BindType::BufReadOnly, BindType::Buffer],
+        &[BindType::Uniform, BindType::BufReadOnly, BindType::Buffer]
     )?;
     let coarse_counter = engine.add_shader(
         device,
@@ -312,10 +286,10 @@ pub fn full_shaders(
             BindType::BufReadOnly,
             BindType::BufReadOnly,
             BindType::BufReadOnly,
+            BindType::BufReadOnly,
             BindType::Buffer,
             BindType::Buffer,
-            BindType::Buffer,
-        ],
+        ]
     )?;
 
     let coarse_setup = engine.add_shader(
@@ -328,14 +302,14 @@ pub fn full_shaders(
             BindType::BufReadOnly,
             BindType::Buffer,
             BindType::Buffer,
-        ],
+        ]
     )?;
 
     let coarse_setup_debug = engine.add_shader(
         device,
         "coarse_setup_debug",
         preprocess::preprocess(shader!("coarse_setup_debug"), &empty, &imports).into(),
-        &[BindType::Uniform, BindType::Buffer, BindType::Buffer],
+        &[BindType::Uniform, BindType::Buffer, BindType::Buffer]
     )?;
 
     let coarse = engine.add_shader(
@@ -349,26 +323,21 @@ pub fn full_shaders(
             BindType::BufReadOnly,
             BindType::BufReadOnly,
             BindType::BufReadOnly,
+            BindType::Buffer,
+            BindType::Buffer,
+            BindType::Buffer,
+            BindType::Buffer,
+            BindType::Buffer,
+            BindType::Buffer,
             BindType::BufReadOnly,
-            BindType::Buffer,
-            BindType::Buffer,
-            BindType::Buffer,
-            BindType::Buffer,
-            BindType::Buffer,
             BindType::BufReadOnly,
-            BindType::BufReadOnly,
-        ],
+        ]
     )?;
     let fine_setup = engine.add_shader(
         device,
         "fine_setup",
         preprocess::preprocess(shader!("fine_setup"), &full_config, &imports).into(),
-        &[
-            BindType::Uniform,
-            BindType::Buffer,
-            BindType::Buffer,
-            BindType::Buffer,
-        ],
+        &[BindType::Uniform, BindType::Buffer, BindType::Buffer, BindType::Buffer]
     )?;
     let fine = engine.add_shader(
         device,
@@ -388,7 +357,7 @@ pub fn full_shaders(
             BindType::BufReadOnly,
             BindType::BufReadOnly,
             BindType::Buffer,
-        ],
+        ]
     )?;
     //we need a separate shader because no clear way to share barrier between workgroup
     let compose = engine.add_shader(
@@ -402,9 +371,8 @@ pub fn full_shaders(
             BindType::BufReadOnly,
             BindType::BufReadOnly,
             BindType::BufReadOnly,
-        ],
+        ]
     )?;
-
 
     let coarse_original = engine.add_shader(
         device,
@@ -420,22 +388,15 @@ pub fn full_shaders(
             BindType::BufReadOnly,
             BindType::Buffer,
             BindType::Buffer,
-            #[cfg(feature = "ptcl_segmentation")]
-            BindType::Buffer,
-            #[cfg(feature = "ptcl_segmentation")]
-            BindType::Buffer,
-        ],
+            #[cfg(feature = "ptcl_segmentation")] BindType::Buffer,
+            #[cfg(feature = "ptcl_segmentation")] BindType::Buffer,
+        ]
     )?;
     let fine_setup_original = engine.add_shader(
-        device, 
-        "fine_setup_original", 
-        preprocess::preprocess(shader!("fine_setup_original"), &full_config, &imports).into(), 
-        &[
-            BindType::Uniform,
-            BindType::Buffer,
-            BindType::Buffer,
-            BindType::Buffer,
-        ],
+        device,
+        "fine_setup_original",
+        preprocess::preprocess(shader!("fine_setup_original"), &full_config, &imports).into(),
+        &[BindType::Uniform, BindType::Buffer, BindType::Buffer, BindType::Buffer]
     )?;
     let fine_original = engine.add_shader(
         device,
@@ -450,19 +411,15 @@ pub fn full_shaders(
             BindType::ImageRead(ImageFormat::Rgba8),
             BindType::ImageRead(ImageFormat::Rgba8),
             BindType::BufReadOnly,
-            #[cfg(feature = "ptcl_segmentation")]
-            BindType::BufReadOnly,
-            #[cfg(feature = "ptcl_segmentation")]
-            BindType::Buffer,
-            #[cfg(not(feature = "ptcl_segmentation"))]
-            BindType::Image(ImageFormat::Rgba8),
-
-        ],
+            #[cfg(feature = "ptcl_segmentation")] BindType::BufReadOnly,
+            #[cfg(feature = "ptcl_segmentation")] BindType::Buffer,
+            #[cfg(not(feature = "ptcl_segmentation"))] BindType::Image(ImageFormat::Rgba8),
+        ]
     )?;
     let compose_original = engine.add_shader(
-        device, 
-        "compose_original", 
-        preprocess::preprocess(shader!("compose_original"), &full_config, &imports).into(), 
+        device,
+        "compose_original",
+        preprocess::preprocess(shader!("compose_original"), &full_config, &imports).into(),
         &[
             BindType::Uniform,
             BindType::Image(ImageFormat::Rgba8),
@@ -470,7 +427,7 @@ pub fn full_shaders(
             BindType::BufReadOnly,
             BindType::BufReadOnly,
             BindType::BufReadOnly,
-        ],
+        ]
     )?;
     Ok(FullShaders {
         pathtag_reduce,
@@ -500,7 +457,7 @@ pub fn full_shaders(
         coarse_original,
         fine_setup_original,
         fine_original,
-        compose_original
+        compose_original,
     })
 }
 

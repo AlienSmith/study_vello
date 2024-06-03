@@ -34,7 +34,7 @@ var<storage> info_bin_data: array<u32>;
 var<storage> paths: array<Path>;
 
 @group(0) @binding(6)
-var<storage, read_write> tiles: array<Tile>;
+var<storage> tiles: array<Tile>;
 
 @group(0) @binding(7)
 var<storage, read_write> bump: BumpAllocators;
@@ -274,7 +274,7 @@ fn main(
                 }
                 // DRAWTAG_SUPPLEMENT
                 case 0x1000u:{
-                    tiles[last_tile_ix].next_ix = i32(tile_ix);
+
                 }
                 default: {
                     alloc_cmd(2u);
@@ -290,7 +290,8 @@ fn main(
     
 
     let count = ptcl_segment_count + select(0, 1, cmd_offset > 0u);
-    counter[this_tile_ix * 2u] = (select(count, 0, zero_contribution) << 4u) | i32(layer_counter & 0xfu);
-    counter[this_tile_ix * 2u + 1u] = clip_count;
+    counter[this_tile_ix * 3u] = (select(count, 0, zero_contribution) << 4u) | i32(layer_counter & 0xfu);
+    counter[this_tile_ix * 3u + 1u] = clip_count;
+    counter[this_tile_ix * 3u + 2u] = i32(last_tile_ix);
     
 }

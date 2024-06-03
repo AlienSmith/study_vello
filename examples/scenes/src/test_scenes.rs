@@ -43,7 +43,7 @@ pub fn test_scenes() -> SceneSet {
         function: Box::new(crate::mmark::MMark::new(80_000)),
     };
     let scenes = vec![
-        scene!(rectangle_test),
+        scene!(multiple_mask_layer_test),
         scene!(splash_with_lottie_tiger(), "Tiger", true),
         scene!(gpu_dash_test),
         scene!(pattern_test),
@@ -886,14 +886,20 @@ fn gpu_dash_test(sb: &mut Scene, _params: &mut SceneParams) {
         vec![0.0, 10.0, 10.0, 20.0, 5.0, 20.0]
     );
 }
-fn rectangle_test(sb: &mut Scene, _params: &mut SceneParams) {
+fn multiple_mask_layer_test(sb: &mut Scene, _params: &mut SceneParams) {
     sb.push_layer_with_supplementary_path(
         (1.0, 1.0, 1.0, 1.0),
         Affine::IDENTITY,
         &kurbo::Rect::new(0.0, 0.0, 1000.0, 1000.0)
     );
-    sb.push_supplementary_path(Affine::IDENTITY, &kurbo::Rect::new(0.0, 0.0, 100.0, 100.0));
-    sb.push_supplementary_path(Affine::IDENTITY, &kurbo::Rect::new(50.0, 250.0, 150.0, 350.0));
+    for i in 0..10 {
+        sb.push_supplementary_path(
+            Affine::IDENTITY,
+            &kurbo::Circle::new((50.0 * (i as f64), 50.0 * (i as f64)), 10.0)
+        );
+    }
+
+    sb.push_supplementary_path(Affine::IDENTITY, &kurbo::Circle::new((100.0, 100.0), 20.0));
     sb.fill(
         peniko::Fill::NonZero,
         Affine::IDENTITY,
@@ -1021,9 +1027,9 @@ fn splash_with_svg_tiger() -> impl FnMut(&mut Scene, &mut SceneParams) {
 
 fn splash_with_lottie_tiger() -> impl FnMut(&mut Scene, &mut SceneParams) {
     let contents = include_str!(
-        concat!(env!("CARGO_MANIFEST_DIR"), "/../assets/google_fonts/Tiger_P.json")
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../assets/google_fonts/Tiger_Exported.json")
     );
-    let mut lottie = crate::lottie::lottie_function_of("Tiger_P".to_string(), move || contents);
+    let mut lottie = crate::lottie::lottie_function_of("Tiger".to_string(), move || contents);
     move |scene, params| {
         lottie(scene, params);
         //splash_screen(scene, params);

@@ -1,13 +1,9 @@
 // Copyright 2024 the Velato Authors
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use crate::schema::helpers::transform;
-use crate::schema::shapes::group;
-
 use super::model::*;
 use super::Composition;
 use std::ops::Range;
-use image::math;
 use vello::kurbo::{ self, Affine, PathEl, Rect };
 use vello::peniko::{ self, Fill, Mix };
 
@@ -374,7 +370,6 @@ impl Batch {
         self.drawn_geometry = self.geometries.len();
     }
     fn push_layer(&self, sink: &mut impl RenderSink, transform: Affine, shape: &impl kurbo::Shape) {
-        let mut total_path: Vec<PathEl> = Vec::new();
         sink.push_layer_with_supplement(Mix::Clip, 1.0, transform, shape);
         for draw in self.draws.iter().rev() {
             for geometry in self.geometries[draw.geometry.clone()].iter() {

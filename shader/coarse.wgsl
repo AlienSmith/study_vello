@@ -34,7 +34,7 @@ var<storage> info_bin_data: array<u32>;
 var<storage> paths: array<Path>;
 
 @group(0) @binding(6)
-var<storage> tiles: array<Tile>;
+var<storage, read_write> tiles: array<Tile>;
 
 @group(0) @binding(7)
 var<storage, read_write> bump: BumpAllocators;
@@ -89,6 +89,7 @@ var<private> clip_stack_end: u32;
 var<private> slice_index: u32;
 var<private> tile_index: u32;
 var<private> indirect_clips_base : u32;
+var<private> last_tile_ix: i32;
 
 fn write_clips(this_tile_ix:u32){
     var offset = 0u;
@@ -126,6 +127,7 @@ fn initialize_coarse_index(tile_offset: u32, partition_offset: u32){
     new_cmd_offset = cmd_offset + PTCL_INCREMENT;
     cmd_limit = cmd_offset + (PTCL_INCREMENT - PTCL_ENDROOM);
     slice_index = ptcl_slice_offset;
+    last_tile_ix = counter[this_tile_ix * 3u + 2u];
 }
 
 fn alloc_cmd(size: u32) {
@@ -198,6 +200,7 @@ fn main(
     @builtin(workgroup_id) wg_id: vec3<u32>,
     @builtin(global_invocation_id) global_id: vec3<u32>,
 ) {
+    last_tile_ix = -1;
     // Exit early if prior stages failed, as we can't run this stage.
     // We need to check only prior stages, as if this stage has failed in another workgroup, 
     // we still want to know this workgroup's memory requirement.   
@@ -330,7 +333,7 @@ fn main(
     let within_range = bin_tile_x + tile_x < config.width_in_tiles && bin_tile_y + tile_y < config.height_in_tiles;
         
     //early exit on empty section
-    if (counter[2u * (this_tile_ix + offset_of_partition)] == 0) || !within_range{
+    if (counter[3u * (this_tile_ix + offset_of_partition)] == 0) || !within_range{
         return;
     }
 
@@ -370,6 +373,9 @@ fn main(
                     clip_stack[clip_stack_end] = vec3<u32>(tile_ix, drawobj_ix, CMD_DRAW);
                     clip_stack_end += 1u;           
                 }
+                case 0x1000u{
+                    tiles[last_tile_ix].next_ix = i32(tile_ix);
+                }
                 case 0x1009u:{
                     alloc_cmd(2u);
                     write_cmd(tile_ix, drawobj_ix, CMD_BEGIN_CLIP_DIRECT);
@@ -400,6 +406,7 @@ fn main(
                     write_cmd(tile_ix, drawobj_ix, CMD_DRAW);
                 }
             }
+            last_tile_ix = i32(tile_ix);
         }
     }
     workgroupBarrier();
