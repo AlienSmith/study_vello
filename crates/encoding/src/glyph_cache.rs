@@ -3,18 +3,18 @@
 
 use std::collections::HashMap;
 
-use super::{Encoding, StreamOffsets};
+use super::{ Encoding, StreamOffsets };
 
-use fello::scale::Scaler;
-use fello::GlyphId;
-use peniko::{Fill, Style};
+use skrifa::{ instance::NormalizedCoord, outline::OutlinePen, GlyphId, OutlineGlyphCollection };
+
+use peniko::{ kurbo::BezPath, Fill, Style };
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Default, Debug)]
 pub struct GlyphKey {
     pub font_id: u64,
     pub font_index: u32,
     pub glyph_id: u32,
-    pub font_size: u32,
+    pub font_size_bits: u32,
     pub hint: bool,
 }
 
@@ -32,24 +32,27 @@ impl GlyphCache {
 
     pub fn get_or_insert(
         &mut self,
+        outlines: &OutlineGlyphCollection,
         key: GlyphKey,
         style: &Style,
-        scaler: &mut Scaler,
+        font_size: f32,
+        coords: &[NormalizedCoord]
     ) -> Option<CachedRange> {
+        let size = skrifa::instance::Size::new(font_size);
         let is_fill = matches!(style, Style::Fill(_));
-        let is_var = !scaler.normalized_coords().is_empty();
+        let is_var = !coords.is_empty();
         let encoding_cache = &mut self.encoding;
         let mut encode_glyph = || {
             let start = encoding_cache.stream_offsets();
             match style {
-                Style::Fill(Fill::NonZero) => encoding_cache.encode_linewidth(-1.0,None),
-                Style::Fill(Fill::EvenOdd) => encoding_cache.encode_linewidth(-2.0,None),
-                Style::Stroke(stroke) => encoding_cache.encode_linewidth(stroke.width,None),
+                Style::Fill(Fill::NonZero) => encoding_cache.encode_linewidth(-1.0, None),
+                Style::Fill(Fill::EvenOdd) => encoding_cache.encode_linewidth(-2.0, None),
+                Style::Stroke(stroke) => encoding_cache.encode_linewidth(stroke.width as f32, None),
             }
             let mut path = encoding_cache.encode_path(is_fill);
-            scaler
-                .outline(GlyphId::new(key.glyph_id as u16), &mut path)
-                .ok()?;
+            let outline = outlines.get(GlyphId::new(key.glyph_id as u16))?;
+            let draw_settings = skrifa::outline::DrawSettings::unhinted(size, coords);
+            outline.draw(draw_settings, &mut path).ok()?;
             if path.finish(false) == 0 {
                 return None;
             }
@@ -89,5 +92,31 @@ impl CachedRange {
             dasharrays: self.end.dasharrays - self.start.dasharrays,
             patterns: self.end.patterns - self.start.patterns,
         }
+    }
+}
+
+// A wrapper newtype so we can implement the `OutlinePen` trait.
+#[derive(Default)]
+struct BezPathPen(BezPath);
+
+impl OutlinePen for BezPathPen {
+    fn move_to(&mut self, x: f32, y: f32) {
+        self.0.move_to((x as f64, y as f64));
+    }
+
+    fn line_to(&mut self, x: f32, y: f32) {
+        self.0.line_to((x as f64, y as f64));
+    }
+
+    fn quad_to(&mut self, cx0: f32, cy0: f32, x: f32, y: f32) {
+        self.0.quad_to((cx0 as f64, cy0 as f64), (x as f64, y as f64));
+    }
+
+    fn curve_to(&mut self, cx0: f32, cy0: f32, cx1: f32, cy1: f32, x: f32, y: f32) {
+        self.0.curve_to((cx0 as f64, cy0 as f64), (cx1 as f64, cy1 as f64), (x as f64, y as f64));
+    }
+
+    fn close(&mut self) {
+        self.0.close_path();
     }
 }

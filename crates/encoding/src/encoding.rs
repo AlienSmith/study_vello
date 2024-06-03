@@ -12,7 +12,7 @@ use peniko::{ kurbo::{ Shape, Vec2 }, BlendMode, BrushRef, Color };
 #[cfg(feature = "full")]
 use super::{ DrawImage, DrawLinearGradient, DrawRadialGradient, Glyph, GlyphRun, Patch };
 #[cfg(feature = "full")]
-use fello::NormalizedCoord;
+use skrifa::instance::NormalizedCoord;
 #[cfg(feature = "full")]
 use peniko::{ ColorStop, Extend, GradientKind, Image };
 

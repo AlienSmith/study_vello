@@ -1,7 +1,7 @@
 use crate::{ ExampleScene, SceneConfig, SceneParams, SceneSet };
-use kurbo::Shape;
 use vello::kurbo::{ Affine, BezPath, Ellipse, PathEl, Point, Rect, Vec2 };
 use vello::peniko::*;
+use vello::peniko::kurbo::Stroke;
 use vello::*;
 
 const FLOWER_IMAGE: &[u8] = include_bytes!("../../assets/splash-flower.jpg");

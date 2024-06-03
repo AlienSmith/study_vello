@@ -29,7 +29,7 @@ pub use peniko;
 pub use peniko::kurbo;
 
 #[doc(hidden)]
-pub use fello;
+pub use skrifa;
 
 pub mod glyph;
 
@@ -37,23 +37,30 @@ pub mod glyph;
 pub mod util;
 
 pub use render::Render;
-pub use scene::{DrawGlyphs, Scene};
+pub use scene::{ DrawGlyphs, Scene };
 #[cfg(feature = "wgpu")]
 pub use util::block_on_wgpu;
 
 pub use engine::{
-    BufProxy, Command, Id, ImageFormat, ImageProxy, Recording, ResourceProxy, ShaderId,
+    BufProxy,
+    Command,
+    Id,
+    ImageFormat,
+    ImageProxy,
+    Recording,
+    ResourceProxy,
+    ShaderId,
 };
 pub use shaders::FullShaders;
 #[cfg(feature = "wgpu")]
-use wgpu_engine::{ExternalResource, WgpuEngine};
+use wgpu_engine::{ ExternalResource, WgpuEngine };
 
 /// Temporary export, used in with_winit for stats
 pub use vello_encoding::BumpAllocators;
 #[cfg(feature = "wgpu")]
-use wgpu::{Device, Queue, SurfaceTexture, TextureFormat, TextureView};
+use wgpu::{ Device, Queue, SurfaceTexture, TextureFormat, TextureView };
 #[cfg(all(feature = "wgpu", feature = "wgpu-profiler"))]
-use wgpu_profiler::{GpuProfiler, GpuProfilerSettings};
+use wgpu_profiler::{ GpuProfiler, GpuProfilerSettings };
 
 /// Catch-all error type.
 pub type Error = Box<dyn std::error::Error>;
@@ -102,9 +109,9 @@ impl Renderer {
     pub fn new(device: &Device, render_options: &RendererOptions) -> Result<Self> {
         let mut engine = WgpuEngine::new();
         let shaders = shaders::full_shaders(device, &mut engine, render_options.use_cpu)?;
-        let blit = render_options
-            .surface_format
-            .map(|surface_format| BlitPipeline::new(device, surface_format));
+        let blit = render_options.surface_format.map(|surface_format|
+            BlitPipeline::new(device, surface_format)
+        );
         Ok(Self {
             engine,
             shaders,
@@ -131,21 +138,17 @@ impl Renderer {
         queue: &Queue,
         scene: &Scene,
         texture: &TextureView,
-        params: &RenderParams,
+        params: &RenderParams
     ) -> Result<()> {
         let (recording, target) = render::render_full(scene, &self.shaders, params);
-        let external_resources = [ExternalResource::Image(
-            *target.as_image().unwrap(),
-            texture,
-        )];
+        let external_resources = [ExternalResource::Image(*target.as_image().unwrap(), texture)];
         self.engine.run_recording(
             device,
             queue,
             &recording,
             &external_resources,
             "render_to_texture",
-            #[cfg(feature = "wgpu-profiler")]
-            &mut self.profiler,
+            #[cfg(feature = "wgpu-profiler")] &mut self.profiler
         )?;
         Ok(())
     }
@@ -164,12 +167,11 @@ impl Renderer {
         queue: &Queue,
         scene: &Scene,
         surface: &SurfaceTexture,
-        params: &RenderParams,
+        params: &RenderParams
     ) -> Result<()> {
         let width = params.width;
         let height = params.height;
-        let mut target = self
-            .target
+        let mut target = self.target
             .take()
             .unwrap_or_else(|| TargetTexture::new(device, width, height));
         // TODO: implement clever resizing semantics here to avoid thrashing the memory allocator
@@ -178,42 +180,46 @@ impl Renderer {
             target = TargetTexture::new(device, width, height);
         }
         self.render_to_texture(device, queue, scene, &target.view, params)?;
-        let blit = self
-            .blit
+        let blit = self.blit
             .as_ref()
             .expect("renderer should have configured surface_format to use on a surface");
-        let mut encoder =
-            device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+        let mut encoder = device.create_command_encoder(
+            &(wgpu::CommandEncoderDescriptor { label: None })
+        );
         {
-            let surface_view = surface
-                .texture
-                .create_view(&wgpu::TextureViewDescriptor::default());
-            let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: None,
-                layout: &blit.bind_layout,
-                entries: &[wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&target.view),
-                }],
-            });
-            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: None,
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &surface_view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::default()),
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                occlusion_query_set: None,
-                timestamp_writes: None,
-            });
+            let surface_view = surface.texture.create_view(&wgpu::TextureViewDescriptor::default());
+            let bind_group = device.create_bind_group(
+                &(wgpu::BindGroupDescriptor {
+                    label: None,
+                    layout: &blit.bind_layout,
+                    entries: &[
+                        wgpu::BindGroupEntry {
+                            binding: 0,
+                            resource: wgpu::BindingResource::TextureView(&target.view),
+                        },
+                    ],
+                })
+            );
+            let mut render_pass = encoder.begin_render_pass(
+                &(wgpu::RenderPassDescriptor {
+                    label: None,
+                    color_attachments: &[
+                        Some(wgpu::RenderPassColorAttachment {
+                            view: &surface_view,
+                            resolve_target: None,
+                            ops: wgpu::Operations {
+                                load: wgpu::LoadOp::Clear(wgpu::Color::default()),
+                                store: wgpu::StoreOp::Store,
+                            },
+                        }),
+                    ],
+                    depth_stencil_attachment: None,
+                    occlusion_query_set: None,
+                    timestamp_writes: None,
+                })
+            );
             #[cfg(feature = "wgpu-profiler")]
-            let mut render_pass = self
-                .profiler
-                .scope("blit to surface", &mut render_pass, device);
+            let mut render_pass = self.profiler.scope("blit to surface", &mut render_pass, device);
             render_pass.set_pipeline(&blit.pipeline);
             render_pass.set_bind_group(0, &bind_group, &[]);
             render_pass.draw(0..6, 0..1);
@@ -225,9 +231,10 @@ impl Renderer {
         #[cfg(feature = "wgpu-profiler")]
         {
             self.profiler.end_frame().unwrap();
-            if let Some(result) = self
-                .profiler
-                .process_finished_frame(queue.get_timestamp_period())
+            if
+                let Some(result) = self.profiler.process_finished_frame(
+                    queue.get_timestamp_period()
+                )
             {
                 self.profile_result = Some(result);
             }
@@ -266,7 +273,7 @@ impl Renderer {
         queue: &Queue,
         scene: &Scene,
         texture: &TextureView,
-        params: &RenderParams,
+        params: &RenderParams
     ) -> Result<Option<BumpAllocators>> {
         let mut render = Render::new();
         let encoding = scene.data();
@@ -279,8 +286,7 @@ impl Renderer {
             &recording,
             &[],
             "t_async_coarse",
-            #[cfg(feature = "wgpu-profiler")]
-            &mut self.profiler,
+            #[cfg(feature = "wgpu-profiler")] &mut self.profiler
         )?;
 
         let mut bump: Option<BumpAllocators> = None;
@@ -309,91 +315,92 @@ impl Renderer {
             &recording,
             &external_resources,
             "t_async_fine",
-            #[cfg(feature = "wgpu-profiler")]
-            &mut self.profiler,
+            #[cfg(feature = "wgpu-profiler")] &mut self.profiler
         )?;
         Ok(bump)
     }
 
-/// See [`Self::render_to_surface`]
-pub async fn render_to_surface_async(
-    &mut self,
-    device: &Device,
-    queue: &Queue,
-    scene: &Scene,
-    surface: &SurfaceTexture,
-    params: &RenderParams,
-) -> Result<Option<BumpAllocators>> {
-    let width = params.width;
-    let height = params.height;
-    let mut target = self
-        .target
-        .take()
-        .unwrap_or_else(|| TargetTexture::new(device, width, height));
-    // TODO: implement clever resizing semantics here to avoid thrashing the memory allocator
-    // during resize, specifically on metal.
-    if target.width != width || target.height != height {
-        target = TargetTexture::new(device, width, height);
-    }
-    let bump = self
-        .render_to_texture_async(device, queue, scene, &target.view, params)
-        .await?;
-    let blit = self
-        .blit
-        .as_ref()
-        .expect("renderer should have configured surface_format to use on a surface");
-    let mut encoder =
-        device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-    {
-        let surface_view = surface
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: None,
-            layout: &blit.bind_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::TextureView(&target.view),
-            }],
-        });
-        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: None,
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &surface_view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color::default()),
-                    store: wgpu::StoreOp::Store,
-                },
-            })],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-        });
-        #[cfg(feature = "wgpu-profiler")]
-        let mut render_pass = self
-            .profiler
-            .scope("blit to surface", &mut render_pass, device);
-        render_pass.set_pipeline(&blit.pipeline);
-        render_pass.set_bind_group(0, &bind_group, &[]);
-        render_pass.draw(0..6, 0..1);
-    }
-    #[cfg(feature = "wgpu-profiler")]
-    self.profiler.resolve_queries(&mut encoder);
-    queue.submit(Some(encoder.finish()));
-    self.target = Some(target);
-    #[cfg(feature = "wgpu-profiler")]
-    {
-        self.profiler.end_frame().unwrap();
-        if let Some(result) = self
-            .profiler
-            .process_finished_frame(queue.get_timestamp_period())
-        {
-            self.profile_result = Some(result);
+    /// See [`Self::render_to_surface`]
+    pub async fn render_to_surface_async(
+        &mut self,
+        device: &Device,
+        queue: &Queue,
+        scene: &Scene,
+        surface: &SurfaceTexture,
+        params: &RenderParams
+    ) -> Result<Option<BumpAllocators>> {
+        let width = params.width;
+        let height = params.height;
+        let mut target = self.target
+            .take()
+            .unwrap_or_else(|| TargetTexture::new(device, width, height));
+        // TODO: implement clever resizing semantics here to avoid thrashing the memory allocator
+        // during resize, specifically on metal.
+        if target.width != width || target.height != height {
+            target = TargetTexture::new(device, width, height);
         }
+        let bump = self.render_to_texture_async(device, queue, scene, &target.view, params).await?;
+        let blit = self.blit
+            .as_ref()
+            .expect("renderer should have configured surface_format to use on a surface");
+        let mut encoder = device.create_command_encoder(
+            &(wgpu::CommandEncoderDescriptor { label: None })
+        );
+        {
+            let surface_view = surface.texture.create_view(&wgpu::TextureViewDescriptor::default());
+            let bind_group = device.create_bind_group(
+                &(wgpu::BindGroupDescriptor {
+                    label: None,
+                    layout: &blit.bind_layout,
+                    entries: &[
+                        wgpu::BindGroupEntry {
+                            binding: 0,
+                            resource: wgpu::BindingResource::TextureView(&target.view),
+                        },
+                    ],
+                })
+            );
+            let mut render_pass = encoder.begin_render_pass(
+                &(wgpu::RenderPassDescriptor {
+                    label: None,
+                    color_attachments: &[
+                        Some(wgpu::RenderPassColorAttachment {
+                            view: &surface_view,
+                            resolve_target: None,
+                            ops: wgpu::Operations {
+                                load: wgpu::LoadOp::Clear(wgpu::Color::default()),
+                                store: wgpu::StoreOp::Store,
+                            },
+                        }),
+                    ],
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                })
+            );
+            #[cfg(feature = "wgpu-profiler")]
+            let mut render_pass = self.profiler.scope("blit to surface", &mut render_pass, device);
+            render_pass.set_pipeline(&blit.pipeline);
+            render_pass.set_bind_group(0, &bind_group, &[]);
+            render_pass.draw(0..6, 0..1);
+        }
+        #[cfg(feature = "wgpu-profiler")]
+        self.profiler.resolve_queries(&mut encoder);
+        queue.submit(Some(encoder.finish()));
+        self.target = Some(target);
+        #[cfg(feature = "wgpu-profiler")]
+        {
+            self.profiler.end_frame().unwrap();
+            if
+                let Some(result) = self.profiler.process_finished_frame(
+                    queue.get_timestamp_period()
+                )
+            {
+                self.profile_result = Some(result);
+            }
+        }
+        Ok(bump)
     }
-    Ok(bump)
-}
 }
 #[cfg(feature = "wgpu")]
 struct TargetTexture {
@@ -405,20 +412,22 @@ struct TargetTexture {
 #[cfg(feature = "wgpu")]
 impl TargetTexture {
     pub fn new(device: &Device, width: u32, height: u32) -> Self {
-        let texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: None,
-            size: wgpu::Extent3d {
-                width,
-                height,
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            usage: wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::TEXTURE_BINDING,
-            format: wgpu::TextureFormat::Rgba8Unorm,
-            view_formats: &[],
-        });
+        let texture = device.create_texture(
+            &(wgpu::TextureDescriptor {
+                label: None,
+                size: wgpu::Extent3d {
+                    width,
+                    height,
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                usage: wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::TEXTURE_BINDING,
+                format: wgpu::TextureFormat::Rgba8Unorm,
+                view_formats: &[],
+            })
+        );
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
         Self {
             view,
@@ -437,7 +446,8 @@ struct BlitPipeline {
 #[cfg(feature = "wgpu")]
 impl BlitPipeline {
     fn new(device: &Device, format: TextureFormat) -> Self {
-        const SHADERS: &str = r#"
+        const SHADERS: &str =
+            r#"
             @vertex
             fn vs_main(@builtin(vertex_index) ix: u32) -> @builtin(position) vec4<f32> {
                 // Generate a full screen quad in NDCs
@@ -471,58 +481,68 @@ impl BlitPipeline {
             label: Some("blit shaders"),
             source: wgpu::ShaderSource::Wgsl(SHADERS.into()),
         });
-        let bind_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: None,
-            entries: &[wgpu::BindGroupLayoutEntry {
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                binding: 0,
-                ty: wgpu::BindingType::Texture {
-                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                    view_dimension: wgpu::TextureViewDimension::D2,
-                    multisampled: false,
+        let bind_layout = device.create_bind_group_layout(
+            &(wgpu::BindGroupLayoutDescriptor {
+                label: None,
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        binding: 0,
+                        ty: wgpu::BindingType::Texture {
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                ],
+            })
+        );
+        let pipeline_layout = device.create_pipeline_layout(
+            &(wgpu::PipelineLayoutDescriptor {
+                label: None,
+                bind_group_layouts: &[&bind_layout],
+                push_constant_ranges: &[],
+            })
+        );
+        let pipeline = device.create_render_pipeline(
+            &(wgpu::RenderPipelineDescriptor {
+                label: None,
+                layout: Some(&pipeline_layout),
+                vertex: wgpu::VertexState {
+                    module: &shader,
+                    entry_point: "vs_main",
+                    buffers: &[],
                 },
-                count: None,
-            }],
-        });
-        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: None,
-            bind_group_layouts: &[&bind_layout],
-            push_constant_ranges: &[],
-        });
-        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: None,
-            layout: Some(&pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &shader,
-                entry_point: "vs_main",
-                buffers: &[],
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &shader,
-                entry_point: "fs_main",
-                targets: &[Some(wgpu::ColorTargetState {
-                    format,
-                    blend: None,
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-            }),
-            primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleList,
-                strip_index_format: None,
-                front_face: wgpu::FrontFace::Ccw,
-                cull_mode: Some(wgpu::Face::Back),
-                polygon_mode: wgpu::PolygonMode::Fill,
-                unclipped_depth: false,
-                conservative: false,
-            },
-            depth_stencil: None,
-            multisample: wgpu::MultisampleState {
-                count: 1,
-                mask: !0,
-                alpha_to_coverage_enabled: false,
-            },
-            multiview: None,
-        });
+                fragment: Some(wgpu::FragmentState {
+                    module: &shader,
+                    entry_point: "fs_main",
+                    targets: &[
+                        Some(wgpu::ColorTargetState {
+                            format,
+                            blend: None,
+                            write_mask: wgpu::ColorWrites::ALL,
+                        }),
+                    ],
+                }),
+                primitive: wgpu::PrimitiveState {
+                    topology: wgpu::PrimitiveTopology::TriangleList,
+                    strip_index_format: None,
+                    front_face: wgpu::FrontFace::Ccw,
+                    cull_mode: Some(wgpu::Face::Back),
+                    polygon_mode: wgpu::PolygonMode::Fill,
+                    unclipped_depth: false,
+                    conservative: false,
+                },
+                depth_stencil: None,
+                multisample: wgpu::MultisampleState {
+                    count: 1,
+                    mask: !0,
+                    alpha_to_coverage_enabled: false,
+                },
+                multiview: None,
+            })
+        );
         Self {
             bind_layout,
             pipeline,

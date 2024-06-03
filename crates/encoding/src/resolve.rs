@@ -1,20 +1,21 @@
 // Copyright 2022 The Vello authors
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use bytemuck::{Pod, Zeroable};
+use bytemuck::{ Pod, Zeroable };
+use skrifa::MetadataProvider;
 
-use super::{DrawTag, Encoding, PathTag, StreamOffsets, Transform};
+use super::{ DrawTag, Encoding, PathTag, StreamOffsets, Transform };
 
 #[cfg(feature = "full")]
-use {
-    super::{
-        glyph_cache::{CachedRange, GlyphCache, GlyphKey},
-        image_cache::{ImageCache, Images},
-        ramp_cache::{RampCache, Ramps},
-    },
-    peniko::{Extend, Image},
-    std::ops::Range,
+use super::{
+    glyph_cache::{ CachedRange, GlyphCache, GlyphKey },
+    image_cache::{ ImageCache, Images },
+    ramp_cache::{ RampCache, Ramps },
 };
+#[cfg(feature = "full")]
+use peniko::{ Extend, Image };
+#[cfg(feature = "full")]
+use std::ops::Range;
 
 /// Layout of a packed encoding.
 #[derive(Clone, Copy, Debug, Default, Zeroable, Pod)]
@@ -56,8 +57,8 @@ impl Layout {
 
     /// Returns the path tag stream.
     pub fn path_tags<'a>(&self, data: &'a [u8]) -> &'a [PathTag] {
-        let start = self.path_tag_base as usize * 4;
-        let end = self.path_data_base as usize * 4;
+        let start = (self.path_tag_base as usize) * 4;
+        let end = (self.path_data_base as usize) * 4;
         bytemuck::cast_slice(&data[start..end])
     }
 
@@ -69,42 +70,42 @@ impl Layout {
 
     /// Returns the path tag stream in chunks of 4.
     pub fn path_tags_chunked<'a>(&self, data: &'a [u8]) -> &'a [u32] {
-        let start = self.path_tag_base as usize * 4;
-        let end = self.path_data_base as usize * 4;
+        let start = (self.path_tag_base as usize) * 4;
+        let end = (self.path_data_base as usize) * 4;
         bytemuck::cast_slice(&data[start..end])
     }
 
     /// Returns the path data stream.
     pub fn path_data<'a>(&self, data: &'a [u8]) -> &'a [u8] {
-        let start = self.path_data_base as usize * 4;
-        let end = self.draw_tag_base as usize * 4;
+        let start = (self.path_data_base as usize) * 4;
+        let end = (self.draw_tag_base as usize) * 4;
         bytemuck::cast_slice(&data[start..end])
     }
 
     /// Returns the draw tag stream.
     pub fn draw_tags<'a>(&self, data: &'a [u8]) -> &'a [DrawTag] {
-        let start = self.draw_tag_base as usize * 4;
-        let end = self.draw_data_base as usize * 4;
+        let start = (self.draw_tag_base as usize) * 4;
+        let end = (self.draw_data_base as usize) * 4;
         bytemuck::cast_slice(&data[start..end])
     }
 
     /// Returns the draw data stream.
     pub fn draw_data<'a>(&self, data: &'a [u8]) -> &'a [u32] {
-        let start = self.draw_data_base as usize * 4;
-        let end = self.transform_base as usize * 4;
+        let start = (self.draw_data_base as usize) * 4;
+        let end = (self.transform_base as usize) * 4;
         bytemuck::cast_slice(&data[start..end])
     }
 
     /// Returns the transform stream.
     pub fn transforms<'a>(&self, data: &'a [u8]) -> &'a [Transform] {
-        let start = self.transform_base as usize * 4;
-        let end = self.linewidth_base as usize * 4;
+        let start = (self.transform_base as usize) * 4;
+        let end = (self.linewidth_base as usize) * 4;
         bytemuck::cast_slice(&data[start..end])
     }
 
     /// Returns the linewidth stream.
     pub fn linewidths<'a>(&self, data: &'a [u8]) -> &'a [f32] {
-        let start = self.linewidth_base as usize * 4;
+        let start = (self.linewidth_base as usize) * 4;
         bytemuck::cast_slice(&data[start..])
     }
 }
@@ -128,10 +129,10 @@ pub fn resolve_solid_paths_only(encoding: &Encoding, packed: &mut Vec<u8>) -> La
         n_patterns: encoding.n_patterns,
         ..Layout::default()
     };
-    let SceneBufferSizes {
-        buffer_size,
-        path_tag_padded,
-    } = SceneBufferSizes::new(encoding, &StreamOffsets::default());
+    let SceneBufferSizes { buffer_size, path_tag_padded } = SceneBufferSizes::new(
+        encoding,
+        &StreamOffsets::default()
+    );
     data.reserve(buffer_size);
     // Path tag stream
     layout.path_tag_base = size_to_words(data.len());
@@ -146,7 +147,10 @@ pub fn resolve_solid_paths_only(encoding: &Encoding, packed: &mut Vec<u8>) -> La
     // Draw tag stream
     layout.draw_tag_base = size_to_words(data.len());
     // Bin data follows draw info
-    layout.bin_data_start = encoding.draw_tags.iter().map(|tag| tag.info_size()).sum();
+    layout.bin_data_start = encoding.draw_tags
+        .iter()
+        .map(|tag| tag.info_size())
+        .sum();
     data.extend_from_slice(bytemuck::cast_slice(&encoding.draw_tags));
     for _ in 0..encoding.n_open_clips {
         data.extend_from_slice(bytemuck::bytes_of(&DrawTag::END_CLIP));
@@ -177,7 +181,6 @@ pub fn resolve_solid_paths_only(encoding: &Encoding, packed: &mut Vec<u8>) -> La
 pub struct Resolver {
     glyph_cache: GlyphCache,
     glyph_ranges: Vec<CachedRange>,
-    glyph_cx: fello::scale::Context,
     ramp_cache: RampCache,
     image_cache: ImageCache,
     pending_images: Vec<PendingImage>,
@@ -196,7 +199,7 @@ impl Resolver {
     pub fn resolve<'a>(
         &'a mut self,
         encoding: &Encoding,
-        packed: &mut Vec<u8>,
+        packed: &mut Vec<u8>
     ) -> (Layout, Ramps<'a>, Images<'a>) {
         let resources = &encoding.resources;
         if resources.patches.is_empty() {
@@ -212,10 +215,10 @@ impl Resolver {
             n_clips: encoding.n_clips,
             ..Layout::default()
         };
-        let SceneBufferSizes {
-            buffer_size,
-            path_tag_padded,
-        } = SceneBufferSizes::new(encoding, &patch_sizes);
+        let SceneBufferSizes { buffer_size, path_tag_padded } = SceneBufferSizes::new(
+            encoding,
+            &patch_sizes
+        );
         data.reserve(buffer_size);
         // Path tag stream
         layout.path_tag_base = size_to_words(data.len());
@@ -232,8 +235,9 @@ impl Resolver {
                     }
                     for glyph in &self.glyph_ranges[glyphs.clone()] {
                         data.extend_from_slice(bytemuck::bytes_of(&PathTag::TRANSFORM));
-                        let glyph_data = &self.glyph_cache.encoding.path_tags
-                            [glyph.start.path_tags..glyph.end.path_tags];
+                        let glyph_data =
+                            &self.glyph_cache.encoding.path_tags
+                                [glyph.start.path_tags..glyph.end.path_tags];
                         data.extend_from_slice(bytemuck::cast_slice(glyph_data));
                     }
                     data.extend_from_slice(bytemuck::bytes_of(&PathTag::PATH));
@@ -254,16 +258,16 @@ impl Resolver {
             let stream = &encoding.path_data;
             for patch in &self.patches {
                 if let ResolvedPatch::GlyphRun { index, glyphs, .. } = patch {
-                    let stream_offset = encoding.resources.glyph_runs[*index]
-                        .stream_offsets
-                        .path_data;
+                    let stream_offset = encoding.resources.glyph_runs
+                        [*index].stream_offsets.path_data;
                     if pos < stream_offset {
                         data.extend_from_slice(bytemuck::cast_slice(&stream[pos..stream_offset]));
                         pos = stream_offset;
                     }
                     for glyph in &self.glyph_ranges[glyphs.clone()] {
-                        let glyph_data = &self.glyph_cache.encoding.path_data
-                            [glyph.start.path_data..glyph.end.path_data];
+                        let glyph_data =
+                            &self.glyph_cache.encoding.path_data
+                                [glyph.start.path_data..glyph.end.path_data];
                         data.extend_from_slice(bytemuck::cast_slice(glyph_data));
                     }
                 }
@@ -275,7 +279,10 @@ impl Resolver {
         // Draw tag stream
         layout.draw_tag_base = size_to_words(data.len());
         // Bin data follows draw info
-        layout.bin_data_start = encoding.draw_tags.iter().map(|tag| tag.info_size()).sum();
+        layout.bin_data_start = encoding.draw_tags
+            .iter()
+            .map(|tag| tag.info_size())
+            .sum();
         {
             data.extend_from_slice(bytemuck::cast_slice(&encoding.draw_tags));
             for _ in 0..encoding.n_open_clips {
@@ -289,23 +296,16 @@ impl Resolver {
             let stream = &encoding.draw_data;
             for patch in &self.patches {
                 match patch {
-                    ResolvedPatch::Ramp {
-                        draw_data_offset,
-                        ramp_id,
-                        extend,
-                    } => {
+                    ResolvedPatch::Ramp { draw_data_offset, ramp_id, extend } => {
                         if pos < *draw_data_offset {
                             data.extend_from_slice(&encoding.draw_data[pos..*draw_data_offset]);
                         }
-                        let index_mode = (ramp_id << 2) | *extend as u32;
+                        let index_mode = (ramp_id << 2) | (*extend as u32);
                         data.extend_from_slice(bytemuck::bytes_of(&index_mode));
                         pos = *draw_data_offset + 4;
                     }
                     ResolvedPatch::GlyphRun { .. } => {}
-                    ResolvedPatch::Image {
-                        index,
-                        draw_data_offset,
-                    } => {
+                    ResolvedPatch::Image { index, draw_data_offset } => {
                         if pos < *draw_data_offset {
                             data.extend_from_slice(&encoding.draw_data[pos..*draw_data_offset]);
                         }
@@ -334,12 +334,7 @@ impl Resolver {
             let mut pos = 0;
             let stream = &encoding.transforms;
             for patch in &self.patches {
-                if let ResolvedPatch::GlyphRun {
-                    index,
-                    glyphs: _,
-                    transform,
-                } = patch
-                {
+                if let ResolvedPatch::GlyphRun { index, glyphs: _, transform } = patch {
                     let run = &resources.glyph_runs[*index];
                     let stream_offset = run.stream_offsets.transforms;
                     if pos < stream_offset {
@@ -348,18 +343,20 @@ impl Resolver {
                     }
                     if let Some(glyph_transform) = run.glyph_transform {
                         for glyph in &resources.glyphs[run.glyphs.clone()] {
-                            let xform = *transform
-                                * Transform {
+                            let xform =
+                                *transform *
+                                Transform {
                                     matrix: [1.0, 0.0, 0.0, -1.0],
                                     translation: [glyph.x, glyph.y],
-                                }
-                                * glyph_transform;
+                                } *
+                                glyph_transform;
                             data.extend_from_slice(bytemuck::bytes_of(&xform));
                         }
                     } else {
                         for glyph in &resources.glyphs[run.glyphs.clone()] {
-                            let xform = *transform
-                                * Transform {
+                            let xform =
+                                *transform *
+                                Transform {
                                     matrix: [1.0, 0.0, 0.0, -1.0],
                                     translation: [glyph.x, glyph.y],
                                 };
@@ -385,8 +382,9 @@ impl Resolver {
                         pos = stream_offset;
                     }
                     for glyph in &self.glyph_ranges[glyphs.clone()] {
-                        let glyph_data = &self.glyph_cache.encoding.linewidths
-                            [glyph.start.linewidths..glyph.end.linewidths];
+                        let glyph_data =
+                            &self.glyph_cache.encoding.linewidths
+                                [glyph.start.linewidths..glyph.end.linewidths];
                         data.extend_from_slice(bytemuck::cast_slice(glyph_data));
                     }
                 }
@@ -418,11 +416,7 @@ impl Resolver {
         let resources = &encoding.resources;
         for patch in &resources.patches {
             match patch {
-                Patch::Ramp {
-                    draw_data_offset,
-                    stops,
-                    extend,
-                } => {
+                Patch::Ramp { draw_data_offset, stops, extend } => {
                     let ramp_id = self.ramp_cache.add(&resources.color_stops[stops.clone()]);
                     self.patches.push(ResolvedPatch::Ramp {
                         draw_data_offset: *draw_data_offset + sizes.draw_data,
@@ -434,23 +428,20 @@ impl Resolver {
                     let mut run_sizes = StreamOffsets::default();
                     let run = &resources.glyph_runs[*index];
                     let font_id = run.font.data.id();
-                    let font_size_u32 = run.font_size.to_bits();
-                    let Ok(font_file) = fello::raw::FileRef::new(run.font.data.as_ref()) else {
+                    let Ok(font_file) = skrifa::raw::FileRef::new(run.font.data.as_ref()) else {
                         continue;
                     };
                     let font = match font_file {
-                        fello::raw::FileRef::Font(font) => Some(font),
-                        fello::raw::FileRef::Collection(collection) => {
+                        skrifa::raw::FileRef::Font(font) => Some(font),
+                        skrifa::raw::FileRef::Collection(collection) => {
                             collection.get(run.font.index).ok()
                         }
                     };
-                    let Some(font) = font else { continue };
+                    let Some(font) = font else {
+                        continue;
+                    };
                     let glyphs = &resources.glyphs[run.glyphs.clone()];
                     let coords = &resources.normalized_coords[run.normalized_coords.clone()];
-                    let key = fello::FontKey {
-                        data_id: font_id,
-                        index: run.font.index,
-                    };
                     let mut hint = run.hint;
                     let mut font_size = run.font_size;
                     let mut transform = run.transform;
@@ -458,9 +449,10 @@ impl Resolver {
                         // If hinting was requested and our transform matrix is just a uniform
                         // scale, then adjust our font size and cancel out the matrix. Otherwise,
                         // disable hinting entirely.
-                        if transform.matrix[0] == transform.matrix[3]
-                            && transform.matrix[1] == 0.0
-                            && transform.matrix[2] == 0.0
+                        if
+                            transform.matrix[0] == transform.matrix[3] &&
+                            transform.matrix[1] == 0.0 &&
+                            transform.matrix[2] == 0.0
                         {
                             font_size *= transform.matrix[0];
                             transform.matrix = [1.0, 0.0, 0.0, 1.0];
@@ -468,26 +460,18 @@ impl Resolver {
                             hint = false;
                         }
                     }
-                    let mut scaler = self
-                        .glyph_cx
-                        .new_scaler()
-                        .key(Some(key))
-                        .hint(hint.then_some(fello::scale::Hinting::VerticalSubpixel))
-                        .coords(coords)
-                        .size(fello::Size::new(font_size))
-                        .build(&font);
+                    let outlines = font.outline_glyphs();
                     let glyph_start = self.glyph_ranges.len();
                     for glyph in glyphs {
                         let key = GlyphKey {
                             font_id,
                             font_index: run.font.index,
-                            font_size: font_size_u32,
+                            font_size_bits: font_size.to_bits(),
                             glyph_id: glyph.id,
-                            hint: run.hint,
+                            hint,
                         };
-                        let encoding_range = self
-                            .glyph_cache
-                            .get_or_insert(key, &run.style, &mut scaler)
+                        let encoding_range = self.glyph_cache
+                            .get_or_insert(&outlines, key, &run.style, font_size, coords)
                             .unwrap_or_default();
                         run_sizes.add(&encoding_range.len());
                         self.glyph_ranges.push(encoding_range);
@@ -502,10 +486,7 @@ impl Resolver {
                         transform,
                     });
                 }
-                Patch::Image {
-                    draw_data_offset,
-                    image,
-                } => {
+                Patch::Image { draw_data_offset, image } => {
                     let index = self.pending_images.len();
                     self.pending_images.push(PendingImage {
                         image: image.clone(),
@@ -622,19 +603,20 @@ impl SceneBufferSizes {
     /// stream sizes.
     fn new(encoding: &Encoding, patch_sizes: &StreamOffsets) -> Self {
         let n_path_tags =
-            encoding.path_tags.len() + patch_sizes.path_tags + encoding.n_open_clips as usize;
+            encoding.path_tags.len() + patch_sizes.path_tags + (encoding.n_open_clips as usize);
         let path_tag_padded = align_up(n_path_tags, 4 * crate::config::PATH_REDUCE_WG);
-        let buffer_size = path_tag_padded
-            + slice_size_in_bytes(&encoding.path_data, patch_sizes.path_data)
-            + slice_size_in_bytes(
+        let buffer_size =
+            path_tag_padded +
+            slice_size_in_bytes(&encoding.path_data, patch_sizes.path_data) +
+            slice_size_in_bytes(
                 &encoding.draw_tags,
-                patch_sizes.draw_tags + encoding.n_open_clips as usize,
-            )
-            + slice_size_in_bytes(&encoding.draw_data, patch_sizes.draw_data)
-            + slice_size_in_bytes(&encoding.transforms, patch_sizes.transforms)
-            + slice_size_in_bytes(&encoding.linewidths, patch_sizes.linewidths)
-            + slice_size_in_bytes(&encoding.dasharrays, patch_sizes.dasharrays)
-            + slice_size_in_bytes(&encoding.pattern_data, patch_sizes.patterns);
+                patch_sizes.draw_tags + (encoding.n_open_clips as usize)
+            ) +
+            slice_size_in_bytes(&encoding.draw_data, patch_sizes.draw_data) +
+            slice_size_in_bytes(&encoding.transforms, patch_sizes.transforms) +
+            slice_size_in_bytes(&encoding.linewidths, patch_sizes.linewidths) +
+            slice_size_in_bytes(&encoding.dasharrays, patch_sizes.dasharrays) +
+            slice_size_in_bytes(&encoding.pattern_data, patch_sizes.patterns);
         Self {
             buffer_size,
             path_tag_padded,
@@ -651,5 +633,5 @@ fn size_to_words(byte_size: usize) -> u32 {
 }
 
 fn align_up(len: usize, alignment: u32) -> usize {
-    len + (len.wrapping_neg() & (alignment as usize - 1))
+    len + (len.wrapping_neg() & ((alignment as usize) - 1))
 }

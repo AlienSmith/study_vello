@@ -1,7 +1,7 @@
 // Copyright 2022 The Vello authors
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use bytemuck::{Pod, Zeroable};
+use bytemuck::{ Pod, Zeroable };
 use peniko::kurbo::Shape;
 
 use super::Monoid;
@@ -95,12 +95,12 @@ impl PathTag {
 
     /// Returns true if this is a 32-bit floating point segment.
     pub fn is_f32(self) -> bool {
-        self.0 & Self::F32_BIT != 0
+        (self.0 & Self::F32_BIT) != 0
     }
 
     /// Returns true if this segment ends a subpath.
     pub fn is_subpath_end(self) -> bool {
-        self.0 & Self::SUBPATH_END_BIT != 0
+        (self.0 & Self::SUBPATH_END_BIT) != 0
     }
 
     /// Sets the subpath end bit.
@@ -138,14 +138,14 @@ impl Monoid for PathMonoid {
         let mut c = Self::default();
         let point_count = tag_word & 0x3030303;
         c.pathseg_ix = ((point_count * 7) & 0x4040404).count_ones();
-        c.trans_ix = (tag_word & (PathTag::TRANSFORM.0 as u32 * 0x1010101)).count_ones();
+        c.trans_ix = (tag_word & ((PathTag::TRANSFORM.0 as u32) * 0x1010101)).count_ones();
         let n_points = point_count + ((tag_word >> 2) & 0x1010101);
         let mut a = n_points + (n_points & (((tag_word >> 3) & 0x1010101) * 15));
         a += a >> 8;
         a += a >> 16;
         c.pathseg_offset = a & 0xff;
-        c.path_ix = (tag_word & (PathTag::PATH.0 as u32 * 0x1010101)).count_ones();
-        c.linewidth_ix = (tag_word & (PathTag::LINEWIDTH.0 as u32 * 0x1010101)).count_ones();
+        c.path_ix = (tag_word & ((PathTag::PATH.0 as u32) * 0x1010101)).count_ones();
+        c.linewidth_ix = (tag_word & ((PathTag::LINEWIDTH.0 as u32) * 0x1010101)).count_ones();
         c
     }
 
@@ -244,7 +244,7 @@ impl<'a> PathEncoder<'a> {
         data: &'a mut Vec<u8>,
         n_segments: &'a mut u32,
         n_paths: &'a mut u32,
-        is_fill: bool,
+        is_fill: bool
     ) -> Self {
         Self {
             tags,
@@ -334,7 +334,9 @@ impl<'a> PathEncoder<'a> {
     /// Closes the current subpath.
     pub fn close(&mut self) {
         match self.state {
-            PathState::Start => return,
+            PathState::Start => {
+                return;
+            }
             PathState::MoveTo => {
                 let new_len = self.data.len() - 8;
                 self.data.truncate(new_len);
@@ -369,16 +371,17 @@ impl<'a> PathEncoder<'a> {
                 PathEl::MoveTo(p0) => self.move_to(p0.x as f32, p0.y as f32),
                 PathEl::LineTo(p0) => self.line_to(p0.x as f32, p0.y as f32),
                 PathEl::QuadTo(p0, p1) => {
-                    self.quad_to(p0.x as f32, p0.y as f32, p1.x as f32, p1.y as f32)
+                    self.quad_to(p0.x as f32, p0.y as f32, p1.x as f32, p1.y as f32);
                 }
-                PathEl::CurveTo(p0, p1, p2) => self.cubic_to(
-                    p0.x as f32,
-                    p0.y as f32,
-                    p1.x as f32,
-                    p1.y as f32,
-                    p2.x as f32,
-                    p2.y as f32,
-                ),
+                PathEl::CurveTo(p0, p1, p2) =>
+                    self.cubic_to(
+                        p0.x as f32,
+                        p0.y as f32,
+                        p1.x as f32,
+                        p1.y as f32,
+                        p2.x as f32,
+                        p2.y as f32
+                    ),
                 PathEl::ClosePath => self.close(),
             }
         }
@@ -412,24 +415,24 @@ impl<'a> PathEncoder<'a> {
 }
 
 #[cfg(feature = "full")]
-impl fello::scale::Pen for PathEncoder<'_> {
+impl skrifa::outline::OutlinePen for PathEncoder<'_> {
     fn move_to(&mut self, x: f32, y: f32) {
-        self.move_to(x, y)
+        self.move_to(x, y);
     }
 
     fn line_to(&mut self, x: f32, y: f32) {
-        self.line_to(x, y)
+        self.line_to(x, y);
     }
 
     fn quad_to(&mut self, cx0: f32, cy0: f32, x: f32, y: f32) {
-        self.quad_to(cx0, cy0, x, y)
+        self.quad_to(cx0, cy0, x, y);
     }
 
     fn curve_to(&mut self, cx0: f32, cy0: f32, cx1: f32, cy1: f32, x: f32, y: f32) {
-        self.cubic_to(cx0, cy0, cx1, cy1, x, y)
+        self.cubic_to(cx0, cy0, cx1, cy1, x, y);
     }
 
     fn close(&mut self) {
-        self.close()
+        self.close();
     }
 }

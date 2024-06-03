@@ -5,7 +5,7 @@
 Representations of fixed (non-animated) values.
 */
 
-use vello::kurbo::{self, Affine, Point, Vec2};
+use vello::kurbo::{ self, Affine, Point, Vec2 };
 use vello::peniko;
 
 /// Fixed affine transformation.
@@ -21,7 +21,7 @@ pub type ColorStops = peniko::ColorStops;
 pub type Brush = peniko::Brush;
 
 /// Fixed stroke style.
-pub type Stroke = peniko::Stroke;
+pub type Stroke = peniko::kurbo::Stroke;
 
 /// Fixed repeater effect.
 #[derive(Clone, Debug)]
@@ -47,16 +47,17 @@ pub struct Repeater {
 impl Repeater {
     /// Returns the transform for the given copy index.
     pub fn transform(&self, index: usize) -> Affine {
-        let t = self.offset + index as f64;
+        let t = self.offset + (index as f64);
         Affine::translate((
             t * self.position.x + self.anchor_point.x,
             t * self.position.y + self.anchor_point.y,
-        )) * Affine::rotate((t * self.rotation).to_radians())
-            * Affine::scale_non_uniform(
+        )) *
+            Affine::rotate((t * self.rotation).to_radians()) *
+            Affine::scale_non_uniform(
                 (self.scale.x / 100.0).powf(t),
-                (self.scale.y / 100.0).powf(t),
-            )
-            * Affine::translate((-self.anchor_point.x, -self.anchor_point.y))
+                (self.scale.y / 100.0).powf(t)
+            ) *
+            Affine::translate((-self.anchor_point.x, -self.anchor_point.y))
     }
 }
 
@@ -69,15 +70,15 @@ pub(crate) fn brush_with_alpha(brush: &Brush, alpha: f64) -> Brush {
     } else {
         match brush {
             Brush::Solid(color) => color.with_alpha_factor(alpha as f32).into(),
-            Brush::Gradient(gradient) => Brush::Gradient(peniko::Gradient {
-                kind: gradient.kind,
-                extend: gradient.extend,
-                stops: gradient
-                    .stops
-                    .iter()
-                    .map(|stop| stop.with_alpha_factor(alpha as f32))
-                    .collect(),
-            }),
+            Brush::Gradient(gradient) =>
+                Brush::Gradient(peniko::Gradient {
+                    kind: gradient.kind,
+                    extend: gradient.extend,
+                    stops: gradient.stops
+                        .iter()
+                        .map(|stop| stop.with_alpha_factor(alpha as f32))
+                        .collect(),
+                }),
             _ => unreachable!(),
         }
     }

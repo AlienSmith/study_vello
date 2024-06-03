@@ -16,8 +16,8 @@
 use scenes::SimpleText;
 use std::collections::VecDeque;
 use vello::{
-    kurbo::{ Affine, PathEl, Rect },
-    peniko::{ Brush, Color, Fill, Stroke },
+    kurbo::{ Affine, PathEl, Rect, Stroke },
+    peniko::{ Brush, Color, Fill },
     BumpAllocators,
     Scene,
 };
@@ -177,7 +177,7 @@ impl Snapshot {
                 &format!("{}", t)
             );
             sb.stroke(
-                &Stroke::new((graph_max_height * 0.01) as f32),
+                &Stroke::new(graph_max_height * 0.01),
                 offset * Affine::translate((left_margin_padding, (1.0 - y) * graph_max_height)),
                 Color::WHITE,
                 None,

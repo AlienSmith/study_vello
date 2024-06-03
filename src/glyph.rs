@@ -16,34 +16,32 @@
 
 //! Support for glyph rendering.
 
-use {
-    crate::Scene, fello::{
-        raw::{types::GlyphId, FontRef},
-        scale::{Context, Pen, Scaler},
-        FontKey, Setting, Size,
-    }, peniko::{kurbo::Affine, Brush, Color, Fill, Style}, vello_encoding::Encoding
+use crate::Scene;
+use skrifa::{
+    instance::{ NormalizedCoord, Size },
+    outline::OutlinePen,
+    raw::FontRef,
+    setting::Setting,
+    GlyphId,
+    OutlineGlyphCollection,
 };
+use ::peniko::{ kurbo::Affine, Brush, Color, Fill, Style };
+use ::vello_encoding::Encoding;
+pub use skrifa;
+use skrifa::{ outline::DrawSettings, MetadataProvider };
 
-pub use fello;
 pub use vello_encoding::Glyph;
 
 /// General context for creating scene fragments for glyph outlines.
+#[derive(Default)]
 pub struct GlyphContext {
-    ctx: Context,
-}
-
-impl Default for GlyphContext {
-    fn default() -> Self {
-        Self::new()
-    }
+    coords: Vec<NormalizedCoord>,
 }
 
 impl GlyphContext {
     /// Creates a new context.
     pub fn new() -> Self {
-        Self {
-            ctx: Context::new(),
-        }
+        Self::default()
     }
 
     /// Creates a new provider for generating scene fragments for glyphs from
@@ -51,58 +49,68 @@ impl GlyphContext {
     pub fn new_provider<'a, V>(
         &'a mut self,
         font: &FontRef<'a>,
-        font_id: Option<FontKey>,
         ppem: f32,
-        hint: bool,
-        variations: V,
-    ) -> GlyphProvider<'a>
-    where
-        V: IntoIterator,
-        V::Item: Into<Setting<f32>>,
+        _hint: bool,
+        variations: V
+    )
+        -> GlyphProvider<'a>
+        where V: IntoIterator, V::Item: Into<Setting<f32>>
     {
-        let scaler = self
-            .ctx
-            .new_scaler()
-            .size(Size::new(ppem))
-            .hint(hint.then_some(fello::scale::Hinting::VerticalSubpixel))
-            .key(font_id)
-            .variations(variations)
-            .build(font);
-        GlyphProvider { scaler }
+        let outlines = font.outline_glyphs();
+        let size = Size::new(ppem);
+        let axes = font.axes();
+        let axis_count = axes.len();
+        self.coords.clear();
+        self.coords.resize(axis_count, Default::default());
+        axes.location_to_slice(variations, &mut self.coords);
+        if self.coords.iter().all(|x| *x == NormalizedCoord::default()) {
+            self.coords.clear();
+        }
+        GlyphProvider {
+            outlines,
+            size,
+            coords: &self.coords,
+        }
     }
 }
 
 /// Generator for scene fragments containing glyph outlines for a specific
 /// font.
 pub struct GlyphProvider<'a> {
-    scaler: Scaler<'a>,
+    outlines: OutlineGlyphCollection<'a>,
+    size: Size,
+    coords: &'a [NormalizedCoord],
 }
 
 impl<'a> GlyphProvider<'a> {
     /// Returns a scene fragment containing the commands to render the
     /// specified glyph.
     pub fn get(&mut self, gid: u16, brush: Option<&Brush>) -> Option<Scene> {
-        let mut fragment = Scene::default();
+        let mut scene = Scene::new();
         let mut path = BezPathPen::default();
-        self.scaler.outline(GlyphId::new(gid), &mut path).ok()?;
-        fragment.fill(
+        let outline = self.outlines.get(GlyphId::new(gid))?;
+        let draw_settings = DrawSettings::unhinted(self.size, self.coords);
+        outline.draw(draw_settings, &mut path).ok()?;
+        scene.fill(
             Fill::NonZero,
             Affine::IDENTITY,
             brush.unwrap_or(&Brush::Solid(Color::rgb8(255, 255, 255))),
             None,
-            &path.0,
+            &path.0
         );
-        Some(fragment)
+        Some(scene)
     }
 
     pub fn encode_glyph(&mut self, gid: u16, style: &Style, encoding: &mut Encoding) -> Option<()> {
         match style {
-            Style::Fill(Fill::NonZero) => encoding.encode_linewidth(-1.0,None),
-            Style::Fill(Fill::EvenOdd) => encoding.encode_linewidth(-2.0,None),
-            Style::Stroke(stroke) => encoding.encode_linewidth(stroke.width,None),
+            Style::Fill(Fill::NonZero) => encoding.encode_linewidth(-1.0, None),
+            Style::Fill(Fill::EvenOdd) => encoding.encode_linewidth(-2.0, None),
+            Style::Stroke(stroke) => encoding.encode_linewidth(stroke.width as f32, None),
         }
         let mut path = encoding.encode_path(matches!(style, Style::Fill(_)));
-        self.scaler.outline(GlyphId::new(gid), &mut path).ok()?;
+        let outline = self.outlines.get(GlyphId::new(gid))?;
+        let draw_settings = DrawSettings::unhinted(self.size, self.coords);
+        outline.draw(draw_settings, &mut path).ok()?;
         if path.finish(false) != 0 {
             Some(())
         } else {
@@ -114,29 +122,24 @@ impl<'a> GlyphProvider<'a> {
 #[derive(Default)]
 struct BezPathPen(peniko::kurbo::BezPath);
 
-impl Pen for BezPathPen {
+impl OutlinePen for BezPathPen {
     fn move_to(&mut self, x: f32, y: f32) {
-        self.0.move_to((x as f64, y as f64))
+        self.0.move_to((x as f64, y as f64));
     }
 
     fn line_to(&mut self, x: f32, y: f32) {
-        self.0.line_to((x as f64, y as f64))
+        self.0.line_to((x as f64, y as f64));
     }
 
     fn quad_to(&mut self, cx0: f32, cy0: f32, x: f32, y: f32) {
-        self.0
-            .quad_to((cx0 as f64, cy0 as f64), (x as f64, y as f64))
+        self.0.quad_to((cx0 as f64, cy0 as f64), (x as f64, y as f64));
     }
 
     fn curve_to(&mut self, cx0: f32, cy0: f32, cx1: f32, cy1: f32, x: f32, y: f32) {
-        self.0.curve_to(
-            (cx0 as f64, cy0 as f64),
-            (cx1 as f64, cy1 as f64),
-            (x as f64, y as f64),
-        )
+        self.0.curve_to((cx0 as f64, cy0 as f64), (cx1 as f64, cy1 as f64), (x as f64, y as f64));
     }
 
     fn close(&mut self) {
-        self.0.close_path()
+        self.0.close_path();
     }
 }

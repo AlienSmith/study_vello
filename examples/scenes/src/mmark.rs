@@ -8,15 +8,15 @@
 
 use std::cmp::Ordering;
 
-use rand::{seq::SliceRandom, Rng};
+use rand::{ seq::SliceRandom, Rng };
 use vello::peniko::Color;
 use vello::Scene;
 use vello::{
-    kurbo::{Affine, BezPath, CubicBez, Line, ParamCurve, PathSeg, Point, QuadBez},
-    peniko::Stroke
+    kurbo::{ Affine, BezPath, CubicBez, Line, ParamCurve, PathSeg, Point, QuadBez },
+    peniko::kurbo::Stroke,
 };
 
-use crate::{SceneParams, TestScene};
+use crate::{ SceneParams, TestScene };
 
 const WIDTH: usize = 1600;
 const HEIGHT: usize = 900;
@@ -51,16 +51,17 @@ impl MMark {
         match n.cmp(&old_n) {
             Ordering::Less => self.elements.truncate(n),
             Ordering::Greater => {
-                let mut last = self
-                    .elements
+                let mut last = self.elements
                     .last()
                     .map(|e| e.grid_point)
                     .unwrap_or(GridPoint(GRID_WIDTH / 2, GRID_HEIGHT / 2));
-                self.elements.extend((old_n..n).map(|_| {
-                    let element = Element::new_rand(last);
-                    last = element.grid_point;
-                    element
-                }));
+                self.elements.extend(
+                    (old_n..n).map(|_| {
+                        let element = Element::new_rand(last);
+                        last = element.grid_point;
+                        element
+                    })
+                );
             }
             _ => (),
         }
@@ -70,11 +71,7 @@ impl MMark {
 impl TestScene for MMark {
     fn render(&mut self, sb: &mut Scene, params: &mut SceneParams) {
         let c = params.complexity;
-        let n = if c < 10 {
-            (c + 1) * 1000
-        } else {
-            ((c - 8) * 10000).min(120_000)
-        };
+        let n = if c < 10 { (c + 1) * 1000 } else { ((c - 8) * 10000).min(120_000) };
         self.resize(n);
         let mut rng = rand::thread_rng();
         let mut path = BezPath::new();
@@ -92,11 +89,11 @@ impl TestScene for MMark {
                 // This gets color and width from the last element, original
                 // gets it from the first, but this should not matter.
                 sb.stroke(
-                    &Stroke::new(element.width as f32),
+                    &Stroke::new(element.width),
                     Affine::IDENTITY,
                     element.color,
                     None,
-                    &path,
+                    &path
                 );
                 path.truncate(0); // Should have clear method, to avoid allocations.
             }
@@ -105,14 +102,7 @@ impl TestScene for MMark {
             }
         }
         let label = format!("mmark test: {} path elements (up/down to adjust)", n);
-        params.text.add(
-            sb,
-            None,
-            40.0,
-            None,
-            Affine::translate((100.0, 1100.0)),
-            &label,
-        );
+        params.text.add(sb, None, 40.0, None, Affine::translate((100.0, 1100.0)), &label);
     }
 }
 
@@ -132,31 +122,23 @@ impl Element {
         let seg_type = rng.gen_range(0..4);
         let next = GridPoint::random_point(last);
         let (grid_point, seg) = if seg_type < 2 {
-            (
-                next,
-                PathSeg::Line(Line::new(last.coordinate(), next.coordinate())),
-            )
+            (next, PathSeg::Line(Line::new(last.coordinate(), next.coordinate())))
         } else if seg_type < 3 {
             let p2 = GridPoint::random_point(next);
-            (
-                p2,
-                PathSeg::Quad(QuadBez::new(
-                    last.coordinate(),
-                    next.coordinate(),
-                    p2.coordinate(),
-                )),
-            )
+            (p2, PathSeg::Quad(QuadBez::new(last.coordinate(), next.coordinate(), p2.coordinate())))
         } else {
             let p2 = GridPoint::random_point(next);
             let p3 = GridPoint::random_point(next);
             (
                 p3,
-                PathSeg::Cubic(CubicBez::new(
-                    last.coordinate(),
-                    next.coordinate(),
-                    p2.coordinate(),
-                    p3.coordinate(),
-                )),
+                PathSeg::Cubic(
+                    CubicBez::new(
+                        last.coordinate(),
+                        next.coordinate(),
+                        p2.coordinate(),
+                        p3.coordinate()
+                    )
+                ),
             )
         };
         let color = *COLORS.choose(&mut rng).unwrap();
@@ -172,7 +154,12 @@ impl Element {
     }
 }
 
-const OFFSETS: &[(i64, i64)] = &[(-4, 0), (2, 0), (1, -2), (1, 2)];
+const OFFSETS: &[(i64, i64)] = &[
+    (-4, 0),
+    (2, 0),
+    (1, -2),
+    (1, 2),
+];
 
 impl GridPoint {
     fn random_point(last: GridPoint) -> GridPoint {
@@ -191,11 +178,8 @@ impl GridPoint {
     }
 
     fn coordinate(&self) -> Point {
-        let scale_x = WIDTH as f64 / ((GRID_WIDTH + 1) as f64);
-        let scale_y = HEIGHT as f64 / ((GRID_HEIGHT + 1) as f64);
-        Point::new(
-            (self.0 as f64 + 0.5) * scale_x,
-            100.0 + (self.1 as f64 + 0.5) * scale_y,
-        )
+        let scale_x = (WIDTH as f64) / ((GRID_WIDTH + 1) as f64);
+        let scale_y = (HEIGHT as f64) / ((GRID_HEIGHT + 1) as f64);
+        Point::new(((self.0 as f64) + 0.5) * scale_x, 100.0 + ((self.1 as f64) + 0.5) * scale_y)
     }
 }

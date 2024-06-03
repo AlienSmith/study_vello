@@ -1,19 +1,23 @@
-use bevy::render::{Render, RenderSet};
+use bevy::render::{ Render, RenderSet };
 use bevy::utils::synccell::SyncCell;
-use bevy::window::{PresentMode, WindowResized};
-use vello::kurbo::{Affine, Point, Rect};
-use vello::peniko::{Color, Fill, Gradient, Stroke};
-use vello::{Renderer, RendererOptions, Scene};
+use bevy::window::{ PresentMode, WindowResized };
+use vello::kurbo::{ Affine, Point, Rect };
+use vello::peniko::{ Color, Fill, Gradient, kurbo::Stroke };
+use vello::{ Renderer, RendererOptions, Scene };
 
 use bevy::{
     prelude::*,
     render::{
-        extract_component::{ExtractComponent, ExtractComponentPlugin},
+        extract_component::{ ExtractComponent, ExtractComponentPlugin },
         render_asset::RenderAssets,
         render_resource::{
-            Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+            Extent3d,
+            TextureDescriptor,
+            TextureDimension,
+            TextureFormat,
+            TextureUsages,
         },
-        renderer::{RenderDevice, RenderQueue},
+        renderer::{ RenderDevice, RenderQueue },
         RenderApp,
     },
 };
@@ -26,17 +30,18 @@ impl FromWorld for VelloRenderer {
         let device = world.resource::<RenderDevice>();
         let queue = world.resource::<RenderQueue>();
 
-        VelloRenderer(SyncCell::new(
-            Renderer::new(
-                device.wgpu_device(),
-                &RendererOptions {
-                    surface_format: None,
-                    timestamp_period: queue.0.get_timestamp_period(),
-                    use_cpu: false,
-                },
+        VelloRenderer(
+            SyncCell::new(
+                Renderer::new(
+                    device.wgpu_device(),
+                    &(RendererOptions {
+                        surface_format: None,
+                        timestamp_period: queue.0.get_timestamp_period(),
+                        use_cpu: false,
+                    })
+                ).unwrap()
             )
-            .unwrap(),
-        ))
+        )
     }
 }
 
@@ -44,13 +49,17 @@ struct VelloPlugin;
 
 impl Plugin for VelloPlugin {
     fn build(&self, app: &mut App) {
-        let Ok(render_app) = app.get_sub_app_mut(RenderApp) else { return };
+        let Ok(render_app) = app.get_sub_app_mut(RenderApp) else {
+            return;
+        };
         // This should probably use the render graph, but working out the dependencies there is awkward
         render_app.add_systems(Render, render_scenes.in_set(RenderSet::Render));
     }
 
     fn finish(&self, app: &mut App) {
-        let Ok(render_app) = app.get_sub_app_mut(RenderApp) else { return };
+        let Ok(render_app) = app.get_sub_app_mut(RenderApp) else {
+            return;
+        };
         render_app.init_resource::<VelloRenderer>();
     }
 }
@@ -60,7 +69,7 @@ fn render_scenes(
     mut scenes: Query<&VelloScene>,
     gpu_images: Res<RenderAssets<Image>>,
     device: Res<RenderDevice>,
-    queue: Res<RenderQueue>,
+    queue: Res<RenderQueue>
 ) {
     for scene in &mut scenes {
         let gpu_image = gpu_images.get(&scene.1).unwrap();
@@ -69,15 +78,14 @@ fn render_scenes(
             width: gpu_image.size.x as u32,
             height: gpu_image.size.y as u32,
         };
-        renderer
-            .0
+        renderer.0
             .get()
             .render_to_texture(
                 device.wgpu_device(),
                 &queue,
                 &scene.0,
                 &gpu_image.texture_view,
-                &params,
+                &params
             )
             .unwrap();
     }
@@ -85,15 +93,17 @@ fn render_scenes(
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: "I am a window!".into(),
-                resolution: (1200., 800.).into(),
-                present_mode: PresentMode::AutoVsync,
+        .add_plugins(
+            DefaultPlugins.set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: "I am a window!".into(),
+                    resolution: (1200.0, 800.0).into(),
+                    present_mode: PresentMode::AutoVsync,
+                    ..default()
+                }),
                 ..default()
-            }),
-            ..default()
-        }))
+            })
+        )
         .add_plugins(VelloPlugin)
         .add_systems(Startup, setup)
         .add_systems(Update, bevy::window::close_on_esc)
@@ -125,9 +135,10 @@ impl ExtractComponent for VelloScene {
 
     type Out = Self;
 
-    fn extract_component(
-        (fragment, target): bevy::ecs::query::QueryItem<'_, Self::QueryData>,
-    ) -> Option<Self> {
+    fn extract_component((fragment, target): bevy::ecs::query::QueryItem<
+        '_,
+        Self::QueryData
+    >) -> Option<Self> {
         let mut scene = Scene::default();
         scene.append(&fragment.0, None);
         Some(Self(scene, target.0.clone()))
@@ -138,7 +149,7 @@ fn setup(
     mut commands: Commands,
     //mut meshes: ResMut<Assets<Mesh>>,
     //mut materials: ResMut<Assets<StandardMaterial>>,
-    mut images: ResMut<Assets<Image>>,
+    mut images: ResMut<Assets<Image>>
 ) {
     let size = Extent3d {
         width: 1200,
@@ -155,9 +166,9 @@ fn setup(
             format: TextureFormat::Rgba8Unorm,
             mip_level_count: 1,
             sample_count: 1,
-            usage: TextureUsages::TEXTURE_BINDING
-                | TextureUsages::COPY_DST
-                | TextureUsages::STORAGE_BINDING,
+            usage: TextureUsages::TEXTURE_BINDING |
+            TextureUsages::COPY_DST |
+            TextureUsages::STORAGE_BINDING,
             view_formats: &[],
         },
         ..default()
@@ -186,10 +197,10 @@ fn setup(
     //     ..default()
     // });
 
-    commands.spawn(SpriteBundle{
+    commands.spawn(SpriteBundle {
         texture: image_handle.clone(),
         transform: Transform {
-            translation: Vec3::new(0.0, 0.0, 0.),
+            translation: Vec3::new(0.0, 0.0, 0.0),
             ..Default::default()
         },
         ..Default::default()
@@ -213,10 +224,7 @@ fn setup(
     //     ..default()
     // });
     commands.spawn(Camera2dBundle::default());
-    commands.spawn((
-        VelloFragment(Scene::default()),
-        VelloTarget(image_handle),
-    ));
+    commands.spawn((VelloFragment(Scene::default()), VelloTarget(image_handle)));
 }
 
 /// Rotates the outer cube (main pass)
@@ -232,11 +240,11 @@ fn setup(
 fn on_resize_system(
     mut image_target: Query<&mut VelloTarget>,
     mut resize_reader: EventReader<WindowResized>,
-    mut images: ResMut<Assets<Image>>,
+    mut images: ResMut<Assets<Image>>
 ) {
     let image_target = image_target.single_mut();
-    if let Some(e) = resize_reader.read().last(){
-        if let Some(image) = images.get_mut(image_target.0.id()){
+    if let Some(e) = resize_reader.read().last() {
+        if let Some(image) = images.get_mut(image_target.0.id()) {
             let size = Extent3d {
                 width: e.width as u32,
                 height: e.height as u32,
@@ -246,7 +254,6 @@ fn on_resize_system(
         }
     }
 }
-
 
 fn render_fragment(mut fragment: Query<&mut VelloFragment>, mut frame: Local<usize>) {
     let mut fragment = fragment.single_mut();
@@ -267,17 +274,16 @@ fn render_brush_transform(sb: &mut Scene, i: usize) {
         Affine::translate((106.0, 106.0)),
         &linear,
         Some(around_center(Affine::rotate(th), Point::new(150.0, 150.0))),
-        &Rect::from_origin_size(Point::default(), (300.0, 300.0)),
+        &Rect::from_origin_size(Point::default(), (300.0, 300.0))
     );
     sb.stroke(
         &Stroke::new(106.0),
         Affine::IDENTITY,
         &linear,
-        Some(around_center(
-            Affine::rotate(th + std::f64::consts::PI / 2.),
-            Point::new(176.5, 176.5),
-        )),
-        &Rect::from_origin_size(Point::new(53.0, 53.0), (406.0, 406.0)),
+        Some(
+            around_center(Affine::rotate(th + std::f64::consts::PI / 2.0), Point::new(176.5, 176.5))
+        ),
+        &Rect::from_origin_size(Point::new(53.0, 53.0), (406.0, 406.0))
     );
 }
 

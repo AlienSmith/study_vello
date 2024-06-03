@@ -35,17 +35,17 @@ pub struct Transform {
 impl Transform {
     /// Returns true if the transform is fixed.
     pub fn is_fixed(&self) -> bool {
-        self.anchor.is_fixed()
-            && match &self.position {
+        self.anchor.is_fixed() &&
+            (match &self.position {
                 Position::Value(value) => value.is_fixed(),
                 Position::SplitValues((x_value, y_value)) => {
                     x_value.is_fixed() && y_value.is_fixed()
                 }
-            }
-            && self.rotation.is_fixed()
-            && self.scale.is_fixed()
-            && self.skew.is_fixed()
-            && self.skew_angle.is_fixed()
+            }) &&
+            self.rotation.is_fixed() &&
+            self.scale.is_fixed() &&
+            self.skew.is_fixed() &&
+            self.skew_angle.is_fixed()
     }
 
     /// Evaluates the transform at the specified frame.
@@ -53,10 +53,11 @@ impl Transform {
         let anchor = self.anchor.evaluate(frame);
         let position = match &self.position {
             Position::Value(value) => value.evaluate(frame),
-            Position::SplitValues((x_value, y_value)) => kurbo::Point {
-                x: x_value.evaluate(frame),
-                y: y_value.evaluate(frame),
-            },
+            Position::SplitValues((x_value, y_value)) =>
+                kurbo::Point {
+                    x: x_value.evaluate(frame),
+                    y: y_value.evaluate(frame),
+                },
         };
         let rotation = self.rotation.evaluate(frame);
         let scale = self.scale.evaluate(frame);
@@ -71,11 +72,11 @@ impl Transform {
         } else {
             Affine::IDENTITY
         };
-        Affine::translate((position.x, position.y))
-            * Affine::rotate(rotation.to_radians())
-            * skew_matrix
-            * Affine::scale_non_uniform(scale.x / 100.0, scale.y / 100.0)
-            * Affine::translate((-anchor.x, -anchor.y))
+        Affine::translate((position.x, position.y)) *
+            Affine::rotate(rotation.to_radians()) *
+            skew_matrix *
+            Affine::scale_non_uniform(scale.x / 100.0, scale.y / 100.0) *
+            Affine::translate((-anchor.x, -anchor.y))
     }
 
     /// Converts the animated value to its model representation.
@@ -135,17 +136,14 @@ impl Rect {
     pub fn evaluate(&self, frame: f64) -> kurbo::RoundedRect {
         let position = self.position.evaluate(frame);
         let size = self.size.evaluate(frame);
-        let position = Point::new(
-            position.x - size.width * 0.5,
-            position.y - size.height * 0.5,
-        );
+        let position = Point::new(position.x - size.width * 0.5, position.y - size.height * 0.5);
         let radius = self.corner_radius.evaluate(frame);
         kurbo::RoundedRect::new(
             position.x,
             position.y,
             position.x + size.width,
             position.y + size.height,
-            radius,
+            radius
         )
     }
 }
@@ -192,8 +190,10 @@ impl Spline {
     /// Evalutes the spline at the given frame and emits the elements
     /// to the specified path.
     pub fn evaluate(&self, frame: f64, path: &mut Vec<PathEl>) -> bool {
-        let Some(([ix0, ix1], t, _easing, _hold)) = Time::frames_and_weight(&self.times, frame)
-        else {
+        let Some(([ix0, ix1], t, _easing, _hold)) = Time::frames_and_weight(
+            &self.times,
+            frame
+        ) else {
             // TODO: evaluate whether hold frame is needed here
             return false;
         };
@@ -229,14 +229,14 @@ pub struct Repeater {
 impl Repeater {
     /// Returns true if the repeater contains no animated properties.
     pub fn is_fixed(&self) -> bool {
-        self.copies.is_fixed()
-            && self.offset.is_fixed()
-            && self.anchor_point.is_fixed()
-            && self.position.is_fixed()
-            && self.rotation.is_fixed()
-            && self.scale.is_fixed()
-            && self.start_opacity.is_fixed()
-            && self.end_opacity.is_fixed()
+        self.copies.is_fixed() &&
+            self.offset.is_fixed() &&
+            self.anchor_point.is_fixed() &&
+            self.position.is_fixed() &&
+            self.rotation.is_fixed() &&
+            self.scale.is_fixed() &&
+            self.start_opacity.is_fixed() &&
+            self.end_opacity.is_fixed()
     }
 
     /// Evaluates the repeater at the specified frame.
@@ -277,11 +277,11 @@ pub struct Stroke {
     /// Width of the stroke.
     pub width: Value<f64>,
     /// Join style.
-    pub join: peniko::Join,
+    pub join: peniko::kurbo::Join,
     /// Limit for miter joins.
     pub miter_limit: Option<f64>,
     /// Cap style.
-    pub cap: peniko::Cap,
+    pub cap: peniko::kurbo::Cap,
 }
 
 impl Stroke {
@@ -291,13 +291,11 @@ impl Stroke {
     }
 
     /// Evaluates the stroke at the specified frame.
-    pub fn evaluate(&self, frame: f64) -> peniko::Stroke {
+    pub fn evaluate(&self, frame: f64) -> peniko::kurbo::Stroke {
         let width = self.width.evaluate(frame);
-        let mut stroke = peniko::Stroke::new(width as f32)
-            .with_caps(self.cap)
-            .with_join(self.join);
+        let mut stroke = peniko::kurbo::Stroke::new(width).with_caps(self.cap).with_join(self.join);
         if let Some(miter_limit) = self.miter_limit {
-            stroke.miter_limit = miter_limit as f32;
+            stroke.miter_limit = miter_limit;
         }
         stroke
     }
@@ -404,7 +402,11 @@ impl Brush {
     /// Evaluates the animation at the specified time.
     pub fn evaluate(&self, alpha: f64, frame: f64) -> fixed::Brush {
         match self {
-            Self::Solid(value) => value.evaluate(frame).with_alpha_factor(alpha as f32).into(),
+            Self::Solid(value) =>
+                value
+                    .evaluate(frame)
+                    .with_alpha_factor(alpha as f32)
+                    .into(),
             Self::Gradient(value) => value.evaluate(frame),
         }
     }

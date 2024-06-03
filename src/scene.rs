@@ -14,13 +14,13 @@
 //
 // Also licensed under MIT license, at your choice.
 
-use fello::NormalizedCoord;
+use skrifa::instance::NormalizedCoord;
 use peniko::kurbo::{ Affine, Rect, Shape, Vec2 };
-use peniko::{ BrushRef, Color, Fill, Font, Image, Stroke, StyleRef };
+use peniko::{ BrushRef, Color, Fill, Font, Image, kurbo::Stroke, StyleRef };
 use vello_encoding::{ Encoding, Glyph, GlyphRun, Patch, Transform, LinearColor };
 
 /// Encoded definition of a scene and associated resources.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Scene {
     data: Encoding,
 }
@@ -37,7 +37,10 @@ impl Scene {
     pub fn data(&self) -> &Encoding {
         &self.data
     }
-
+    /// Returns the underlying raw encoding.
+    pub fn encoding(&self) -> &Encoding {
+        &self.data
+    }
     pub fn push_pattern(
         &mut self,
         start: Vec2,
@@ -155,8 +158,8 @@ impl Scene {
         dash_array: Vec<f32>
     ) {
         self.data.encode_transform(Transform::from_kurbo(&transform));
-        self.data.encode_linewidth(style.width, None);
-        self.data.encode_linewidth(style.width, Some(dash_array));
+        self.data.encode_linewidth(style.width as f32, None);
+        self.data.encode_linewidth(style.width as f32, Some(dash_array));
         if self.data.encode_shape(shape, false) {
             if let Some(brush_transform) = brush_transform {
                 if
@@ -180,7 +183,7 @@ impl Scene {
         shape: &impl Shape
     ) {
         self.data.encode_transform(Transform::from_kurbo(&transform));
-        self.data.encode_linewidth(style.width, None);
+        self.data.encode_linewidth(style.width as f32, None);
         if self.data.encode_shape(shape, false) {
             if let Some(brush_transform) = brush_transform {
                 if
