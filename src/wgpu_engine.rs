@@ -346,11 +346,15 @@ impl WgpuEngine {
                             &shader.bind_group_layout,
                             bindings,
                         )?;
-                        let mut cpass = encoder.begin_compute_pass(&Default::default());
+                        let mut cpass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                            label: Some(shader.label),
+                            ..Default::default()
+                        });
                         #[cfg(feature = "wgpu-profiler")]
                         let query = profiler
                             .begin_query(shader.label, &mut cpass, device)
-                            .with_parent(Some(&query)); cpass.set_pipeline(&shader.pipeline);
+                            .with_parent(Some(&query)); 
+                        cpass.set_pipeline(&shader.pipeline);
                         cpass.set_bind_group(0, &bind_group, &[]);
                         cpass.dispatch_workgroups(wg_size.0, wg_size.1, wg_size.2);
                         #[cfg(feature = "wgpu-profiler")]
@@ -390,7 +394,10 @@ impl WgpuEngine {
                             queue,
                             proxy,
                         );
-                        let mut cpass = encoder.begin_compute_pass(&Default::default());
+                        let mut cpass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                            label: Some(shader.label),
+                            ..Default::default()
+                        });
                         #[cfg(feature = "wgpu-profiler")]
                         let query = profiler
                             .begin_query(shader.label, &mut cpass, device)
