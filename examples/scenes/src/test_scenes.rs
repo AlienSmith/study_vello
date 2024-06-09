@@ -1027,7 +1027,7 @@ fn splash_with_svg_tiger() -> impl FnMut(&mut Scene, &mut SceneParams) {
 
 fn splash_with_lottie_tiger() -> impl FnMut(&mut Scene, &mut SceneParams) {
     let contents = include_str!(
-        concat!(env!("CARGO_MANIFEST_DIR"), "/../assets/google_fonts/Tiger_Exported.json")
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../assets/google_fonts/character_test.json")
     );
     let mut lottie = crate::lottie::lottie_function_of("Tiger".to_string(), move || contents);
     move |scene, params| {
