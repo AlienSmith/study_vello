@@ -132,18 +132,18 @@ pub fn conv_layer(source: &schema::layers::AnyLayer) -> Option<(Layer, usize, Op
             params
         }
         schema::layers::AnyLayer::Shape(shape_layer) => {
-            if let Some(true) = shape_layer.properties.hidden {
-                return None;
-            }
-
             let params = setup_shape_layer(shape_layer, &mut layer);
-            let mut shapes = vec![];
-            for shape in &shape_layer.shapes {
-                if let Some(shape) = conv_shape(shape) {
-                    shapes.push(shape);
+            if let Some(true) = shape_layer.properties.hidden {
+                layer.content = Content::Anchor;
+            } else {
+                let mut shapes = vec![];
+                for shape in &shape_layer.shapes {
+                    if let Some(shape) = conv_shape(shape) {
+                        shapes.push(shape);
+                    }
                 }
+                layer.content = Content::Shape(shapes);
             }
-            layer.content = Content::Shape(shapes);
 
             params
         }
@@ -522,20 +522,18 @@ fn conv_geometry(value: &schema::shapes::AnyShape) -> Option<crate::runtime::mod
     match value {
         AnyShape::Ellipse(value) => {
             let ellipse = animated::Ellipse {
-                is_ccw: false
+                is_ccw: false,
                 /* todo: lottie schema does not have a field
-                 * for this (anymore?) */,
-                position: conv_pos_point(&value.position),
+                 * for this (anymore?) */ position: conv_pos_point(&value.position),
                 size: conv_size(&value.size),
             };
             Some(crate::runtime::model::Geometry::Ellipse(ellipse))
         }
         AnyShape::Rectangle(value) => {
             let rect = animated::Rect {
-                is_ccw: false
+                is_ccw: false,
                 /* todo: lottie schema does not have a field
-                 * for this (anymore?) */,
-                position: conv_pos_point(&value.position),
+                 * for this (anymore?) */ position: conv_pos_point(&value.position),
                 size: conv_size(&value.size),
                 corner_radius: conv_scalar(&value.rounded_corner_radius),
             };

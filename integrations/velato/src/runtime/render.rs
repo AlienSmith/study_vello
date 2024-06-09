@@ -152,7 +152,7 @@ impl Renderer {
             self.mask_elements.clear();
         }
         match &layer.content {
-            Content::None => {}
+            Content::None | Content::Anchor => {}
             Content::Instance { name, time_remap: _ } => {
                 // TODO: Use time_remap
                 // let frame = time_remap

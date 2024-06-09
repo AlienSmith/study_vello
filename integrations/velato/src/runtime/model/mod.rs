@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 use std::ops::Range;
-use vello::kurbo::{self, Affine, PathEl, Point, Shape as _, Size, Vec2};
-use vello::peniko::{self, BlendMode, Color};
+use vello::kurbo::{ self, Affine, PathEl, Point, Shape as _, Size, Vec2 };
+use vello::peniko::{ self, BlendMode, Color };
 
 mod spline;
 mod value;
@@ -11,7 +11,7 @@ mod value;
 pub mod animated;
 pub mod fixed;
 
-pub use value::{Animated, Easing, EasingHandle, Time, Tween, Value, ValueRef};
+pub use value::{ Animated, Easing, EasingHandle, Time, Tween, Value, ValueRef };
 
 pub(crate) use spline::SplineToPath;
 
@@ -200,4 +200,6 @@ pub enum Content {
     },
     /// Collection of shapes.
     Shape(Vec<Shape>),
+    /// hidden shape as anchor points
+    Anchor,
 }
