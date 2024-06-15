@@ -1,0 +1,9 @@
+Need to
+Anim 
+	- multi anim switch support
+Rapier for physics 
+	- finished reading documents need concret examples
+Networking 
+	- missing
+Browser support
+	- fix compute shader and other problems
