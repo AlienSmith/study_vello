@@ -35,6 +35,14 @@ pub fn test_scenes() -> SceneSet {
         },
         function: Box::new(splash_with_svg_tiger()),
     };
+
+    let splash_scene1 = ExampleScene {
+        config: SceneConfig {
+            animated: false,
+            name: "splash_with_tiger".to_owned(),
+        },
+        function: Box::new(splash_with_svg_tiger1()),
+    };
     let mmark_scene = ExampleScene {
         config: SceneConfig {
             animated: false,
@@ -45,9 +53,11 @@ pub fn test_scenes() -> SceneSet {
     let scenes = vec![
         scene!(multiple_mask_layer_test),
         scene!(splash_with_lottie_tiger(), "Tiger", true),
+        scene!(splash_with_lottie_tiger1(), "Tiger1", true),
         scene!(gpu_dash_test),
         scene!(pattern_test),
         splash_scene,
+        splash_scene1,
         mmark_scene,
         scene!(funky_paths),
         scene!(cardioid_and_friends),
@@ -1025,11 +1035,31 @@ fn splash_with_svg_tiger() -> impl FnMut(&mut Scene, &mut SceneParams) {
     }
 }
 
+fn splash_with_svg_tiger1() -> impl FnMut(&mut Scene, &mut SceneParams) {
+    let contents = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../assets/circle_start.svg"));
+    let mut tiger = crate::svg::svg_function_of("Ghostscript Tiger".to_string(), move || contents);
+    move |sb, params| {
+        tiger(sb, params);
+        splash_screen(sb, params);
+    }
+}
+
 fn splash_with_lottie_tiger() -> impl FnMut(&mut Scene, &mut SceneParams) {
     let contents = include_str!(
         concat!(env!("CARGO_MANIFEST_DIR"), "/../assets/google_fonts/character_test.json")
     );
     let mut lottie = crate::lottie::lottie_function_of("Tiger".to_string(), move || contents);
+    move |scene, params| {
+        lottie(scene, params);
+        //splash_screen(scene, params);
+    }
+}
+
+fn splash_with_lottie_tiger1() -> impl FnMut(&mut Scene, &mut SceneParams) {
+    let contents = include_str!(
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../assets/google_fonts/character_animation2.json")
+    );
+    let mut lottie = crate::lottie::lottie_function_of("Tiger1".to_string(), move || contents);
     move |scene, params| {
         lottie(scene, params);
         //splash_screen(scene, params);
