@@ -664,10 +664,13 @@ pub fn main() -> Result<()> {
         {
             std::panic::set_hook(Box::new(console_error_panic_hook::hook));
             console_log::init().expect("could not initialize logger");
+            use web_sys::console;
+
+            console::log_1(&"Hello using web-sys".into());
             use winit::platform::web::WindowExtWebSys;
             let window = create_window(&event_loop);
             // On wasm, append the canvas to the document body
-            let canvas = window.canvas();
+            let canvas = window.canvas().unwrap();
             let size = window.inner_size();
             canvas.set_width(size.width);
             canvas.set_height(size.height);
@@ -680,9 +683,14 @@ pub fn main() -> Result<()> {
             _ = web_sys::HtmlElement::from(canvas).focus();
             wasm_bindgen_futures::spawn_local(async move {
                 let size = window.inner_size();
-                let surface = render_cx.create_surface(&window, size.width, size.height).await;
+                let surface = render_cx.create_surface(
+                    &window,
+                    size.width,
+                    size.height,
+                    wgpu::PresentMode::AutoNoVsync
+                ).await;
                 if let Ok(surface) = surface {
-                    let render_state = RenderState { window, surface };
+                    let render_state = RenderState { window: window.clone(), surface };
                     // No error handling here; if the event loop has finished, we don't need to send them the surface
                     run(event_loop, args, scenes, render_cx, render_state);
                 } else {
@@ -692,6 +700,17 @@ pub fn main() -> Result<()> {
         }
     }
     Ok(())
+}
+// TODO: support wasm modify coarse.wgsl and fine.wgsl to use 10 or less storage buffer
+#[cfg(target_arch = "wasm32")]
+mod wasm {
+    extern crate wasm_bindgen;
+    use wasm_bindgen::prelude::wasm_bindgen;
+    #[wasm_bindgen(start)]
+    pub fn runner() {
+        #[allow(clippy::main_recursion)]
+        let _ = super::main();
+    }
 }
 
 #[cfg(target_os = "android")]

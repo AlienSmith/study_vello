@@ -50,7 +50,8 @@ android_logger = "0.13.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1.7"
-console_log = "1"
-wasm-bindgen-futures = "0.4.33"
-web-sys = { version = "0.3.60", features = [ "HtmlCollection", "Text" ] }
-getrandom = { version = "0.2.10", features = ["js"] }
+console_log = "1.0.0"
+wasm-bindgen-futures = "0.4.42"
+web-sys = { version = "0.3.69", features = ["HtmlCollection", "Text"] }
+getrandom = { version = "0.2.15", features = ["js"] }
+wasm-bindgen = "0.2.65"

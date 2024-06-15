@@ -1,9 +1,6 @@
-use std::{
-    io::Seek,
-    path::{Path, PathBuf},
-};
+use std::{ io::Seek, path::{ Path, PathBuf } };
 
-use anyhow::{bail, Context, Result};
+use anyhow::{ bail, Context, Result };
 use byte_unit::Byte;
 use clap::Args;
 use inquire::Confirm;
@@ -27,10 +24,7 @@ pub(crate) struct Download {
 }
 
 fn default_directory() -> PathBuf {
-    let mut result = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .unwrap()
-        .join("assets");
+    let mut result = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().join("assets");
     result.push("downloads");
     result
 }
@@ -45,7 +39,8 @@ impl Download {
                 .collect();
         } else {
             let mut accepted = self.auto;
-            let downloads = default_downloads::default_downloads()
+            let downloads = default_downloads
+                ::default_downloads()
                 .into_iter()
                 .filter(|it| {
                     let file = it.file_path(&self.directory);
@@ -63,7 +58,8 @@ impl Download {
                         println!(
                             "{} ({}) under license {} from {}",
                             download.name,
-                            byte_unit::Byte::from_bytes(builtin.expected_size.into())
+                            byte_unit::Byte
+                                ::from_bytes(builtin.expected_size.into())
                                 .get_appropriate_unit(false),
                             builtin.license,
                             builtin.info
@@ -84,12 +80,11 @@ impl Download {
         let mut completed_count = 0;
         let mut failed_count = 0;
         for (index, download) in to_download.iter().enumerate() {
-            println!(
-                "{index}: Downloading {} from {}",
-                download.name, download.url
-            );
+            println!("{index}: Downloading {} from {}", download.name, download.url);
             match download.fetch(&self.directory, self.size_limit) {
-                Ok(()) => completed_count += 1,
+                Ok(()) => {
+                    completed_count += 1;
+                }
                 Err(e) => {
                     failed_count += 1;
                     eprintln!("Download failed with error: {e}");
@@ -128,7 +123,7 @@ impl Download {
             let following = &value[at_index + 1..];
             let (extension, url) = if let Some(at_index) = following.find('@') {
                 (&following[0..at_index], &following[at_index + 1..])
-            }else{
+            } else {
                 ("svg", &following[at_index + 1..])
             };
             AssetsDownload {
@@ -165,7 +160,7 @@ fn download_prompt(total_bytes: u64) -> Result<bool> {
 
 struct AssetsDownload {
     name: String,
-    extension:String,
+    extension: String,
     url: String,
     builtin: Option<BuiltinAssetsProps>,
 }
@@ -193,11 +188,12 @@ impl AssetsDownload {
                         "Size is not as expected for download. Expected {}, server reported {}",
                         Byte::from_bytes(size_limit.into()).get_appropriate_unit(true),
                         Byte::from_bytes(content_length.into()).get_appropriate_unit(true)
-                    )
+                    );
                 }
             }
         }
-        let mut file = std::fs::OpenOptions::new()
+        let mut file = std::fs::OpenOptions
+            ::new()
             .create_new(true)
             .write(true)
             .open(self.file_path(directory))
@@ -207,7 +203,7 @@ impl AssetsDownload {
         std::io::copy(
             // ureq::into_string() has a limit of 10MiB so we must use the reader
             &mut (&mut reader).take(size_limit),
-            &mut file,
+            &mut file
         )?;
         if reader.read_exact(&mut [0]).is_ok() {
             bail!("Size limit exceeded");
@@ -216,7 +212,7 @@ impl AssetsDownload {
             let bytes_downloaded = file.stream_position().context("Checking file limit")?;
             if bytes_downloaded != size_limit {
                 bail!(
-                    "Builtin downloaded file was not as expected. Expected {size_limit}, received {bytes_downloaded}.",
+                    "Builtin downloaded file was not as expected. Expected {size_limit}, received {bytes_downloaded}."
                 );
             }
         }

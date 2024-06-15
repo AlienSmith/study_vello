@@ -1,4 +1,4 @@
-
+#[cfg(not(target_arch = "wasm32"))]
 pub mod download;
 mod images;
 mod mmark;
@@ -8,16 +8,18 @@ mod lottie;
 mod test_scenes;
 use std::path::PathBuf;
 
-use anyhow::{anyhow, Result};
-use clap::{Args, Subcommand};
+use anyhow::{ anyhow, Result };
+use clap::{ Args, Subcommand };
+#[cfg(not(target_arch = "wasm32"))]
 use download::Download;
 pub use images::ImageCache;
 pub use simple_text::SimpleText;
-pub use svg::{default_scene, scene_from_files};
-pub use lottie::{default_lottie_scene, scene_from_lottie_files};
+pub use svg::{ default_scene, scene_from_files };
+#[cfg(not(target_arch = "wasm32"))]
+pub use lottie::{ default_lottie_scene, scene_from_lottie_files };
 pub use test_scenes::test_scenes;
 
-use vello::{kurbo::Vec2, peniko::Color, Scene};
+use vello::{ kurbo::Vec2, peniko::Color, Scene };
 
 pub struct SceneParams<'a> {
     pub time: f64,
@@ -76,20 +78,22 @@ pub struct Arguments {
     #[clap(subcommand)]
     command: Option<Command>,
 }
-
 #[derive(Subcommand, Debug)]
 enum Command {
     /// Download SVG files for testing. By default, downloads a set of files from wikipedia
-
+    #[cfg(not(target_arch = "wasm32"))]
     Download(Download),
+    #[cfg(target_arch = "wasm32")]
+    Downlooad,
 }
 
 impl Arguments {
     pub fn select_scene_set(
         &self,
-        #[allow(unused)] command: impl FnOnce() -> clap::Command,
+        #[allow(unused)] command: impl FnOnce() -> clap::Command
     ) -> Result<Option<SceneSet>> {
         if let Some(command) = &self.command {
+            #[cfg(not(target_arch = "wasm32"))]
             command.action()?;
             Ok(None)
         } else {
@@ -112,7 +116,7 @@ impl Arguments {
         }
     }
 }
-
+#[cfg(not(target_arch = "wasm32"))]
 impl Command {
     fn action(&self) -> Result<()> {
         match self {
