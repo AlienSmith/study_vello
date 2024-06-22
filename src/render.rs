@@ -453,7 +453,6 @@ impl Render {
                 info_bin_data_buf,
                 path_buf,
                 tile_buf,
-                bump_buf,
                 coarse_counter_buf,
             ]);
 

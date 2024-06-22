@@ -409,7 +409,6 @@ fn main(
             last_tile_ix = i32(tile_ix);
         }
     }
-    workgroupBarrier();
     
     write_end();
     ptcl[cmd_offset] = CMD_END;

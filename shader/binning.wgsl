@@ -52,6 +52,7 @@ var<workgroup> sh_bitmaps: array<array<atomic<u32>, N_TILE>, N_SLICE>;
 // store count values packed two u16's to a u32
 var<workgroup> sh_count: array<array<u32, N_TILE>, N_SUBSLICE>;
 var<workgroup> sh_chunk_offset: array<u32, N_TILE>;
+var<workgroup> previous_failed: u32;
 
 @compute @workgroup_size(256)
 fn main(
@@ -59,7 +60,15 @@ fn main(
     @builtin(local_invocation_id) local_id: vec3<u32>,
     @builtin(workgroup_id) wg_id: vec3<u32>,
 ) {
-    if (atomicLoad(&bump.failed) & (STAGE_PATTERN)) != 0u {
+    if global_id.x == 0u {
+        let failed = atomicLoad(&bump.failed) & (STAGE_PATTERN);
+        previous_failed = failed;
+    }
+    let failed = workgroupUniformLoad(&previous_failed);
+    if failed != 0u {
+        if global_id.x == 0u{
+            atomicOr(&bump.failed, STAGE_BINNING);
+        }
         return;
     }
     for (var i = 0u; i < N_SLICE; i += 1u) {

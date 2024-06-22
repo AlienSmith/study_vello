@@ -79,8 +79,10 @@ pub struct FullShaders {
     pub coarse_counter: ShaderId,
     pub coarse_setup: ShaderId,
     pub coarse_setup_debug: ShaderId,
+    #[cfg(feature = "coarse_segmentation")]
     pub coarse: ShaderId,
     pub fine_setup: ShaderId,
+    #[cfg(feature = "coarse_segmentation")]
     pub fine: ShaderId,
     pub compose: ShaderId,
     //use for ptcl segmentation logic
@@ -251,7 +253,7 @@ pub fn full_shaders(
         device,
         "path_coarse_counter",
         preprocess::preprocess(shader!("path_coarse_counter"), &full_config, &imports).into(),
-        &[BindType::BufReadOnly, BindType::Buffer]
+        &[BindType::Buffer, BindType::Buffer]
     )?;
 
     let path_coarse = engine.add_shader(
@@ -288,7 +290,6 @@ pub fn full_shaders(
             BindType::BufReadOnly,
             BindType::BufReadOnly,
             BindType::Buffer,
-            BindType::Buffer,
         ]
     )?;
 
@@ -311,7 +312,7 @@ pub fn full_shaders(
         preprocess::preprocess(shader!("coarse_setup_debug"), &empty, &imports).into(),
         &[BindType::Uniform, BindType::Buffer, BindType::Buffer]
     )?;
-
+    #[cfg(feature = "coarse_segmentation")]
     let coarse = engine.add_shader(
         device,
         "coarse",
@@ -339,6 +340,7 @@ pub fn full_shaders(
         preprocess::preprocess(shader!("fine_setup"), &full_config, &imports).into(),
         &[BindType::Uniform, BindType::Buffer, BindType::Buffer, BindType::Buffer]
     )?;
+    #[cfg(feature = "coarse_segmentation")]
     let fine = engine.add_shader(
         device,
         "fine",
@@ -354,7 +356,7 @@ pub fn full_shaders(
             BindType::ImageRead(ImageFormat::Rgba8),
             BindType::BufReadOnly,
             BindType::BufReadOnly,
-            BindType::BufReadOnly,
+            BindType::Buffer,
             BindType::BufReadOnly,
             BindType::Buffer,
         ]
@@ -369,7 +371,7 @@ pub fn full_shaders(
             BindType::Image(ImageFormat::Rgba8),
             BindType::BufReadOnly,
             BindType::BufReadOnly,
-            BindType::BufReadOnly,
+            BindType::Buffer,
             BindType::BufReadOnly,
         ]
     )?;
@@ -410,7 +412,7 @@ pub fn full_shaders(
             BindType::BufReadOnly,
             BindType::ImageRead(ImageFormat::Rgba8),
             BindType::ImageRead(ImageFormat::Rgba8),
-            BindType::BufReadOnly,
+            BindType::Buffer,
             #[cfg(feature = "ptcl_segmentation")] BindType::BufReadOnly,
             #[cfg(feature = "ptcl_segmentation")] BindType::Buffer,
             #[cfg(not(feature = "ptcl_segmentation"))] BindType::Image(ImageFormat::Rgba8),
@@ -425,7 +427,7 @@ pub fn full_shaders(
             BindType::Image(ImageFormat::Rgba8),
             BindType::BufReadOnly,
             BindType::BufReadOnly,
-            BindType::BufReadOnly,
+            BindType::Buffer,
             BindType::BufReadOnly,
         ]
     )?;
@@ -450,9 +452,9 @@ pub fn full_shaders(
         coarse_counter,
         coarse_setup,
         coarse_setup_debug,
-        coarse,
+        #[cfg(feature = "coarse_segmentation")] coarse,
         fine_setup,
-        fine,
+        #[cfg(feature = "coarse_segmentation")] fine,
         compose,
         coarse_original,
         fine_setup_original,

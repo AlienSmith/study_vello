@@ -18,7 +18,7 @@ var<storage> fine_index: array<u32>;
 var<storage> fine_slice: array<u32>;
 
 @group(0) @binding(4)
-var<storage> bump: BumpAllocators;
+var<storage, read_write> bump: BumpAllocators;
 
 @group(0) @binding(5)
 var<storage> layer_info: array<f32>;

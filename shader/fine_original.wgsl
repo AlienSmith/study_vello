@@ -40,7 +40,7 @@ var gradients: texture_2d<f32>;
 var image_atlas: texture_2d<f32>;
 
 @group(0) @binding(7)
-var<storage> bump: BumpAllocators;
+var<storage, read_write> bump: BumpAllocators;
 
 #ifdef ptcl_segmentation
 @group(0) @binding(8)
@@ -60,14 +60,14 @@ var<private> dashes_line_length: f32;
 var<private> dashes_array_length: u32;
 
 fn read_dashes_array_from_scene(start:u32, size:u32, length_modifier:f32){
-    let length = min(size, MAX_DASHES_ARRAY_SIZE - 1u);
-    for (var i = 0u; i < length; i += 1u){
+    let dashes_length = min(size, MAX_DASHES_ARRAY_SIZE - 1u);
+    for (var i = 0u; i < dashes_length; i += 1u){
         dashes_array[i] = dashes_line_length;
         let value = bitcast<f32>(scene[config.dasharrays_base + start + i]);
         dashes_line_length += value * length_modifier;
     }
-    dashes_array[length] = dashes_line_length;
-    dashes_array_length = length + 1u;
+    dashes_array[dashes_length] = dashes_line_length;
+    dashes_array_length = dashes_length + 1u;
 }
 
 fn linear_find_index_of_offset(offset:f32) -> u32{
@@ -297,18 +297,18 @@ fn stroke_path(seg: u32, half_width: f32, xy: vec2<f32>) -> array<f32, PIXELS_PE
         let delta = segment.delta;
         let dpos0 = xy + vec2(0.5, 0.5) - segment.origin;
         let scale = 1.0 / dot(delta, delta);
-        let length = length(segment.delta);
+        let segment_length = length(segment.delta);
         let offset = segment.dash_offset;
         //let offset = 0.0;
         let start = find_next_valid_offset_on_dash_line(offset);
-        let end = find_previous_valid_offset_on_dash_line(offset + length);
+        let end = find_previous_valid_offset_on_dash_line(offset + segment_length);
         //we need this check otherwise curved dash line wrong on the edge
         if end >= start{
             for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
                 let dpos = vec2(dpos0.x + f32(i), dpos0.y);
                 let t = clamp(dot(dpos, delta) * scale, 0.0, 1.0);
-                var optimal = find_neareset_offset_on_dash_line(t * length + offset, start, end) - offset;
-                optimal /= length;
+                var optimal = find_neareset_offset_on_dash_line(t * segment_length + offset, start, end) - offset;
+                optimal /= segment_length;
                 df[i] =  min(df[i], length(delta * optimal - dpos));
                 // performance idea: hoist sqrt out of loop
                 // let optimal = t*length;

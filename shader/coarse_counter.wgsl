@@ -37,9 +37,6 @@ var<storage> paths: array<Path>;
 var<storage> tiles: array<Tile>;
 
 @group(0) @binding(7)
-var<storage, read_write> bump: BumpAllocators;
-
-@group(0) @binding(8)
 var<storage, read_write> counter: array<i32>;
 
 // Much of this code assumes WG_SIZE == N_TILE. If these diverge, then
@@ -285,9 +282,6 @@ fn main(
             last_tile_ix = tile_ix;
         }
     }
-    workgroupBarrier();
-    
-    
 
     let count = ptcl_segment_count + select(0, 1, cmd_offset > 0u);
     counter[this_tile_ix * 3u] = (select(count, 0, zero_contribution) << 4u) | i32(layer_counter & 0xfu);
