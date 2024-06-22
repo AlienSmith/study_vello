@@ -16,6 +16,7 @@
 #[cfg(feature = "wgpu-profiler")]
 use instant::Duration;
 use instant::Instant;
+use winit::dpi::PhysicalSize;
 use winit::keyboard::{ Key, NamedKey };
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -558,7 +559,9 @@ fn run(
                         };
                         let window = cached_window
                             .take()
-                            .unwrap_or_else(|| create_window(event_loop));
+                            .unwrap_or_else(||
+                                create_window(event_loop, PhysicalSize::new(1044, 800))
+                            );
                         let size = window.inner_size();
                         let present_mode = wgpu::PresentMode::AutoVsync;
                         let surface_future = render_cx.create_surface(
@@ -598,12 +601,14 @@ fn run(
         .expect("run to completion");
 }
 
-fn create_window(event_loop: &winit::event_loop::EventLoopWindowTarget<UserEvent>) -> Arc<Window> {
-    use winit::dpi::LogicalSize;
+fn create_window(
+    event_loop: &winit::event_loop::EventLoopWindowTarget<UserEvent>,
+    default_size: PhysicalSize<u32>
+) -> Arc<Window> {
     use winit::window::WindowBuilder;
     Arc::new(
         WindowBuilder::new()
-            .with_inner_size(LogicalSize::new(1044, 800))
+            .with_inner_size(default_size)
             .with_resizable(true)
             .with_title("Vello demo")
             .build(event_loop)
@@ -665,13 +670,14 @@ pub fn main() -> Result<()> {
             std::panic::set_hook(Box::new(console_error_panic_hook::hook));
             console_log::init().expect("could not initialize logger");
             use web_sys::console;
-
+            let size = PhysicalSize::new(1044, 800);
             console::log_1(&"Hello using web-sys".into());
             use winit::platform::web::WindowExtWebSys;
-            let window = create_window(&event_loop);
+            let window = create_window(&event_loop, size);
             // On wasm, append the canvas to the document body
             let canvas = window.canvas().unwrap();
-            let size = window.inner_size();
+            //let size = window.inner_size(); Can't use the inner_size function which will return only zero before first Resize()
+            console::log_1(&format!("Width {}, Height {}", size.width, size.height).into());
             canvas.set_width(size.width);
             canvas.set_height(size.height);
             web_sys

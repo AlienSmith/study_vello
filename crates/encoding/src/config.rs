@@ -427,6 +427,7 @@ impl BufferSizes {
         let segments = BufferSize::new(1 << 21);
         let ptcl = BufferSize::new(1 << 23);
         let cubics = BufferSize::new(n_path_tags + (1 << 18));
+        #[cfg(feature = "coarse_segmentation")]
         let partition_count = (n_draw_objects + 255) / 256;
         //one for ptcl segments one for clips
         #[cfg(feature = "coarse_segmentation")]
