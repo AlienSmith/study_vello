@@ -96,7 +96,6 @@ fn main(
     let tile_x = local_id.x % N_TILE_X;
     let tile_y = local_id.x / N_TILE_X;
     let this_tile_ix = (bin_tile_y + tile_y) * config.width_in_tiles + bin_tile_x + tile_x + wg_id.z * config.width_in_tiles * config.height_in_tiles;
-    var layer_counter = 0u;
 
     var partition_ix = wg_id.z;
     var rd_ix = 0u;
@@ -264,10 +263,10 @@ fn main(
                     let alpha = bitcast<f32>(scene[dd + 1u]);
                     //extract the blend flag
                     let packed_color = unpack4x8unorm(blend).wzyx;
-                    if packed_color.a != 1.0 && layer_counter < MAX_LAYER_COUNT{
-                        layer_counter += 1u;
-                        cmd_offset = cmd_limit;
-                    }
+                    // if packed_color.a != 1.0 && layer_counter < MAX_LAYER_COUNT{
+                    //     layer_counter += 1u;
+                    //     cmd_offset = cmd_limit;
+                    // }
                 }
                 // DRAWTAG_SUPPLEMENT
                 case 0x1000u:{
@@ -284,7 +283,7 @@ fn main(
     }
 
     let count = ptcl_segment_count + select(0, 1, cmd_offset > 0u);
-    counter[this_tile_ix * 3u] = (select(count, 0, zero_contribution) << 4u) | i32(layer_counter & 0xfu);
+    counter[this_tile_ix * 3u] = (select(count, 0, zero_contribution) << 4u) | i32(0u & 0xfu);
     counter[this_tile_ix * 3u + 1u] = clip_count;
     counter[this_tile_ix * 3u + 2u] = i32(last_tile_ix);
     

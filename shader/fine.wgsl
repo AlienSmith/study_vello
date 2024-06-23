@@ -7,7 +7,6 @@
 #import config
 #import drawtag
 #import transform
-#import bump
 let MAX_DASHES_ARRAY_SIZE = 20u;
 
 @group(0) @binding(0)
@@ -48,10 +47,7 @@ var<storage> draw_monoids: array<DrawMonoid>;
 var<storage> clip_path_index: array<u32>;
 
 @group(0) @binding(10)
-var<storage> fine_index: array<u32>;
-
-@group(0) @binding(11)
-var<storage, read_write> fine_slice: array<u32>;
+var<storage, read_write> fine_info: array<u32>;
 
 var<private> dashes_array: array<f32,MAX_DASHES_ARRAY_SIZE>;
 var<private> dashes_line_length: f32;
@@ -386,7 +382,7 @@ fn main(
     let slice_index = indexing & 0xfffu;
     let begin_clip_count = (indexing >> 12u) & 0xfu;
     let tile_ix = (indexing >> 16u) & 0xffffu;
-    let indirect_clip_base = fine_index[tile_ix * 4u + 2u];
+    let indirect_clip_base = fine_info[tile_ix * 4u + 2u];
     clip_depth = begin_clip_count; 
 
     //let tile_ix = wg_id.y * config.width_in_tiles + wg_id.x;
@@ -557,9 +553,10 @@ fn main(
     }
     let xy_uint = vec2<u32>(xy);
 
-    let start_index = fine_index[tile_ix * 4u];
+    let start_index = fine_info[tile_ix * 4u];
     let slice_buf_index = start_index + slice_index;
-    let slice_buf_index_base = slice_buf_index * TILE_SIZE + local_id.x * 4u + local_id.y * 16u;    
+    let fine_slice_base = config.width_in_tiles * config.height_in_tiles * 4u;
+    let slice_buf_index_base = fine_slice_base + slice_buf_index * TILE_SIZE + local_id.x * 4u + local_id.y * 16u;    
 
     for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
         let coords = xy_uint + vec2(i, 0u);
@@ -570,7 +567,7 @@ fn main(
             let rgba_sep = vec4(fg.rgb * a_inv, fg.a);
 
             // store the premulitplied alpha color to buffer and compose it later
-            fine_slice[slice_buf_index_base + i] = pack4x8unorm(fg);
+            fine_info[slice_buf_index_base + i] = pack4x8unorm(fg);
         }
     } 
 }

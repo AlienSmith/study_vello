@@ -22,7 +22,7 @@ var<storage> counter: array<i32>;
 var<storage, read_write> coarse_index: array<u32>;
 
 @group(0) @binding(4)
-var<storage, read_write> fine_index: array<u32>;
+var<storage, read_write> fine_info: array<u32>;
 
 // Much of this code assumes WG_SIZE == N_TILE. If these diverge, then
 // a fair amount of fixup is needed.
@@ -74,17 +74,17 @@ fn main(
                 }
             }
         }
-        fine_index[this_tile_ix * 4u + 1u] = ptcl_slice_offsets;
-        fine_index[this_tile_ix * 4u + 3u] = current_clip_index;
+        fine_info[this_tile_ix * 4u + 1u] = ptcl_slice_offsets;
+        fine_info[this_tile_ix * 4u + 3u] = current_clip_index;
 
         //debug with debug shader
         let size = ptcl_slice_offsets * PTCL_INCREMENT;
         let base_size = atomicAdd(&bump.ptcl, size);
         let base_offset = base_size / PTCL_INCREMENT;
-        fine_index[this_tile_ix * 4u] = base_offset;
+        fine_info[this_tile_ix * 4u] = base_offset;
 
         let indirect_clip_offset = atomicAdd(&bump.indirect_clips, current_clip_index);
-        fine_index[this_tile_ix * 4u + 2u] = indirect_clip_offset;
+        fine_info[this_tile_ix * 4u + 2u] = indirect_clip_offset;
         if ((base_size + size) > config.ptcl_size) || ((indirect_clip_offset + current_clip_index) > config.indirect_clip_count){
             atomicOr(&bump.failed, STAGE_COARSE);
         }

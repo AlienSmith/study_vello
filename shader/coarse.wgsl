@@ -3,7 +3,6 @@
 // The coarse rasterization stage.
 
 #import config
-#import bump
 #import drawtag
 #import ptcl
 #import tile
@@ -37,25 +36,19 @@ var<storage> paths: array<Path>;
 var<storage, read_write> tiles: array<Tile>;
 
 @group(0) @binding(7)
-var<storage, read_write> bump: BumpAllocators;
-
-@group(0) @binding(8)
 var<storage, read_write> ptcl: array<u32>;
 
-@group(0) @binding(9)
-var<storage, read_write> layer_info: array<f32>;
-
-@group(0) @binding(10)
+@group(0) @binding(8)
 var<storage, read_write> coarse_index: array<u32>;
 
-@group(0) @binding(11)
+@group(0) @binding(9)
 var<storage, read_write> clip_path_index: array<u32>;
 
-@group(0) @binding(12)
+@group(0) @binding(10)
 var<storage> counter: array<i32>;
 
-@group(0) @binding(13)
-var<storage> fine_index: array<u32>;
+@group(0) @binding(11)
+var<storage> fine_info: array<u32>;
 
 // Much of this code assumes WG_SIZE == N_TILE. If these diverge, then
 // a fair amount of fixup is needed.
@@ -76,7 +69,6 @@ var<workgroup> sh_tile_base: array<u32, WG_SIZE>;
 
 var<private> ptcl_segment_base: u32;
 var<private> ptcl_slice_offset: u32;
-var<private> layer_counter: u32;
 
 var<private> cmd_offset: u32;
 var<private> new_cmd_offset:u32;
@@ -114,10 +106,9 @@ fn initialize_coarse_index(tile_offset: u32, partition_offset: u32){
     let this_tile_ix = tile_offset + partition_offset;
     let packed_value = coarse_index[this_tile_ix * 3u];
     ptcl_slice_offset = packed_value & 0xfffu;
-    layer_counter = (packed_value >> 12u) & 0xfu;
     let clip_index_slice_offset = packed_value >> 16u;
-    ptcl_segment_base = fine_index[tile_offset * 4u];
-    let clip_index_tile_base = fine_index[tile_offset * 4u + 2u];
+    ptcl_segment_base = fine_info[tile_offset * 4u];
+    let clip_index_tile_base = fine_info[tile_offset * 4u + 2u];
     indirect_clips_base = clip_index_tile_base + clip_index_slice_offset;
     push_indirect(coarse_index[this_tile_ix * 3u + 1u] & 0xffffu);
     push_indirect(coarse_index[this_tile_ix * 3u + 1u] >> 16u);
@@ -218,7 +209,6 @@ fn main(
 
     clip_stack_end = 0u;
     tile_index = this_tile_ix;
-    layer_counter = 0u;
 
     var partition_ix = wg_id.z;
 
@@ -391,15 +381,6 @@ fn main(
                     let blend = scene[dd];
                     let alpha = bitcast<f32>(scene[dd + 1u]);
                     clip_stack_end -= select(1u, 0u, clip_stack_end == 0u);
-                    //extract the blend flag
-                    let packed_color = unpack4x8unorm(blend).wzyx;
-                    if packed_color.a != 1.0 && layer_counter < MAX_LAYER_COUNT {
-                        let index = tile_index * LAYER_INFOR_SIZE + layer_counter * 2u;
-                        layer_info[index] = f32(slice_index);
-                        layer_info[index + 1u] = alpha;
-                        layer_counter += 1u;
-                        start_new_segment();
-                    }
                 }
                 default: {
                     alloc_cmd(2u);

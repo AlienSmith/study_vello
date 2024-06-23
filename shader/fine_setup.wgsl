@@ -11,12 +11,9 @@
 var<uniform> config: Config;
 
 @group(0) @binding(1)
-var<storage, read_write> fine_index: array<u32>;
-
-@group(0) @binding(2)
 var<storage, read_write> indirect: IndirectCount;
 
-@group(0) @binding(3)
+@group(0) @binding(2)
 var<storage, read_write> bump: BumpAllocators;
 
 // Partition size for path count stage

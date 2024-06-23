@@ -448,7 +448,7 @@ impl Render {
                 bump_buf,
                 coarse_counter_buf,
                 coarse_index_buf,
-                fine_index_buf,
+                fine_info_buf,
             ]);
 
             // recording.dispatch(
@@ -465,20 +465,17 @@ impl Render {
                 info_bin_data_buf,
                 path_buf,
                 tile_buf,
-                bump_buf,
                 ptcl_buf,
-                layer_info_buf,
                 coarse_index_buf,
                 indirect_clip_index_buf,
                 coarse_counter_buf,
-                fine_index_buf,
+                fine_info_buf,
             ]);
             recording.free_resource(coarse_index_buf);
             recording.free_resource(coarse_counter_buf);
 
             recording.dispatch(shaders.fine_setup, (1, 1, 1), [
                 config_buf,
-                fine_index_buf,
                 indirect_count_buf.into(),
                 bump_buf,
             ]);
@@ -527,21 +524,15 @@ impl Render {
                 fine.image_atlas,
                 fine.draw_monoid_buf,
                 fine.indirect_clip_index_buf,
-                fine.bump_buf,
-                fine.fine_index,
-                fine.fine_slice,
+                fine.fine_info_buf,
             ]);
             recording.dispatch(shaders.compose, fine_wg_count, [
                 fine.config_buf,
                 ResourceProxy::Image(fine.out_image),
-                fine.fine_index,
-                fine.fine_slice,
+                fine.fine_info_buf,
                 fine.bump_buf,
-                fine.layer_info,
             ]);
-            recording.free_resource(fine.fine_index);
-            recording.free_resource(fine.fine_slice);
-            recording.free_resource(fine.layer_info);
+            recording.free_resource(fine.fine_info_buf);
             recording.free_resource(fine.indirect_clip_index_buf);
         }
         #[cfg(not(feature = "coarse_segmentation"))]

@@ -328,8 +328,6 @@ pub fn full_shaders(
             BindType::Buffer,
             BindType::Buffer,
             BindType::Buffer,
-            BindType::Buffer,
-            BindType::Buffer,
             BindType::BufReadOnly,
             BindType::BufReadOnly,
         ]
@@ -338,7 +336,7 @@ pub fn full_shaders(
         device,
         "fine_setup",
         preprocess::preprocess(shader!("fine_setup"), &full_config, &imports).into(),
-        &[BindType::Uniform, BindType::Buffer, BindType::Buffer, BindType::Buffer]
+        &[BindType::Uniform, BindType::Buffer, BindType::Buffer]
     )?;
     #[cfg(feature = "coarse_segmentation")]
     let fine = engine.add_shader(
@@ -357,8 +355,6 @@ pub fn full_shaders(
             BindType::BufReadOnly,
             BindType::BufReadOnly,
             BindType::Buffer,
-            BindType::BufReadOnly,
-            BindType::Buffer,
         ]
     )?;
     //we need a separate shader because no clear way to share barrier between workgroup
@@ -370,9 +366,7 @@ pub fn full_shaders(
             BindType::Uniform,
             BindType::Image(ImageFormat::Rgba8),
             BindType::BufReadOnly,
-            BindType::BufReadOnly,
             BindType::Buffer,
-            BindType::BufReadOnly,
         ]
     )?;
 
