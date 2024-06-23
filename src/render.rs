@@ -31,11 +31,7 @@ struct FineResources {
 
     indirect_dispatch_count: BufProxy,
     #[cfg(feature = "ptcl_segmentation")]
-    fine_index: ResourceProxy,
-    #[cfg(feature = "ptcl_segmentation")]
-    fine_slice: ResourceProxy,
-    #[cfg(feature = "ptcl_segmentation")]
-    layer_info: ResourceProxy,
+    fine_info_buf: ResourceProxy,
     #[cfg(feature = "coarse_segmentation")]
     indirect_clip_index_buf: ResourceProxy,
 }
@@ -168,18 +164,10 @@ impl Render {
         );
 
         #[cfg(feature = "ptcl_segmentation")]
-        let fine_index_buf = ResourceProxy::new_buf(
-            buffer_sizes.fine_index.size_in_bytes().into(),
-            "ptcl_buf"
-        );
-        #[cfg(feature = "ptcl_segmentation")]
-        let fine_slice_buf = ResourceProxy::new_buf(
-            buffer_sizes.fine_slice.size_in_bytes().into(),
-            "ptcl_buf"
-        );
-        #[cfg(feature = "ptcl_segmentation")]
-        let layer_info_buf = ResourceProxy::new_buf(
-            buffer_sizes.layer_info.size_in_bytes().into(),
+        let fine_info_buf = ResourceProxy::new_buf(
+            (
+                buffer_sizes.fine_index.size_in_bytes() + buffer_sizes.fine_slice.size_in_bytes()
+            ).into(),
             "ptcl_buf"
         );
         let reduced_buf = ResourceProxy::new_buf(
@@ -427,8 +415,7 @@ impl Render {
                 tile_buf,
                 bump_buf,
                 ptcl_buf,
-                #[cfg(feature = "ptcl_segmentation")] fine_index_buf,
-                #[cfg(feature = "ptcl_segmentation")] layer_info_buf,
+                #[cfg(feature = "ptcl_segmentation")] fine_info_buf,
             ]);
             recording.free_resource(draw_monoid_buf);
             recording.free_resource(bin_header_buf);
@@ -437,7 +424,7 @@ impl Render {
             #[cfg(feature = "ptcl_segmentation")]
             recording.dispatch(shaders.fine_setup_original, (1, 1, 1), [
                 config_buf,
-                fine_index_buf,
+                fine_info_buf,
                 indirect_count_buf.into(),
                 bump_buf,
             ]);
@@ -514,12 +501,7 @@ impl Render {
             image_atlas: ResourceProxy::Image(image_atlas),
             out_image,
             indirect_dispatch_count: indirect_count_buf,
-            #[cfg(feature = "ptcl_segmentation")]
-            fine_index: fine_index_buf,
-            #[cfg(feature = "ptcl_segmentation")]
-            fine_slice: fine_slice_buf,
-            #[cfg(feature = "ptcl_segmentation")]
-            layer_info: layer_info_buf,
+            #[cfg(feature = "ptcl_segmentation")] fine_info_buf,
             #[cfg(feature = "coarse_segmentation")] indirect_clip_index_buf,
         });
         if robust {
@@ -579,21 +561,16 @@ impl Render {
                         fine.gradient_image,
                         fine.image_atlas,
                         fine.bump_buf,
-                        fine.fine_index,
-                        fine.fine_slice,
+                        fine.fine_info_buf,
                     ]
                 );
                 recording.dispatch(shaders.compose_original, fine_wg_count, [
                     fine.config_buf,
                     ResourceProxy::Image(fine.out_image),
-                    fine.fine_index,
-                    fine.fine_slice,
                     fine.bump_buf,
-                    fine.layer_info,
+                    fine.fine_info_buf,
                 ]);
-                recording.free_resource(fine.fine_index);
-                recording.free_resource(fine.fine_slice);
-                recording.free_resource(fine.layer_info);
+                recording.free_resource(fine.fine_info_buf);
             }
             #[cfg(not(feature = "ptcl_segmentation"))]
             {

@@ -391,7 +391,6 @@ pub fn full_shaders(
             BindType::Buffer,
             BindType::Buffer,
             #[cfg(feature = "ptcl_segmentation")] BindType::Buffer,
-            #[cfg(feature = "ptcl_segmentation")] BindType::Buffer,
         ]
     )?;
     let fine_setup_original = engine.add_shader(
@@ -413,7 +412,6 @@ pub fn full_shaders(
             BindType::ImageRead(ImageFormat::Rgba8),
             BindType::ImageRead(ImageFormat::Rgba8),
             BindType::Buffer,
-            #[cfg(feature = "ptcl_segmentation")] BindType::BufReadOnly,
             #[cfg(feature = "ptcl_segmentation")] BindType::Buffer,
             #[cfg(not(feature = "ptcl_segmentation"))] BindType::Image(ImageFormat::Rgba8),
         ]
@@ -425,8 +423,6 @@ pub fn full_shaders(
         &[
             BindType::Uniform,
             BindType::Image(ImageFormat::Rgba8),
-            BindType::BufReadOnly,
-            BindType::BufReadOnly,
             BindType::Buffer,
             BindType::BufReadOnly,
         ]

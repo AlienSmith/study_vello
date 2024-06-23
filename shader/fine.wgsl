@@ -48,12 +48,9 @@ var<storage> draw_monoids: array<DrawMonoid>;
 var<storage> clip_path_index: array<u32>;
 
 @group(0) @binding(10)
-var<storage, read_write> bump: BumpAllocators;
-
-@group(0) @binding(11)
 var<storage> fine_index: array<u32>;
 
-@group(0) @binding(12)
+@group(0) @binding(11)
 var<storage, read_write> fine_slice: array<u32>;
 
 var<private> dashes_array: array<f32,MAX_DASHES_ARRAY_SIZE>;
@@ -377,9 +374,6 @@ fn main(
     @builtin(local_invocation_id) local_id: vec3<u32>,
     @builtin(workgroup_id) wg_id: vec3<u32>,
 ) {
-    if atomicLoad(&bump.failed) != 0u {
-        return;
-    }
     clip_depth = 0u;
     let initial_length = config.width_in_tiles * config.height_in_tiles;
     let delta = u32(max(0 ,i32(wg_id.x) - i32(initial_length)));

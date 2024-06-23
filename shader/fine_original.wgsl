@@ -44,10 +44,7 @@ var<storage, read_write> bump: BumpAllocators;
 
 #ifdef ptcl_segmentation
 @group(0) @binding(8)
-var<storage> fine_index: array<u32>;
-
-@group(0) @binding(9)
-var<storage, read_write> fine_slice: array<u32>;
+var<storage, read_write> fine_info: array<u32>;
 
 #else
 @group(0) @binding(8)
@@ -552,9 +549,10 @@ fn main(
     }
     let xy_uint = vec2<u32>(xy);
 #ifdef ptcl_segmentation
-    let start_index = select(0u, fine_index[tile_ix - 1u], tile_ix > 0u);
+    let fine_slice_base = config.width_in_tiles * config.height_in_tiles * 4u;
+    let start_index = select(0u, fine_info[tile_ix - 1u], tile_ix > 0u);
     let slice_buf_index = start_index + slice_index;
-    let slice_buf_index_base = slice_buf_index * TILE_SIZE + local_id.x * 4u + local_id.y * 16u;    
+    let slice_buf_index_base = fine_slice_base + slice_buf_index * TILE_SIZE + local_id.x * 4u + local_id.y * 16u;    
 #endif
     for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
         let coords = xy_uint + vec2(i, 0u);
@@ -566,7 +564,7 @@ fn main(
 
 #ifdef ptcl_segmentation
             // store the premulitplied alpha color to buffer and compose it later
-            fine_slice[slice_buf_index_base + i] = pack4x8unorm(fg);
+            fine_info[slice_buf_index_base + i] = pack4x8unorm(fg);
 #else
             // store the premulitplied alpha color directly to texture
             textureStore(output, vec2<i32>(coords), rgba_sep);

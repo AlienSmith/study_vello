@@ -43,9 +43,7 @@ var<storage, read_write> ptcl: array<u32>;
 
 #ifdef ptcl_segmentation
 @group(0) @binding(9)
-var<storage, read_write> fine_index: array<u32>;
-@group(0) @binding(10)
-var<storage, read_write> layer_info: array<f32>;
+var<storage, read_write> fine_info: array<u32>;
 #endif
 
 
@@ -77,7 +75,6 @@ var<private> clip_stack: array<vec2<u32>,N_CLIPS>;
 var<private> clip_stack_end: u32;
 var<private> slice_index: u32;
 var<private> tile_index: u32;
-var<private> layer_counter: u32;
 // Make sure there is space for a command of given size, plus a jump if needed
 fn alloc_cmd(size: u32) {
     if cmd_offset + size >= cmd_limit {
@@ -263,7 +260,6 @@ fn main(
     clip_stack_end = 0u;
     tile_index = this_tile_ix;
     slice_index = 0u;
-    layer_counter = 0u;
 #endif
     // clip state
     var clip_zero_depth = 0u;
@@ -526,15 +522,6 @@ fn main(
                             write_end_clip(CmdEndClip(blend, alpha));
 #ifdef ptcl_segmentation
                             clip_stack_end -= 1u;
-                            //extract the blend flag
-                            let packed_color = unpack4x8unorm(blend).wzyx;
-                            if packed_color.a != 1.0 && layer_counter < MAX_LAYER_COUNT{
-                                let index = tile_index * LAYER_INFOR_SIZE + layer_counter * 2u;
-                                layer_info[index] = f32(slice_index);
-                                layer_info[index + 1u] = alpha;
-                                layer_counter += 1u;
-                                start_new_segment();
-                            }
 #endif
                             render_blend_depth -= 1u;
                         }
@@ -570,7 +557,7 @@ fn main(
     }
     if within_range {
 #ifdef ptcl_segmentation
-        fine_index[tile_index] = slice_index;
+        fine_info[tile_index] = slice_index;
         //write_end();
         //we have slicing head of 30, we would have more than enough space for this end marker.
         ptcl[cmd_offset] = CMD_END;
