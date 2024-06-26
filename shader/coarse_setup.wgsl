@@ -19,7 +19,7 @@ var<storage, read_write> bump: BumpAllocators;
 var<storage> counter: array<i32>;
 
 @group(0) @binding(3)
-var<storage, read_write> coarse_index: array<u32>;
+var<storage, read_write> coarse_info: array<u32>;
 
 @group(0) @binding(4)
 var<storage, read_write> fine_info: array<u32>;
@@ -56,11 +56,10 @@ fn main(
         var layer_counter = 0u;
         for (var i = 0u; i < n_partitions; i += 1u) {
             let index = this_tile_ix + i * stride;
-            coarse_index[index * 3u] = (ptcl_slice_offsets & 0xfffu) | ((layer_counter & 0xfu) << 12u) | (current_clip_index << 16u);
-            coarse_index[index * 3u + 1u] = (clip_stack[0] & 0xffffu) | (clip_stack[1] << 16u);
-            coarse_index[index * 3u + 2u] = (clip_stack[2] & 0xffffu) | (clip_stack[3] << 16u);
-            ptcl_slice_offsets += u32(counter[index * 3u] >> 4u);
-            layer_counter += u32(counter[index * 3u] & 0xf);
+            coarse_info[index * 3u] = (ptcl_slice_offsets & 0xffffu) | (current_clip_index << 16u);
+            coarse_info[index * 3u + 1u] = (clip_stack[0] & 0xffffu) | (clip_stack[1] << 16u);
+            coarse_info[index * 3u + 2u] = (clip_stack[2] & 0xffffu) | (clip_stack[3] << 16u);
+            ptcl_slice_offsets += u32(counter[index * 3u]);
             let clips = counter[index * 3u + 1u];
             let delta = abs(clips);
             for(var j = 0; j < delta; j += 1){

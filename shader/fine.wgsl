@@ -44,7 +44,7 @@ var image_atlas: texture_2d<f32>;
 var<storage> draw_monoids: array<DrawMonoid>;
 
 @group(0) @binding(9)
-var<storage> clip_path_index: array<u32>;
+var<storage> coarse_info: array<u32>;
 
 @group(0) @binding(10)
 var<storage, read_write> fine_info: array<u32>;
@@ -382,7 +382,8 @@ fn main(
     let slice_index = indexing & 0xfffu;
     let begin_clip_count = (indexing >> 12u) & 0xfu;
     let tile_ix = (indexing >> 16u) & 0xffffu;
-    let indirect_clip_base = fine_info[tile_ix * 4u + 2u];
+    let indirect_clip_offset = config.width_in_tiles * config.width_in_tiles * 3u * (config.n_drawobj + 255u/256u);
+    let indirect_clip_base = indirect_clip_offset + fine_info[tile_ix * 4u + 2u];
     clip_depth = begin_clip_count; 
 
     //let tile_ix = wg_id.y * config.width_in_tiles + wg_id.x;
@@ -421,7 +422,7 @@ fn main(
             continue;
         }
 
-        let tile_ix = select(tile_ix_or_indirect, clip_path_index[tile_ix_or_indirect + indirect_clip_base], command == CMD_DRAW_INDIRECT);
+        let tile_ix = select(tile_ix_or_indirect, coarse_info[tile_ix_or_indirect + indirect_clip_base], command == CMD_DRAW_INDIRECT);
         //could use drawobj_ix to store drawtag directly if we need further expansion
         let drawtag = select(scene[config.drawtag_base + drawobj_ix], 0x21u, command == CMD_DRAW_INDIRECT);
         let dm = draw_monoids[drawobj_ix];

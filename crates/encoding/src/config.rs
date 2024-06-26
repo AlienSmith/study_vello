@@ -445,7 +445,7 @@ impl BufferSizes {
         //path index of unclosed clips this could be dynamic sized use the max number valid
         //TODO use dynamic size
         #[cfg(feature = "coarse_segmentation")]
-        let indirect_clip_index = BufferSize::new(_width_in_tiles * _height_in_tiles * 65536);
+        let indirect_clip_index = BufferSize::new(_width_in_tiles * _height_in_tiles * 256);
 
         //TODO use dynamic size
         #[cfg(feature = "ptcl_segmentation")]

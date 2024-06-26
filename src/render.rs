@@ -33,7 +33,7 @@ struct FineResources {
     #[cfg(feature = "ptcl_segmentation")]
     fine_info_buf: ResourceProxy,
     #[cfg(feature = "coarse_segmentation")]
-    indirect_clip_index_buf: ResourceProxy,
+    coarse_info_buf: ResourceProxy,
 }
 
 pub fn render_full(
@@ -153,14 +153,12 @@ impl Render {
             "coarse_counter_buf"
         );
         #[cfg(feature = "coarse_segmentation")]
-        let coarse_index_buf = ResourceProxy::new_buf(
-            buffer_sizes.coarse_index.size_in_bytes().into(),
+        let coarse_info_buf = ResourceProxy::new_buf(
+            (
+                buffer_sizes.coarse_index.size_in_bytes() +
+                buffer_sizes.indirect_clip_index.size_in_bytes()
+            ).into(),
             "coarse_index_buf"
-        );
-        #[cfg(feature = "coarse_segmentation")]
-        let indirect_clip_index_buf = ResourceProxy::new_buf(
-            buffer_sizes.indirect_clip_index.size_in_bytes().into(),
-            "indirect_clip_index_buf"
         );
 
         #[cfg(feature = "ptcl_segmentation")]
@@ -447,7 +445,7 @@ impl Render {
                 config_buf,
                 bump_buf,
                 coarse_counter_buf,
-                coarse_index_buf,
+                coarse_info_buf,
                 fine_info_buf,
             ]);
 
@@ -466,12 +464,10 @@ impl Render {
                 path_buf,
                 tile_buf,
                 ptcl_buf,
-                coarse_index_buf,
-                indirect_clip_index_buf,
+                coarse_info_buf,
                 coarse_counter_buf,
                 fine_info_buf,
             ]);
-            recording.free_resource(coarse_index_buf);
             recording.free_resource(coarse_counter_buf);
 
             recording.dispatch(shaders.fine_setup, (1, 1, 1), [
@@ -499,7 +495,7 @@ impl Render {
             out_image,
             indirect_dispatch_count: indirect_count_buf,
             #[cfg(feature = "ptcl_segmentation")] fine_info_buf,
-            #[cfg(feature = "coarse_segmentation")] indirect_clip_index_buf,
+            #[cfg(feature = "coarse_segmentation")] coarse_info_buf,
         });
         if robust {
             recording.download(*bump_buf.as_buf().unwrap());
@@ -523,7 +519,7 @@ impl Render {
                 fine.info_bin_data_buf,
                 fine.image_atlas,
                 fine.draw_monoid_buf,
-                fine.indirect_clip_index_buf,
+                fine.coarse_info_buf,
                 fine.fine_info_buf,
             ]);
             recording.dispatch(shaders.compose, fine_wg_count, [
@@ -533,7 +529,7 @@ impl Render {
                 fine.bump_buf,
             ]);
             recording.free_resource(fine.fine_info_buf);
-            recording.free_resource(fine.indirect_clip_index_buf);
+            recording.free_resource(fine.coarse_info_buf);
         }
         #[cfg(not(feature = "coarse_segmentation"))]
         {

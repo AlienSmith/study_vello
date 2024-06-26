@@ -39,15 +39,12 @@ var<storage, read_write> tiles: array<Tile>;
 var<storage, read_write> ptcl: array<u32>;
 
 @group(0) @binding(8)
-var<storage, read_write> coarse_index: array<u32>;
+var<storage, read_write> coarse_info: array<u32>;
 
 @group(0) @binding(9)
-var<storage, read_write> clip_path_index: array<u32>;
-
-@group(0) @binding(10)
 var<storage> counter: array<i32>;
 
-@group(0) @binding(11)
+@group(0) @binding(10)
 var<storage> fine_info: array<u32>;
 
 // Much of this code assumes WG_SIZE == N_TILE. If these diverge, then
@@ -87,7 +84,7 @@ fn write_clips(this_tile_ix:u32){
     var offset = 0u;
     for(var i = 0u; i < clip_stack_end; i++){
         if(clip_stack[i].z == CMD_DRAW){
-            clip_path_index[indirect_clips_base + offset] = clip_stack[i].x;
+            coarse_info[indirect_clips_base + offset] = clip_stack[i].x;
             offset += 1u;
         }
     }
@@ -103,17 +100,18 @@ fn push_indirect(item:u32){
 
 //unpack coarse indexing data
 fn initialize_coarse_index(tile_offset: u32, partition_offset: u32){
+    let indirect_clips_offset = config.width_in_tiles * config.width_in_tiles * 3u * (config.n_drawobj + 255u/256u);
     let this_tile_ix = tile_offset + partition_offset;
-    let packed_value = coarse_index[this_tile_ix * 3u];
-    ptcl_slice_offset = packed_value & 0xfffu;
+    let packed_value = coarse_info[this_tile_ix * 3u];
+    ptcl_slice_offset = packed_value & 0xffffu;
     let clip_index_slice_offset = packed_value >> 16u;
     ptcl_segment_base = fine_info[tile_offset * 4u];
     let clip_index_tile_base = fine_info[tile_offset * 4u + 2u];
-    indirect_clips_base = clip_index_tile_base + clip_index_slice_offset;
-    push_indirect(coarse_index[this_tile_ix * 3u + 1u] & 0xffffu);
-    push_indirect(coarse_index[this_tile_ix * 3u + 1u] >> 16u);
-    push_indirect(coarse_index[this_tile_ix * 3u + 2u] & 0xffffu);
-    push_indirect(coarse_index[this_tile_ix * 3u + 2u] >> 16u);
+    indirect_clips_base = indirect_clips_offset + clip_index_tile_base + clip_index_slice_offset;
+    push_indirect(coarse_info[this_tile_ix * 3u + 1u] & 0xffffu);
+    push_indirect(coarse_info[this_tile_ix * 3u + 1u] >> 16u);
+    push_indirect(coarse_info[this_tile_ix * 3u + 2u] & 0xffffu);
+    push_indirect(coarse_info[this_tile_ix * 3u + 2u] >> 16u);
     cmd_offset = (ptcl_slice_offset + ptcl_segment_base) * PTCL_INCREMENT;
     new_cmd_offset = cmd_offset + PTCL_INCREMENT;
     cmd_limit = cmd_offset + (PTCL_INCREMENT - PTCL_ENDROOM);

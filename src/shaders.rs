@@ -327,7 +327,6 @@ pub fn full_shaders(
             BindType::Buffer,
             BindType::Buffer,
             BindType::Buffer,
-            BindType::Buffer,
             BindType::BufReadOnly,
             BindType::BufReadOnly,
         ]

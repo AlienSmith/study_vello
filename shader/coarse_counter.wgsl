@@ -283,7 +283,7 @@ fn main(
     }
 
     let count = ptcl_segment_count + select(0, 1, cmd_offset > 0u);
-    counter[this_tile_ix * 3u] = (select(count, 0, zero_contribution) << 4u) | i32(0u & 0xfu);
+    counter[this_tile_ix * 3u] = select(count, 0, zero_contribution);
     counter[this_tile_ix * 3u + 1u] = clip_count;
     counter[this_tile_ix * 3u + 2u] = i32(last_tile_ix);
     
