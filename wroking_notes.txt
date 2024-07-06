@@ -7,6 +7,7 @@ Rapier for physics
 	- finished reading documents need concret examples
 Networking 
 	- studied example of matchbox + bevy_ggrs need concret exmples
+                - add example of using webpack with "with_winit"
 Browser support
 	- done 
 	- try with: cargo run_wasm --package with_winit
