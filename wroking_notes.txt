@@ -1,9 +1,13 @@
 Need to
 Anim 
 	- multi anim switch support
+	- anim system should coop with ggrs
+	- Notice: only coarse_segmentations supports or logics between paths, some animations might need this.
 Rapier for physics 
 	- finished reading documents need concret examples
 Networking 
-	- missing
+	- studied example of matchbox + bevy_ggrs need concret exmples
 Browser support
-	- fix compute shader and other problems
+	- done 
+	- try with: cargo run_wasm --package with_winit
+	- try it with bevy

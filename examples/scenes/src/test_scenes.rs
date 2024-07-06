@@ -611,7 +611,7 @@ fn conflation_artifacts(sb: &mut Scene, _: &mut SceneParams) {
     let x = N + 0.5; // Fractional pixel offset reveals the problem on axis-aligned edges.
     let mut y = N;
 
-    let bg_color = Color::rgb8(255, 194, 19);
+    //let bg_color = Color::rgb8(255, 194, 19);
     let fg_color = Color::rgb8(12, 165, 255);
 
     // Two adjacent triangles touching at diagonal edge with opposing winding numbers
@@ -1036,7 +1036,9 @@ fn splash_with_svg_tiger() -> impl FnMut(&mut Scene, &mut SceneParams) {
 }
 
 fn splash_with_svg_tiger1() -> impl FnMut(&mut Scene, &mut SceneParams) {
-    let contents = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../assets/circle_start.svg"));
+    let contents = include_str!(
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../assets/Ghostscript_Tiger.svg")
+    );
     let mut tiger = crate::svg::svg_function_of("Ghostscript Tiger".to_string(), move || contents);
     move |sb, params| {
         tiger(sb, params);
@@ -1057,7 +1059,7 @@ fn splash_with_lottie_tiger() -> impl FnMut(&mut Scene, &mut SceneParams) {
 
 fn splash_with_lottie_tiger1() -> impl FnMut(&mut Scene, &mut SceneParams) {
     let contents = include_str!(
-        concat!(env!("CARGO_MANIFEST_DIR"), "/../assets/google_fonts/character_animation2.json")
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../assets/google_fonts/walking_circle.json")
     );
     let mut lottie = crate::lottie::lottie_function_of("Tiger1".to_string(), move || contents);
     move |scene, params| {
