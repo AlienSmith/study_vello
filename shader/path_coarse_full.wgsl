@@ -131,11 +131,13 @@ fn main(
         let p3 = cubic.p3;
         let err_v = 3.0 * (p2 - p1) + p0 - p3;
         let err = dot(err_v, err_v);
+
         let ACCURACY = 0.25;
         let Q_ACCURACY = ACCURACY * 0.1;
         let REM_ACCURACY = (ACCURACY - Q_ACCURACY);
         let MAX_HYPOT2 = 432.0 * Q_ACCURACY * Q_ACCURACY;
         var n_quads = max(u32(ceil(pow(err * (1.0 / MAX_HYPOT2), 1.0 / 6.0))), 1u);
+        
         n_quads = min(n_quads, MAX_QUADS);
         var keep_params: array<SubdivResult, MAX_QUADS>;
         var val = 0.0;
@@ -184,6 +186,7 @@ fn main(
                 let xymax = max(lp0, lp1) + cubic.stroke;
                 let dp = lp1 - lp0;
                 let current_section_length = length(dp);
+                //TODO: Add supports for local space dash
                 let dp_world = transform_apply_vector(screen_to_world, normalize(dp));
                 let length_modifier = 1.0 / max(length(dp_world), 1e-7);
                 let recip_dx = 1.0 / dp.x;

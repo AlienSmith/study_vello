@@ -12,3 +12,7 @@ Browser support
 	- done 
 	- try with: cargo run_wasm --package with_winit
 	- try it with bevy
+Partical system
+	- adding instance with standalone transform buffer as some kind of instance.
+Others
+	-pay attentions to dash implementation logic length_modifier doesn't seems right
