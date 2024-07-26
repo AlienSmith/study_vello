@@ -14,5 +14,6 @@ Browser support
 	- try it with bevy
 Partical system
 	- adding instance with standalone transform buffer as some kind of instance.
+	- let scene buffer contain local2world matrix instead of local2screen matrix for partical
 Others
 	-pay attentions to dash implementation logic length_modifier doesn't seems right

@@ -17,24 +17,27 @@ struct AtomicPatternInp{
 var<uniform> config: Config;
 
 @group(0) @binding(1)
-var<storage> scene: array<u32>;
+var<uniform> camera: InputTransform;
 
 @group(0) @binding(2)
-var<storage> reduced: array<DrawMonoid>;
+var<storage> scene: array<u32>;
 
 @group(0) @binding(3)
-var<storage> path_bbox: array<PathBbox>;
+var<storage> reduced: array<DrawMonoid>;
 
 @group(0) @binding(4)
-var<storage, read_write> draw_monoid: array<DrawMonoid>;
+var<storage> path_bbox: array<PathBbox>;
 
 @group(0) @binding(5)
-var<storage, read_write> info: array<u32>;
+var<storage, read_write> draw_monoid: array<DrawMonoid>;
 
 @group(0) @binding(6)
-var<storage, read_write> clip_inp: array<ClipInp>;
+var<storage, read_write> info: array<u32>;
 
 @group(0) @binding(7)
+var<storage, read_write> clip_inp: array<ClipInp>;
+
+@group(0) @binding(8)
 var<storage, read_write> path_to_pattern: array<AtomicPatternInp>;
 
 #import util
@@ -124,12 +127,13 @@ fn main(
         // let y1 = f32(bbox.y1);
         // let bbox_f = vec4(x0, y0, x1, y1);
         let fill_mode = u32(bbox.linewidth >= 0.0);
+        let world_to_screen = Transform(camera.matrx, camera.translate);
         var transform = Transform();
         var linewidth = bbox.linewidth;
         if linewidth >= 0.0 || tag_word == DRAWTAG_FILL_LIN_GRADIENT || tag_word == DRAWTAG_FILL_RAD_GRADIENT ||
             tag_word == DRAWTAG_FILL_IMAGE 
         {
-            transform = read_transform(config.transform_base, bbox.trans_ix - 1u);
+            transform = transform_mul(world_to_screen, read_transform(config.transform_base, bbox.trans_ix - 1u));
         }
         if linewidth >= 0.0 {
             // Note: doesn't deal with anisotropic case

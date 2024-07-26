@@ -269,6 +269,7 @@ impl Render {
         );
         recording.dispatch(shaders.draw_leaf, wg_counts.draw_leaf, [
             config_buf,
+            camera_buf,
             scene_buf,
             draw_reduced_buf,
             path_bbox_buf,
@@ -397,6 +398,7 @@ impl Render {
         //             segments_buf,
         //         ],
         //     );
+        recording.free_resource(camera_buf);
         recording.free_resource(tagmonoid_buf);
         recording.free_resource(cubic_buf);
         recording.dispatch(shaders.backdrop, wg_counts.backdrop, [config_buf, path_buf, tile_buf]);

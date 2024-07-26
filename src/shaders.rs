@@ -174,6 +174,7 @@ pub fn full_shaders(
         preprocess::preprocess(shader!("draw_leaf"), &empty, &imports).into(),
         &[
             BindType::Uniform,
+            BindType::Uniform,
             BindType::BufReadOnly,
             BindType::BufReadOnly,
             BindType::BufReadOnly,
