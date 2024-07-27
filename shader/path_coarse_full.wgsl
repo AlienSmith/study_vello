@@ -34,6 +34,9 @@ var<storage, read_write> tiles: array<AtomicTile>;
 @group(0) @binding(7)
 var<storage, read_write> segments: array<Segment>;
 
+@group(0) @binding(8)
+var<storage> path_info: array<PathInfo>;
+
 struct SubdivResult {
     val: f32,
     a0: f32,
@@ -114,6 +117,7 @@ fn main(
     }
 
     let cubic = cubics[global_id.x];
+    let path_info = path_info[cubic.path_ix];
     var tag_byte = cubic.tag_byte;
 
     if (tag_byte & PATH_TAG_SEG_TYPE) != 0u {
@@ -123,7 +127,7 @@ fn main(
         // decoding & transform again rather than store the result in a buffer;
         // classic memory vs ALU tradeoff.
         let path = paths[cubic.path_ix];
-        let is_stroke = (cubic.flags & CUBIC_IS_STROKE) != 0u;
+        let is_stroke = (path_info.flags & CUBIC_IS_STROKE) != 0u;
         let bbox = vec4<i32>(path.bbox);
         let p0 = cubic.p0;
         let p1 = cubic.p1;
@@ -182,18 +186,18 @@ fn main(
                     lp1 = eval_quad(qp0, qp1, qp2, t);
                 }
                 // Output line segment lp0..lp1
-                let xymin = min(lp0, lp1) - cubic.stroke;
-                let xymax = max(lp0, lp1) + cubic.stroke;
+                let xymin = min(lp0, lp1) - path_info.stroke;
+                let xymax = max(lp0, lp1) + path_info.stroke;
                 let dp = lp1 - lp0;
                 let current_section_length = length(dp);
                 //TODO: Add supports for local space dash
                 let dp_world = transform_apply_vector(screen_to_world, normalize(dp));
-                let length_modifier = 1.0 / max(length(dp_world), 1e-7);
+                //let length_modifier = 1.0 / max(length(dp_world), 1e-7);
                 let recip_dx = 1.0 / dp.x;
                 let invslope = select(dp.x / dp.y, 1.0e9, abs(dp.y) < 1.0e-9);
                 let SX = 1.0 / f32(TILE_WIDTH);
                 let SY = 1.0 / f32(TILE_HEIGHT);
-                let c = (cubic.stroke.x + abs(invslope) * (0.5 * f32(TILE_HEIGHT) + cubic.stroke.y)) * SX;
+                let c = (path_info.stroke.x + abs(invslope) * (0.5 * f32(TILE_HEIGHT) + path_info.stroke.y)) * SX;
                 let b = invslope;
                 let a = (lp0.x - (lp0.y - 0.5 * f32(TILE_HEIGHT)) * b) * SX;
                 var x0 = i32(floor(xymin.x * SX));
@@ -235,10 +239,10 @@ fn main(
                     xx0 = clamp(xx0, x0, x1);
                     xx1 = clamp(xx1, x0, x1);
                     var tile_seg: Segment;
-                    tile_seg.dash_modifier = length_modifier;
+                    tile_seg.dash_modifier = path_info.length_modifier;
                     tile_seg.dash_offset = accumulated_length;
-                    tile_seg.dash_start = cubic.dash_start;
-                    tile_seg.dash_size = cubic.dash_size;
+                    tile_seg.dash_start = path_info.dash_start;
+                    tile_seg.dash_size = path_info.dash_size;
                     for (var x = xx0; x < xx1; x += 1) {
                         let tile_x0 = f32(x) * f32(TILE_WIDTH);
                         let tile_ix = base + x;

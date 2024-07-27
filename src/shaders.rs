@@ -160,6 +160,7 @@ pub fn full_shaders(
             BindType::Buffer,
             BindType::Buffer,
             BindType::Buffer,
+            BindType::Buffer,
         ]
     )?;
     let draw_reduce = engine.add_shader(
@@ -270,6 +271,7 @@ pub fn full_shaders(
             BindType::Buffer,
             BindType::Buffer,
             BindType::Buffer,
+            BindType::BufReadOnly,
         ]
     )?;
     let backdrop = engine.add_shader(

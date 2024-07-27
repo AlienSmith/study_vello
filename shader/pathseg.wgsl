@@ -45,6 +45,9 @@ var<storage, read_write> path_bboxes: array<AtomicPathBbox>;
 var<storage, read_write> cubics: array<Cubic>;
 
 @group(0) @binding(6)
+var<storage, read_write> path_info: array<PathInfo>;
+
+@group(0) @binding(7)
 var<storage, read_write> bump: BumpAllocators;
 
 // Monoid is yagni, for future optimization
@@ -173,8 +176,13 @@ fn main(
         }
         let local_to_world = read_transform(config.transform_base, tm.trans_ix - 1u);
         let transform = transform_mul(world_to_screen, local_to_world);
+        let local_p0 = p0;
+        let local_p1 = p1;
         p0 = transform_apply(transform, p0);
         p1 = transform_apply(transform, p1);
+        let screen_p0 = p0;
+        let screen_p1 = p1;
+        let length_modifer = length(screen_p0 - screen_p1)/max(length(local_p0 - local_p1), 1e-7);
         var bbox = vec4(min(p0, p1), max(p0, p1));
         // Degree-raise
         if seg_type == PATH_TAG_LINETO {
@@ -202,7 +210,8 @@ fn main(
             bbox += vec4(-stroke, stroke);
         }
         let flags = u32(linewidth >= 0.0);
-        cubics[global_id.x] = Cubic(p0, p1, p2, p3, stroke, tm.path_ix, flags, tag_byte, dash_start, dash_size);
+        cubics[global_id.x] = Cubic(p0, p1, p2, p3, tm.path_ix, tag_byte);
+        path_info[tm.path_ix] = PathInfo(stroke, dash_start, dash_size, length_modifer, flags);
         // Update bounding box using atomics only. Computing a monoid is a
         // potential future optimization.
         if bbox.z > bbox.x || bbox.w > bbox.y {

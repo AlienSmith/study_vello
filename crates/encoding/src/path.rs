@@ -169,11 +169,18 @@ pub struct Cubic {
     pub p1: [f32; 2],
     pub p2: [f32; 2],
     pub p3: [f32; 2],
-    pub stroke: [f32; 2],
     pub path_ix: u32,
-    pub flags: u32,
+    pub tag_byte: u32,
+}
+
+#[derive(Copy, Clone, Pod, Zeroable, Debug, Default)]
+#[repr(C)]
+pub struct PathInfo {
+    pub stroke: [f32; 2],
     pub dash_start: u32,
     pub dash_size: u32,
+    pub length_modifier: f32,
+    pub flags: u32,
 }
 
 /// Path bounding box.

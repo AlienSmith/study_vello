@@ -1,7 +1,7 @@
 // Copyright 2023 The Vello authors
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use crate::{ math, clip::PatternInp };
+use crate::{ clip::PatternInp, math, path::PathInfo };
 
 use super::{
     BinHeader,
@@ -348,6 +348,8 @@ pub struct BufferSizes {
     pub path_monoids: BufferSize<PathMonoid>,
     pub path_bboxes: BufferSize<PathBbox>,
     pub cubics: BufferSize<Cubic>,
+    //infomation shared by cubics in the same path
+    pub path_info: BufferSize<PathInfo>,
     pub draw_reduced: BufferSize<DrawMonoid>,
     pub draw_monoids: BufferSize<DrawMonoid>,
     pub info: BufferSize<u32>,
@@ -427,6 +429,7 @@ impl BufferSizes {
         let segments = BufferSize::new(1 << 21);
         let ptcl = BufferSize::new(1 << 23);
         let cubics = BufferSize::new(n_path_tags + (1 << 18));
+        let path_info = BufferSize::new(n_paths);
         #[cfg(feature = "coarse_segmentation")]
         let partition_count = (n_draw_objects + 255) / 256;
         //one for ptcl segments one for clips
@@ -463,6 +466,7 @@ impl BufferSizes {
             path_monoids,
             path_bboxes,
             cubics,
+            path_info,
             draw_reduced,
             draw_monoids,
             info,

@@ -232,6 +232,11 @@ impl Render {
             "cubic_buf"
         );
 
+        let path_info_buf = ResourceProxy::new_buf(
+            buffer_sizes.path_info.size_in_bytes().into(),
+            "path_info"
+        );
+
         let bump_buf = BufProxy::new(buffer_sizes.bump_alloc.size_in_bytes().into(), "bump_buf");
         recording.clear_all(bump_buf);
         let bump_buf = ResourceProxy::Buf(bump_buf);
@@ -244,6 +249,7 @@ impl Render {
             tagmonoid_buf,
             path_bbox_buf,
             cubic_buf,
+            path_info_buf,
             bump_buf,
         ]);
         let draw_reduced_buf = ResourceProxy::new_buf(
@@ -384,20 +390,9 @@ impl Render {
             bump_buf,
             tile_buf,
             segments_buf,
+            path_info_buf,
         ]);
-        // recording.dispatch(
-        //         shaders.path_coarse,
-        //         wg_counts.path_coarse,
-        //         [
-        //             config_buf,
-        //             scene_buf,
-        //             cubic_buf,
-        //             path_buf,
-        //             bump_buf,
-        //             tile_buf,
-        //             segments_buf,
-        //         ],
-        //     );
+        recording.free_resource(path_info_buf);
         recording.free_resource(camera_buf);
         recording.free_resource(tagmonoid_buf);
         recording.free_resource(cubic_buf);
