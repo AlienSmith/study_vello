@@ -22,12 +22,9 @@ var<storage> clip_bbox_buf: array<vec4<f32>>;
 var<storage> path_to_pattern: array<PatternInp>;
 
 @group(0) @binding(5)
-var<storage, read_write> path_bbox: array<PathBbox>;
-
-@group(0) @binding(6)
 var<storage, read_write> bump: BumpAllocators;
 
-@group(0) @binding(7)
+@group(0) @binding(6)
 var<storage, read_write> cubic: array<Cubic>;
 
 var<private> is_in_screen_space: bool;
@@ -72,6 +69,7 @@ fn apply_offset(p: vec2<f32>, offset: vec2<f32>) -> vec2<f32>{
     pattern = transform_apply(pattern_to_screen, pattern);
     return pattern;
 }
+//failing of binning won't have any effcts on pattern so we won't check it
 
 @compute @workgroup_size(256)
 fn main(
@@ -151,14 +149,7 @@ fn main(
     }else{
         pattern_to_screen = transform_mul(world_to_screen, pattern_to_world_or_screen);
         screen_to_pattern = transform_mul(screen_or_world_to_pattern,screen_to_world);
-    }        
-
-    //We don't care which thread does the write it will be the same
-    let out = &path_bbox[oup.path_ix];
-    (*out).x0 = i32(clip_bbox.x);
-    (*out).y0 = i32(clip_bbox.y);
-    (*out).x1 = i32(clip_bbox.z);
-    (*out).y1 = i32(clip_bbox.w);
+    }
 
     compare_bbox(clip_bbox.xy);
     compare_bbox(clip_bbox.xw);

@@ -52,7 +52,6 @@ var<workgroup> sh_bitmaps: array<array<atomic<u32>, N_TILE>, N_SLICE>;
 // store count values packed two u16's to a u32
 var<workgroup> sh_count: array<array<u32, N_TILE>, N_SUBSLICE>;
 var<workgroup> sh_chunk_offset: array<u32, N_TILE>;
-var<workgroup> previous_failed: u32;
 
 @compute @workgroup_size(256)
 fn main(
@@ -60,17 +59,6 @@ fn main(
     @builtin(local_invocation_id) local_id: vec3<u32>,
     @builtin(workgroup_id) wg_id: vec3<u32>,
 ) {
-    if global_id.x == 0u {
-        let failed = atomicLoad(&bump.failed) & (STAGE_PATTERN);
-        previous_failed = failed;
-    }
-    let failed = workgroupUniformLoad(&previous_failed);
-    if failed != 0u {
-        if global_id.x == 0u{
-            atomicOr(&bump.failed, STAGE_BINNING);
-        }
-        return;
-    }
     for (var i = 0u; i < N_SLICE; i += 1u) {
         atomicStore(&sh_bitmaps[i][local_id.x], 0u);
     }
@@ -98,7 +86,9 @@ fn main(
 
         let path_bbox = path_bbox_buf[draw_monoid.path_ix];
         let pb = vec4<f32>(vec4(path_bbox.x0, path_bbox.y0, path_bbox.x1, path_bbox.y1));
-        let bbox = bbox_intersect(clip_bbox, pb);
+        let screen_bbox = vec4<f32>(0.0,0.0,f32(config.target_width), f32(config.target_height));
+        var bbox = select(clip_bbox, bbox_intersect(clip_bbox, pb), draw_monoid.pattern_ix % 2u == 0u);
+        bbox = bbox_intersect(bbox, screen_bbox);
 
         intersected_bbox[element_ix] = bbox;
 

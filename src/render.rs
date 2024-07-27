@@ -320,20 +320,6 @@ impl Render {
         recording.free_resource(clip_bic_buf);
         recording.free_resource(clip_el_buf);
 
-        if wg_counts.use_patterns {
-            recording.dispatch(shaders.pattern, wg_counts.path_coarse, [
-                config_buf,
-                camera_buf,
-                scene_buf,
-                clip_bbox_buf,
-                path_to_pattern_buf,
-                path_bbox_buf,
-                bump_buf,
-                cubic_buf,
-            ]);
-        }
-        recording.free_resource(path_to_pattern_buf);
-
         let draw_bbox_buf = ResourceProxy::new_buf(
             buffer_sizes.draw_bboxes.size_in_bytes().into(),
             "draw_bbox_buf"
@@ -353,6 +339,20 @@ impl Render {
             info_bin_data_buf,
             bin_header_buf,
         ]);
+
+        if wg_counts.use_patterns {
+            recording.dispatch(shaders.pattern, wg_counts.path_coarse, [
+                config_buf,
+                camera_buf,
+                scene_buf,
+                clip_bbox_buf,
+                path_to_pattern_buf,
+                bump_buf,
+                cubic_buf,
+            ]);
+        }
+        recording.free_resource(path_to_pattern_buf);
+
         recording.free_resource(path_bbox_buf);
         recording.free_resource(clip_bbox_buf);
         // Note: this only needs to be rounded up because of the workaround to store the tile_offset
