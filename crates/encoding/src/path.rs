@@ -176,6 +176,9 @@ pub struct Cubic {
 #[derive(Copy, Clone, Pod, Zeroable, Debug, Default)]
 #[repr(C)]
 pub struct PathInfo {
+    pub transform_xy: [f32; 2],
+    pub transform_zw: [f32; 2],
+    pub transform_t: [f32; 2],
     pub stroke: [f32; 2],
     pub dash_start: u32,
     pub dash_size: u32,

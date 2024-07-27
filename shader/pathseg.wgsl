@@ -211,7 +211,7 @@ fn main(
         }
         let flags = u32(linewidth >= 0.0);
         cubics[global_id.x] = Cubic(p0, p1, p2, p3, tm.path_ix, tag_byte);
-        path_info[tm.path_ix] = PathInfo(stroke, dash_start, dash_size, length_modifer, flags);
+        path_info[tm.path_ix] = PathInfo(transform.matrx.xy, transform.matrx.zw, transform.translate, stroke, dash_start, dash_size, length_modifer, flags);
         // Update bounding box using atomics only. Computing a monoid is a
         // potential future optimization.
         if bbox.z > bbox.x || bbox.w > bbox.y {

@@ -47,12 +47,11 @@ pub fn test_scenes() -> SceneSet {
         function: Box::new(crate::mmark::MMark::new(80_000)),
     };
     let scenes = vec![
-        scene!(gpu_dash_test),
-        scene!(pattern_test),
         scene!(multiple_mask_layer_test),
         scene!(splash_with_lottie_tiger(), "Tiger", true),
         scene!(splash_with_lottie_tiger1(), "Tiger1", true),
         scene!(pattern_test),
+        scene!(gpu_dash_test),
         splash_scene,
         mmark_scene,
         scene!(funky_paths),
@@ -64,7 +63,7 @@ pub fn test_scenes() -> SceneSet {
         scene!(blend_grid),
         scene!(conflation_artifacts),
         scene!(labyrinth),
-        scene!(base_color_test: animated),
+        scene!(background_color_test: animated),
         scene!(clip_test: animated)
     ];
 
@@ -779,7 +778,7 @@ fn labyrinth(sb: &mut Scene, _: &mut SceneParams) {
     )
 }
 
-fn base_color_test(sb: &mut Scene, params: &mut SceneParams) {
+fn background_color_test(sb: &mut Scene, params: &mut SceneParams) {
     // Cycle through the hue value every 5 seconds (t % 5) * 360/5
     let color = Color::hlc((params.time % 5.0) * 72.0, 80.0, 80.0);
     params.base_color = Some(color);
@@ -795,22 +794,22 @@ fn base_color_test(sb: &mut Scene, params: &mut SceneParams) {
 }
 
 fn pattern_test(sb: &mut Scene, _params: &mut SceneParams) {
-    let transform = Affine::IDENTITY.then_translate(Vec2 { x: 100f64, y: 100f64 });
-    // let transform = transform.then_translate(Vec2 { x: 10.0, y: 10.0 });
-    // let clip1 = {
-    //     const X0: f64 = 0.0;
-    //     const Y0: f64 = 0.0;
-    //     const X1: f64 = 400.0;
-    //     const Y1: f64 = 400.0;
-    //     [
-    //         PathEl::MoveTo((X0, Y0).into()),
-    //         PathEl::LineTo((X1, Y0).into()),
-    //         PathEl::LineTo((X1, Y0 + (Y1 - Y0)).into()),
-    //         PathEl::LineTo((X1 + (X0 - X1), Y1).into()),
-    //         PathEl::LineTo((X0, Y1).into()),
-    //         PathEl::ClosePath,
-    //     ]
-    // };
+    let transform = Affine::IDENTITY;
+    let transform = transform.then_translate(Vec2 { x: 10.0, y: 10.0 });
+    let clip1 = {
+        const X0: f64 = 0.0;
+        const Y0: f64 = 0.0;
+        const X1: f64 = 400.0;
+        const Y1: f64 = 400.0;
+        [
+            PathEl::MoveTo((X0, Y0).into()),
+            PathEl::LineTo((X1, Y0).into()),
+            PathEl::LineTo((X1, Y0 + (Y1 - Y0)).into()),
+            PathEl::LineTo((X1 + (X0 - X1), Y1).into()),
+            PathEl::LineTo((X0, Y1).into()),
+            PathEl::ClosePath,
+        ]
+    };
     sb.fill(
         peniko::Fill::NonZero,
         transform,
@@ -818,67 +817,67 @@ fn pattern_test(sb: &mut Scene, _params: &mut SceneParams) {
         None,
         &kurbo::Rect::new(0.0, 0.0, 400.0, 400.0)
     );
-    // sb.push_layer((1.0, 1.0, 1.0, 1.0), transform, &clip1);
-    // {
-    //     sb.fill(
-    //         peniko::Fill::NonZero,
-    //         transform,
-    //         peniko::Color::rgb8(128, 128, 128),
-    //         None,
-    //         &kurbo::Rect::new(0.0, 0.0, 300.0, 300.0)
-    //     );
-    //     sb.push_pattern(Vec2::new(20.0, 0.0), Vec2::new(25.0, 25.0), 45.0, true);
-    //     sb.fill(
-    //         peniko::Fill::NonZero,
-    //         Affine::IDENTITY,
-    //         peniko::Color::rgb8(0, 255, 255),
-    //         None,
-    //         &kurbo::Ellipse::new((0.0, 0.0), Vec2::new(5.0, 10.0), 0.0)
-    //         //&kurbo::Rect::new(0.0, 0.0,20.0,20.0),
-    //     );
-    //     sb.pop_pattern();
+    sb.push_layer((1.0, 1.0, 1.0, 1.0), transform, &clip1);
+    {
+        sb.fill(
+            peniko::Fill::NonZero,
+            transform,
+            peniko::Color::rgb8(128, 128, 128),
+            None,
+            &kurbo::Rect::new(0.0, 0.0, 300.0, 300.0)
+        );
+        sb.push_pattern(Vec2::new(20.0, 0.0), Vec2::new(25.0, 25.0), 45.0, true);
+        sb.fill(
+            peniko::Fill::NonZero,
+            Affine::IDENTITY,
+            peniko::Color::rgb8(0, 255, 255),
+            None,
+            &kurbo::Ellipse::new((0.0, 0.0), Vec2::new(5.0, 10.0), 0.0)
+            //&kurbo::Rect::new(0.0, 0.0,20.0,20.0),
+        );
+        sb.pop_pattern();
 
-    //     sb.push_pattern(Vec2::new(0.0, 20.0), Vec2::new(25.0, 25.0), -45.0, false);
-    //     sb.fill(
-    //         peniko::Fill::NonZero,
-    //         Affine::IDENTITY,
-    //         peniko::Color::rgb8(0, 125, 125),
-    //         None,
-    //         &kurbo::Ellipse::new((0.0, 0.0), Vec2::new(5.0, 10.0), 0.0)
-    //         //&kurbo::Rect::new(0.0, 0.0,20.0,20.0),
-    //     );
-    //     sb.pop_pattern();
+        sb.push_pattern(Vec2::new(0.0, 20.0), Vec2::new(25.0, 25.0), -45.0, false);
+        sb.fill(
+            peniko::Fill::NonZero,
+            Affine::IDENTITY,
+            peniko::Color::rgb8(0, 125, 125),
+            None,
+            &kurbo::Ellipse::new((0.0, 0.0), Vec2::new(5.0, 10.0), 0.0)
+            //&kurbo::Rect::new(0.0, 0.0,20.0,20.0),
+        );
+        sb.pop_pattern();
 
-    //     sb.push_pattern(Vec2::new(0.0, 20.0), Vec2::new(25.0, 25.0), 0.0, false);
+        sb.push_pattern(Vec2::new(0.0, 20.0), Vec2::new(25.0, 25.0), 0.0, false);
 
-    //     sb.stroke_dash(
-    //         &Stroke::new(2.0),
-    //         Affine::IDENTITY,
-    //         Color::rgb8(0, 0, 255),
-    //         None,
-    //         &kurbo::Ellipse::new((0.0, 0.0), Vec2::new(5.0, 10.0), 0.0),
-    //         vec![5.0, 5.0]
-    //     );
+        sb.stroke_dash(
+            &Stroke::new(2.0),
+            Affine::IDENTITY,
+            Color::rgb8(0, 0, 255),
+            None,
+            &kurbo::Ellipse::new((0.0, 0.0), Vec2::new(5.0, 10.0), 0.0),
+            vec![5.0, 5.0]
+        );
 
-    //     sb.pop_pattern();
+        sb.pop_pattern();
 
-    //     sb.fill(
-    //         peniko::Fill::NonZero,
-    //         transform,
-    //         peniko::Color::rgb8(128, 0, 0),
-    //         None,
-    //         &kurbo::Rect::new(0.0, 0.0, 150.0, 150.0)
-    //     );
-    // }
-    // sb.pop_layer();
-    // sb.fill(
-    //     peniko::Fill::NonZero,
-    //     Affine::IDENTITY,
-    //     peniko::Color::rgb8(255, 0, 0),
-    //     None,
-    //     //&kurbo::Circle::new((0.0, 0.0),10.0),
-    //     &kurbo::Rect::new(0.0, 0.0, 75.0, 75.0)
-    // );
+        sb.fill(
+            peniko::Fill::NonZero,
+            transform,
+            peniko::Color::rgb8(128, 0, 0),
+            None,
+            &kurbo::Rect::new(0.0, 0.0, 150.0, 150.0)
+        );
+    }
+    sb.pop_layer();
+    sb.fill(
+        peniko::Fill::NonZero,
+        Affine::IDENTITY,
+        peniko::Color::rgb8(255, 0, 0),
+        None,
+        //&kurbo::Circle::new((0.0, 0.0),10.0),
+        &kurbo::Rect::new(0.0, 0.0, 75.0, 75.0)
+    );
 }
 
 fn gpu_dash_test(sb: &mut Scene, _params: &mut SceneParams) {
