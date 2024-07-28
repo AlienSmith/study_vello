@@ -347,9 +347,20 @@ impl Render {
             cubic_buf,
             path_info_buf,
             bump_buf,
+            info_bin_data_buf,
+            draw_monoid_buf,
         ]);
+        let indirect_count_buf = BufProxy::new(
+            buffer_sizes.indirect_count.size_in_bytes().into(),
+            "indirect_count"
+        );
         if wg_counts.use_patterns {
-            recording.dispatch(shaders.pattern, wg_counts.path_coarse, [
+            recording.dispatch(shaders.pattern_setup, (1, 1, 1), [
+                config_buf,
+                bump_buf,
+                indirect_count_buf.into(),
+            ]);
+            recording.dispatch_indirect(shaders.pattern, indirect_count_buf, 0, [
                 config_buf,
                 camera_buf,
                 scene_buf,
@@ -377,11 +388,6 @@ impl Render {
             path_buf,
             tile_buf,
         ]);
-
-        let indirect_count_buf = BufProxy::new(
-            buffer_sizes.indirect_count.size_in_bytes().into(),
-            "indirect_count"
-        );
 
         recording.dispatch(shaders.path_coarse_counter, (1, 1, 1), [
             bump_buf,

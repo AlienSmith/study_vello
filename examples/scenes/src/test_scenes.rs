@@ -907,6 +907,7 @@ fn gpu_dash_test(sb: &mut Scene, _params: &mut SceneParams) {
         vec![0.0, 10.0, 10.0, 20.0, 5.0, 20.0]
     );
 }
+//TODO: Fix the result on this due to clipping in binning
 fn multiple_mask_layer_test(sb: &mut Scene, _params: &mut SceneParams) {
     sb.push_layer_with_supplementary_path(
         (1.0, 1.0, 1.0, 1.0),

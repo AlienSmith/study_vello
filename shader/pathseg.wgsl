@@ -120,6 +120,10 @@ fn main(
 ) {
     let world_to_screen = Transform(camera.matrx, camera.translate);
     let ix = global_id.x;
+        //the cubic buffer should always be bigger than path_tag_count so it will never fail here
+    if ix == 0u {
+        atomicStore(&bump.cubics, config.n_path);
+    }
     let tag_word = scene[config.pathtag_base + (ix >> 2u)];
     pathdata_base = config.pathdata_base;
     let shift = (ix & 3u) * 8u;

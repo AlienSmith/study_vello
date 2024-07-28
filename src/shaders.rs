@@ -70,6 +70,7 @@ pub struct FullShaders {
     pub clip_reduce: ShaderId,
     pub clip_leaf: ShaderId,
     pub flatten: ShaderId,
+    pub pattern_setup: ShaderId,
     pub pattern: ShaderId,
     pub binning: ShaderId,
     pub tile_alloc: ShaderId,
@@ -219,7 +220,16 @@ pub fn full_shaders(
             BindType::Buffer,
             BindType::Buffer,
             BindType::Buffer,
+            BindType::Buffer,
+            BindType::BufReadOnly,
         ]
+    )?;
+
+    let pattern_setup = engine.add_shader(
+        device,
+        "pattern_setup",
+        preprocess::preprocess(shader!("pattern_setup"), &empty, &imports).into(),
+        &[BindType::Uniform, BindType::Buffer, BindType::Buffer]
     )?;
 
     let pattern = engine.add_shader(
@@ -451,6 +461,7 @@ pub fn full_shaders(
         clip_reduce,
         clip_leaf,
         flatten,
+        pattern_setup,
         pattern,
         binning,
         tile_alloc,

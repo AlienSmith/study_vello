@@ -76,9 +76,8 @@ fn main(
     @builtin(global_invocation_id) global_id: vec3<u32>,
     @builtin(local_invocation_id) local_id: vec3<u32>,
 ) {
-    let count = (config.pathdata_base - config.pathtag_base) * 4u;
-    let index = global_id.x;
-    if(index >= count){
+    let index = global_id.x + config.n_path;
+    if(index >= bump.intermidiate.x){
         return;
     }
     let oup = cubic[index];

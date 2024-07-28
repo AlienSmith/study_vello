@@ -47,6 +47,7 @@ pub struct BumpAllocators {
     pub indirect_clips: u32,
     pub cubics: u32,
     pub fine_slices: u32,
+    pub intermidiate: [u32; 4],
 }
 
 /// Storage of indirect dispatch size values.

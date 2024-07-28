@@ -18,6 +18,7 @@ struct BumpAllocators {
     indirect_clips: atomic<u32>,
     cubics: atomic<u32>,
     fine_slices: atomic<u32>,
+    intermidiate: vec4<u32>,
 }
 
 struct IndirectCount {
