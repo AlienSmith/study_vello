@@ -42,12 +42,9 @@ struct AtomicPathBbox {
 var<storage, read_write> path_bboxes: array<AtomicPathBbox>;
 
 @group(0) @binding(5)
-var<storage, read_write> cubics: array<Cubic>;
-
-@group(0) @binding(6)
 var<storage, read_write> path_info: array<PathInfo>;
 
-@group(0) @binding(7)
+@group(0) @binding(6)
 var<storage, read_write> bump: BumpAllocators;
 
 // Monoid is yagni, for future optimization
@@ -123,11 +120,6 @@ fn main(
 ) {
     let world_to_screen = Transform(camera.matrx, camera.translate);
     let ix = global_id.x;
-    //the cubic buffer is always bigger than path_tag_count so it will never fail here
-    if ix == 0u {
-        let path_tag_count = 4u*(config.pathdata_base - config.pathtag_base);
-        atomicStore(&bump.cubics, path_tag_count);
-    }
     let tag_word = scene[config.pathtag_base + (ix >> 2u)];
     pathdata_base = config.pathdata_base;
     let shift = (ix & 3u) * 8u;
@@ -210,8 +202,8 @@ fn main(
             bbox += vec4(-stroke, stroke);
         }
         let flags = u32(linewidth >= 0.0);
-        cubics[global_id.x] = Cubic(p0, p1, p2, p3, tm.path_ix, tag_byte);
-        path_info[tm.path_ix] = PathInfo(transform.matrx.xy, transform.matrx.zw, transform.translate, stroke, dash_start, dash_size, length_modifer, flags);
+        //cubics[global_id.x] = Cubic(p0, p1, p2, p3, tm.path_ix, tag_byte);
+        path_info[tm.path_ix] = PathInfo(stroke, dash_start, dash_size, length_modifer, flags);
         // Update bounding box using atomics only. Computing a monoid is a
         // potential future optimization.
         if bbox.z > bbox.x || bbox.w > bbox.y {

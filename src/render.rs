@@ -248,7 +248,6 @@ impl Render {
             scene_buf,
             tagmonoid_buf,
             path_bbox_buf,
-            cubic_buf,
             path_info_buf,
             bump_buf,
         ]);
@@ -339,7 +338,16 @@ impl Render {
             info_bin_data_buf,
             bin_header_buf,
         ]);
-
+        recording.dispatch(shaders.flatten, wg_counts.path_seg, [
+            config_buf,
+            camera_buf,
+            scene_buf,
+            tagmonoid_buf,
+            draw_bbox_buf,
+            cubic_buf,
+            path_info_buf,
+            bump_buf,
+        ]);
         if wg_counts.use_patterns {
             recording.dispatch(shaders.pattern, wg_counts.path_coarse, [
                 config_buf,

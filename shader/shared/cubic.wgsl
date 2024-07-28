@@ -10,9 +10,6 @@ struct Cubic {
 }
 
 struct PathInfo{
-    loacl_to_screen_xy:vec2<f32>,
-    loacl_to_screen_zw:vec2<f32>,
-    loacl_to_screen_t:vec2<f32>,
     stroke: vec2<f32>,
     dash_start: u32,
     dash_size: u32,
