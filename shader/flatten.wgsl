@@ -79,7 +79,7 @@ fn main(
     let bbox = intersected_bbox[tm.path_ix];
     let dm = draw_monoids[tm.path_ix];
     //the path containing this pathtag is outside of screen there is no point to generate cubic for it
-    if bbox.x == 0.0 && bbox.y == 0.0 && bbox.z == 0.0 && bbox.w == 0.0{
+    if bbox.x >= bbox.z || bbox.y >= bbox.w{
         return;
     }
     let path_info = path_infos[tm.path_ix];

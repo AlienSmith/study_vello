@@ -305,6 +305,14 @@ impl Renderer {
         // TODO: apply logic to determine whether we need to rerun coarse, and also
         // allocate the blend stack as needed.
         self.engine.free_download(bump_buf);
+
+        if let Some(data) = bump.as_ref() {
+            if data.failed != 0 {
+                panic!("at this point we should have enough space for everything");
+            }
+            //println!("cubic count {}", data.cubics);
+        }
+
         // Maybe clear to reuse allocation?
         let mut recording = Recording::default();
         render.record_fine(&self.shaders, &mut recording);
