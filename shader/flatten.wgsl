@@ -99,9 +99,9 @@ fn main(
         let dif = select(p1 - p0, vec2<f32>(0.01,0.01) ,len < 1e-7);
         //the bbox is too small we would just draw a line across the region
         //the supplementary path is always a fill at this point I wonder if we should make it supports storke
-        //TODO use dif < 1.0 after switch to fix point bbox, dif < 3 because in pathseg bbox got bump up and down
-        //making a one point path have bbox of 2 in each direction
-        if len < 3.0 && drawtag != 0x1000u {
+        //use dif < 1.0 after switch to fix point PathBbox, old PathBbox got bump up and down
+        //making a one point path have bbox of 2 in each direction so if not use fix point number use dif < 3.0
+        if len < 1.0 && drawtag != 0x1000u {
             //make it a line_to and stroke
             tag_byte = 1u;
             path_infos[tm.path_ix].flags = 1u;

@@ -16,3 +16,11 @@ struct PathBbox {
 fn bbox_intersect(a: vec4<f32>, b: vec4<f32>) -> vec4<f32> {
     return vec4(max(a.xy, b.xy), min(a.zw, b.zw));
 }
+
+fn f_to_fp(number: f32) -> i32{
+    return i32(number * 256.0);
+}
+
+fn fp_to_f(number: i32) -> f32{
+    return f32(number) * 0.00390625;
+}

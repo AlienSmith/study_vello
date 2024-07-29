@@ -16,6 +16,7 @@
 #import cubic
 #import transform
 #import bump
+#import bbox
 
 @group(0) @binding(0)
 var<uniform> config: Config;
@@ -211,10 +212,10 @@ fn main(
         // Update bounding box using atomics only. Computing a monoid is a
         // potential future optimization.
         if bbox.z > bbox.x || bbox.w > bbox.y {
-            atomicMin(&(*out).x0, round_down(bbox.x));
-            atomicMin(&(*out).y0, round_down(bbox.y));
-            atomicMax(&(*out).x1, round_up(bbox.z));
-            atomicMax(&(*out).y1, round_up(bbox.w));
+            atomicMin(&(*out).x0, f_to_fp(bbox.x));
+            atomicMin(&(*out).y0, f_to_fp(bbox.y));
+            atomicMax(&(*out).x1, f_to_fp(bbox.z));
+            atomicMax(&(*out).y1, f_to_fp(bbox.w));
         }
     }
 }
