@@ -78,6 +78,8 @@ fn main(
     var tag_byte = (tag_word >> shift) & 0xffu;
     let bbox = intersected_bbox[tm.path_ix];
     let dm = draw_monoids[tm.path_ix];
+    let drawtag = scene[config.drawtag_base + tm.path_ix];
+
     //the path containing this pathtag is outside of screen there is no point to generate cubic for it
     if bbox.x >= bbox.z || bbox.y >= bbox.w{
         return;
@@ -96,8 +98,10 @@ fn main(
         let len = length(p1 - p0);
         let dif = select(p1 - p0, vec2<f32>(0.01,0.01) ,len < 1e-7);
         //the bbox is too small we would just draw a line across the region
-        //TODO us dif < 1.0 after switch to fix point bbox
-        if len < 3.0 {
+        //the supplementary path is always a fill at this point I wonder if we should make it supports storke
+        //TODO use dif < 1.0 after switch to fix point bbox, dif < 3 because in pathseg bbox got bump up and down
+        //making a one point path have bbox of 2 in each direction
+        if len < 3.0 && drawtag != 0x1000u {
             //make it a line_to and stroke
             tag_byte = 1u;
             path_infos[tm.path_ix].flags = 1u;

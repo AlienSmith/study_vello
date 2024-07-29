@@ -76,6 +76,7 @@ fn main(
     @builtin(global_invocation_id) global_id: vec3<u32>,
     @builtin(local_invocation_id) local_id: vec3<u32>,
 ) {
+    //we are not interested in pathes which got optimized to one storke line
     let index = global_id.x + config.n_path;
     if(index >= bump.intermidiate.x){
         return;
