@@ -87,6 +87,8 @@ fn main(
     if info.pattern_ix == 0u {
         return;
     }
+    //for non screen space pattern the matrix stores in scene buffer is not the local to world matrix
+    //it is more like a child to parent matrix and the parent space need to be repeated and transformed to have pattern in world space
     world_to_screen =Transform(camera.matrx, camera.translate);
     screen_to_world = transform_inverse(world_to_screen);
 
