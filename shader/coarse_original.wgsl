@@ -565,7 +565,7 @@ fn main(
         ptcl[cmd_offset] = CMD_END;
         if max_blend_depth > BLEND_STACK_SPLIT {
             let scratch_size = max_blend_depth * TILE_WIDTH * TILE_HEIGHT;
-            ptcl[blend_offset] = atomicAdd(&bump.blend, scratch_size);
+            //ptcl[blend_offset] = atomicAdd(&bump.blend, scratch_size);
         }
 #endif
     }
