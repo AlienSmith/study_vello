@@ -1,6 +1,7 @@
 #import config
 #import ptcl
 #import bump
+
 @group(0) @binding(0)
 var<uniform> config: Config;
 
@@ -9,6 +10,12 @@ var<storage, read_write> bump: BumpAllocators;
 
 @group(0) @binding(2)
 var<storage, read_write> fine_index: array<u32>;
+
+@group(0) @binding(3)
+var<storage, read_write> indirect: IndirectCount;
+
+let WG_SIZE = 256u;
+let BIN_TILE_COUNT = 16u;
 
 @compute @workgroup_size(1)
 fn main(
@@ -33,5 +40,14 @@ fn main(
     atomicStore(&bump.indirect_clips, indirect_clip_counter);
     if current_size > config.ptcl_size || indirect_clip_counter > config.indirect_clip_count{
         atomicOr(&bump.failed, STAGE_COARSE);
+    }
+
+    //consistent with wg_counts.coarse_counter
+    indirect.count_x = (config.width_in_tiles + BIN_TILE_COUNT - 1u)/BIN_TILE_COUNT;
+    indirect.count_y = (config.height_in_tiles + BIN_TILE_COUNT - 1u)/BIN_TILE_COUNT;
+    indirect.count_z = (config.n_drawobj + WG_SIZE - 1u)/ WG_SIZE;
+    //escape the coarse process to avoid potential crash
+    if atomicLoad(&bump.failed) != 0u {
+        indirect.count_x = 0u;
     }
 }

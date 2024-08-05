@@ -24,9 +24,13 @@ var<storage, read_write> coarse_info: array<u32>;
 @group(0) @binding(4)
 var<storage, read_write> fine_info: array<u32>;
 
+@group(0) @binding(5)
+var<storage, read_write> indirect: IndirectCount;
+
 // Much of this code assumes WG_SIZE == N_TILE. If these diverge, then
 // a fair amount of fixup is needed.
 let WG_SIZE = 256u;
+let BIN_TILE_COUNT = 16u;
 let N_CLIPS = 4u;
 // helper functions for writing ptcl
 var<private> clip_stack: array<u32,N_CLIPS>;
@@ -76,7 +80,7 @@ fn main(
         fine_info[this_tile_ix * 4u + 1u] = ptcl_slice_offsets;
         fine_info[this_tile_ix * 4u + 3u] = current_clip_index;
 
-        //debug with debug shader
+        //comment out code after this line and enable coarse_setup_debug in render to debug
         let size = ptcl_slice_offsets * PTCL_INCREMENT;
         let base_size = atomicAdd(&bump.ptcl, size);
         let base_offset = base_size / PTCL_INCREMENT;
@@ -86,6 +90,15 @@ fn main(
         fine_info[this_tile_ix * 4u + 2u] = indirect_clip_offset;
         if ((base_size + size) > config.ptcl_size) || ((indirect_clip_offset + current_clip_index) > config.indirect_clip_count){
             atomicOr(&bump.failed, STAGE_COARSE);
+        }
+
+        //consistent with wg_counts.coarse_counter
+        indirect.count_x = (config.width_in_tiles + BIN_TILE_COUNT - 1u)/BIN_TILE_COUNT;
+        indirect.count_y = (config.height_in_tiles + BIN_TILE_COUNT - 1u)/BIN_TILE_COUNT;
+        indirect.count_z = (config.n_drawobj + WG_SIZE - 1u)/ WG_SIZE;
+        //escape the coarse process to avoid potential crash
+        if atomicLoad(&bump.failed) != 0u {
+            indirect.count_x = 0u;
         }
     }
 }

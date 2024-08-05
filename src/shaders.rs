@@ -331,6 +331,7 @@ pub fn full_shaders(
             BindType::BufReadOnly,
             BindType::Buffer,
             BindType::Buffer,
+            BindType::Buffer,
         ]
     )?;
 
@@ -338,7 +339,7 @@ pub fn full_shaders(
         device,
         "coarse_setup_debug",
         preprocess::preprocess(shader!("coarse_setup_debug"), &empty, &imports).into(),
-        &[BindType::Uniform, BindType::Buffer, BindType::Buffer]
+        &[BindType::Uniform, BindType::Buffer, BindType::Buffer, BindType::Buffer]
     )?;
     #[cfg(feature = "coarse_segmentation")]
     let coarse = engine.add_shader(

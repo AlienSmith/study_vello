@@ -458,15 +458,17 @@ impl Render {
                 coarse_counter_buf,
                 coarse_info_buf,
                 fine_info_buf,
+                indirect_count_buf.into(),
             ]);
 
             // recording.dispatch(
             //     shaders.coarse_setup_debug,
             //     (1, 1, 1),
-            //     [config_buf, bump_buf, fine_index_buf],
+            //     [config_buf, bump_buf, fine_index_buf, indirect_count_buf.into()],
             // );
-
-            recording.dispatch(shaders.coarse, wg_counts.coarse_counter, [
+            //We need to use wg_size to escape this dispatch when bump failed, since we run out of storage buffer slots for browsers
+            //TODO: use dispatch() after brwoser supports more storage buffer slot per shader
+            recording.dispatch_indirect(shaders.coarse, indirect_count_buf, 0, [
                 config_buf,
                 scene_buf,
                 draw_monoid_buf,
