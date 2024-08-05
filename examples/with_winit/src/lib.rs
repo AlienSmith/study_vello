@@ -309,6 +309,10 @@ fn run(
                             }
                         }
                         WindowEvent::Resized(size) => {
+                            //the size is wrong on android browser, size will keep incrase until crash
+                            //to build for android browser use
+                            //render_cx.resize_surface(&mut render_state.surface, 500, 800);
+                            //TODO: Fix winit with android browser issue
                             render_cx.resize_surface(
                                 &mut render_state.surface,
                                 size.width,
@@ -359,6 +363,13 @@ fn run(
                         WindowEvent::RedrawRequested => {
                             let width = render_state.surface.config.width;
                             let height = render_state.surface.config.height;
+                            #[cfg(target_arch = "wasm32")]
+                            {
+                                use web_sys::console;
+                                console::log_1(
+                                    &format!("Width {}, Height {}", width, height).into()
+                                );
+                            }
                             let device_handle = &render_cx.devices[render_state.surface.dev_id];
                             let snapshot = stats.snapshot();
 
