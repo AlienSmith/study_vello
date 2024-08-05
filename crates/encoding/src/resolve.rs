@@ -29,6 +29,8 @@ pub struct Layout {
     pub n_clips: u32,
     /// Number of patterns.
     pub n_patterns: u32,
+    /// Number of instances.
+    pub n_instances: u32,
     /// Start of binning data.
     pub bin_data_start: u32,
     /// Start of path tag stream.
@@ -123,10 +125,13 @@ pub fn resolve_solid_paths_only(encoding: &Encoding, packed: &mut Vec<u8>) -> La
     );
     let data = packed;
     data.clear();
+    assert!(encoding.n_patterns % 2 == 0, "not all patterns are closed");
+    assert!(encoding.n_instance_marks % 2 == 0, "not all instances are closed");
     let mut layout = Layout {
         n_paths: encoding.n_paths,
         n_clips: encoding.n_clips,
         n_patterns: encoding.n_patterns,
+        n_instances: encoding.n_instance_marks,
         ..Layout::default()
     };
     let SceneBufferSizes { buffer_size, path_tag_padded } = SceneBufferSizes::new(

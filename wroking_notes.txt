@@ -3,18 +3,20 @@ Need to Fix the TODO in test_scene
 Anim 
 	- multi anim switch support
 	- anim system should coop with ggrs
-	- Notice: only coarse_segmentations supports or logics between paths, some animations might need this.
+	- Notice: only coarse_segmentations supports "or" logics between paths, some animations might need this.
+	- we don't plan to do anim on gpu since it might need to be driven by to roll back system of networking.
 Rapier for physics 
 	- finished reading documents need concret examples
 Networking 
 	- studied example of matchbox + bevy_ggrs need concret exmples
                 - add example of using webpack with "with_winit"
+	- add issue of andoird brosers of winit
 Browser support
 	- done 
 	- try with: cargo run_wasm --package with_winit
 	- try it with bevy
 Partical system
-	- adding instance with standalone transform buffer as some kind of instance.
+	- adding instance with standalone transform buffer as some kind of instance.  <------------------------------------working on these.
 	- let scene buffer contain local2world matrix instead of local2screen matrix for partical
 Others
 	-pay attentions to dash implementation logic length_modifier doesn't seems right

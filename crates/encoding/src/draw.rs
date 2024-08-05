@@ -1,8 +1,8 @@
 // Copyright 2022 The Vello authors
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use bytemuck::{Pod, Zeroable};
-use peniko::{BlendMode, Color};
+use bytemuck::{ Pod, Zeroable };
+use peniko::{ BlendMode, Color };
 
 use super::Monoid;
 
@@ -36,15 +36,14 @@ impl DrawTag {
     /// End layer/clip.
     pub const END_CLIP: Self = Self(0x21);
 
-    /// Begin pattern
-    pub const BEGIN_PATTERN: Self = Self(0x400);
+    /// Begin/End pattern
+    pub const PATTERN: Self = Self(0x400);
 
-    /// End pattern
-    pub const END_PATTERN: Self = Self(0xC00);
+    /// Begin/End instance
+    pub const INSTANCE: Self = Self(0xc00);
 
-    /// End pattern
+    /// supplementary path an maybe other kind of path which draws nothing by themselves
     pub const PLACE_HOLDER: Self = Self(0x1000);
-
 }
 
 impl DrawTag {
@@ -131,16 +130,16 @@ impl DrawBeginClip {
     /// Creates new clip draw data.
     pub fn new(blend_mode: BlendMode, alpha: f32) -> Self {
         Self {
-            blend_mode: (blend_mode.mix as u32) << 8 | blend_mode.compose as u32,
+            blend_mode: ((blend_mode.mix as u32) << 8) | (blend_mode.compose as u32),
             alpha,
         }
     }
 
-    pub fn new_filter(packed_color: u32, alpha: f32) -> Self{
+    pub fn new_filter(packed_color: u32, alpha: f32) -> Self {
         Self {
             blend_mode: packed_color,
             alpha,
-        }   
+        }
     }
 }
 
@@ -179,7 +178,7 @@ impl Monoid for DrawMonoid {
             clip_ix: self.clip_ix + other.clip_ix,
             scene_offset: self.scene_offset + other.scene_offset,
             info_offset: self.info_offset + other.info_offset,
-            pattern_ix: self.pattern_ix + other. pattern_ix,
+            pattern_ix: self.pattern_ix + other.pattern_ix,
         }
     }
 }

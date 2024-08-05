@@ -41,6 +41,10 @@ impl Scene {
     pub fn encoding(&self) -> &Encoding {
         &self.data
     }
+    //no clips of anykind, supplemetary path or instances are allowed inside pattern.
+    //nesting pattern inside another pattern is also not supported.
+    //fill, storke, dash, gradient, image should be supported by pattern
+    //TODO: add example of gradient and image inside a pattern
     pub fn push_pattern(
         &mut self,
         start: Vec2,

@@ -17,6 +17,7 @@ struct Config {
     n_path: u32,
     n_clip: u32,
     n_patterns: u32,
+    n_instances: u32,
 
     // To reduce the number of bindings, info and bin data are combined
     // into one buffer.

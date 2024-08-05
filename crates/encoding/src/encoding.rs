@@ -76,8 +76,10 @@ pub struct Encoding {
     pub n_path_segments: u32,
     /// Number of encoded clips/layers.
     pub n_clips: u32,
-    /// Number of patterns
+    /// Number of begin/end patterns
     pub n_patterns: u32,
+    /// Number of instances begin/end instance marks
+    pub n_instance_marks: u32,
     /// Number of unclosed clips/layers.
     pub n_open_clips: u32,
     /// camera_transform
@@ -402,7 +404,7 @@ impl Encoding {
     ) {
         let radians = angle_to_radians(rotation);
         let is_screen_space: u32 = if is_screen_space { 1 } else { 0 };
-        self.draw_tags.push(DrawTag::BEGIN_PATTERN);
+        self.draw_tags.push(DrawTag::PATTERN);
         self.pattern_data.push(PatternData {
             start: [start.x as f32, start.y as f32],
             box_scale: [box_scale.x as f32, box_scale.y as f32],
@@ -416,8 +418,27 @@ impl Encoding {
 
     ///Encode a end of pattern command.
     pub fn encode_end_pattern(&mut self) {
-        self.draw_tags.push(DrawTag::END_PATTERN);
+        self.draw_tags.push(DrawTag::PATTERN);
         self.n_patterns += 1;
+        self.path_tags.push(PathTag::PATH);
+        self.n_paths += 1;
+    }
+
+    /// Encode start of instance
+    /// we want instance to be mostly driven by other parts running on gpu.
+    /// this only marks those path used as base of instance,
+    /// the logic to got translation for instances on gpu are not here
+    pub fn encode_begin_instance_mark(&mut self) {
+        self.draw_tags.push(DrawTag::INSTANCE);
+        self.n_instance_marks += 1;
+        self.path_tags.push(PathTag::PATH);
+        self.n_paths += 1;
+    }
+
+    ///Encode a end of instance command. the logic is identcial to begin.
+    pub fn encode_end_instance_mark(&mut self) {
+        self.draw_tags.push(DrawTag::INSTANCE);
+        self.n_instance_marks += 1;
         self.path_tags.push(PathTag::PATH);
         self.n_paths += 1;
     }
