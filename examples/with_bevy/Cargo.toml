@@ -1,11 +1,11 @@
 [package]
 name = "with_bevy"
 description = "Example of using Vello in a Bevy application."
+version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 publish = false
-
 
 [dependencies]
 vello = { path = "../../" }

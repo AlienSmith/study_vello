@@ -1,7 +1,4 @@
-use std::f64::consts::PI;
-
 use crate::{ ExampleScene, SceneConfig, SceneParams, SceneSet };
-use skrifa::color::Transform;
 use vello::kurbo::{ Affine, BezPath, Ellipse, PathEl, Point, Rect, Vec2 };
 use vello::peniko::*;
 use vello::peniko::kurbo::Stroke;
