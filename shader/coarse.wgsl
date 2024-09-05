@@ -100,7 +100,8 @@ fn push_indirect(item:u32){
 
 //unpack coarse indexing data
 fn initialize_coarse_index(tile_offset: u32, partition_offset: u32){
-    let indirect_clips_offset = config.width_in_tiles * config.width_in_tiles * 3u * (config.n_drawobj + 255u/256u);
+    let n_partitions = (config.n_drawobj + WG_SIZE - 1u) / WG_SIZE;
+    let indirect_clips_offset = config.width_in_tiles * config.width_in_tiles * 3u * n_partitions;
     let this_tile_ix = tile_offset + partition_offset;
     let packed_value = coarse_info[this_tile_ix * 3u];
     ptcl_slice_offset = packed_value & 0xffffu;

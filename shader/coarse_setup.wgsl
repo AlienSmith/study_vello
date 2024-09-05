@@ -50,8 +50,6 @@ fn main(
     let tile_y = local_id.x / N_TILE_X;
     if bin_tile_x + tile_x < config.width_in_tiles && bin_tile_y + tile_y < config.height_in_tiles {
         let n_partitions = (config.n_drawobj + N_TILE - 1u) / N_TILE;
-        let bin_x = config.width_in_tiles + N_TILE_X - 1u / N_TILE_X;
-        let bin_y = config.height_in_tiles + N_TILE_Y - 1u/ N_TILE_Y;
         let this_tile_ix = (bin_tile_y + tile_y) * config.width_in_tiles + bin_tile_x + tile_x;
         let stride = config.width_in_tiles * config.height_in_tiles;
         var ptcl_slice_offsets = 0u;

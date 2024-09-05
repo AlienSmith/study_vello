@@ -8,7 +8,7 @@
 #import drawtag
 #import transform
 let MAX_DASHES_ARRAY_SIZE = 20u;
-
+let WG_SIZE = 256u;
 @group(0) @binding(0)
 var<uniform> config: Config;
 
@@ -382,7 +382,8 @@ fn main(
     let slice_index = indexing & 0xfffu;
     let begin_clip_count = (indexing >> 12u) & 0xfu;
     let tile_ix = (indexing >> 16u) & 0xffffu;
-    let indirect_clip_offset = config.width_in_tiles * config.width_in_tiles * 3u * (config.n_drawobj + 255u/256u);
+    let n_partitions = (config.n_drawobj + WG_SIZE - 1u) / WG_SIZE;
+    let indirect_clip_offset = config.width_in_tiles * config.width_in_tiles * 3u * n_partitions;
     let indirect_clip_base = indirect_clip_offset + fine_info[tile_ix * 4u + 2u];
     clip_depth = begin_clip_count; 
 
