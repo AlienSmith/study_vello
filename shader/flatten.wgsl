@@ -76,21 +76,22 @@ fn main(
     var tm = reduce_tag(tag_word & ((1u << shift) - 1u));
     tm = combine_tag_monoid(tag_monoids[ix >> 2u], tm);
     var tag_byte = (tag_word >> shift) & 0xffu;
-    let bbox = intersected_bbox[tm.path_ix];
-    let dm = draw_monoids[tm.path_ix];
-    let drawtag = scene[config.drawtag_base + tm.path_ix];
-
-    //the path containing this pathtag is outside of screen there is no point to generate cubic for it
-    if bbox.x >= bbox.z || bbox.y >= bbox.w{
-        return;
-    }
-    let path_info = path_infos[tm.path_ix];
-    let world_to_screen = Transform(camera.matrx, camera.translate);
-    let local_to_world = read_transform(config.transform_base, tm.trans_ix - 1u);
-    let transform = transform_mul(world_to_screen, local_to_world);
     // Decode path data
     let seg_type = tag_byte & PATH_TAG_SEG_TYPE;
     if seg_type != 0u {
+        let bbox = intersected_bbox[tm.path_ix];
+        let dm = draw_monoids[tm.path_ix];
+        let drawtag = scene[config.drawtag_base + tm.path_ix];
+
+        //the path containing this pathtag is outside of screen there is no point to generate cubic for it
+        if bbox.x >= bbox.z || bbox.y >= bbox.w{
+            return;
+        }
+        let path_info = path_infos[tm.path_ix];
+        let world_to_screen = Transform(camera.matrx, camera.translate);
+        let local_to_world = read_transform(config.transform_base, tm.trans_ix - 1u);
+        let transform = transform_mul(world_to_screen, local_to_world);
+    
         var p0: vec2<f32> = bbox.xy + path_info.stroke;
         var p1: vec2<f32> = bbox.zw - path_info.stroke;
         var p2: vec2<f32>;
@@ -134,9 +135,6 @@ fn main(
         }        
         p0 = transform_apply(transform, p0);
         p1 = transform_apply(transform, p1);
-        let screen_p0 = p0;
-        let screen_p1 = p1;
-        var bbox = vec4(min(p0, p1), max(p0, p1));
         // Degree-raise
         if seg_type == PATH_TAG_LINETO {
             p3 = p1;
@@ -144,10 +142,8 @@ fn main(
             p1 = mix(p0, p3, 1.0 / 3.0);
         } else if seg_type >= PATH_TAG_QUADTO {
             p2 = transform_apply(transform, p2);
-            bbox = vec4(min(bbox.xy, p2), max(bbox.zw, p2));
             if seg_type == PATH_TAG_CUBICTO {
                 p3 = transform_apply(transform, p3);
-                bbox = vec4(min(bbox.xy, p3), max(bbox.zw, p3));
             } else {
                 p3 = p2;
                 p2 = mix(p1, p2, 1.0 / 3.0);
