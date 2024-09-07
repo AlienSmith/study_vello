@@ -18,3 +18,8 @@ struct PathInfo{
 }
 
 let CUBIC_IS_STROKE = 1u;
+
+let PATTERN_IN_LOCAL_SPACE: u32 = 0u;
+let PATTERN_IN_SCREEN_SPACE: u32 = 1u;
+let PARTICLES_IN_LOCAL_SPACE: u32 = 2u;
+let PARTICLES_IN_WORLD_SPACE: u32 = 3u;

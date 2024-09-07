@@ -7,6 +7,7 @@ use crate::{
     Scene,
 };
 use vello_encoding::{ Encoding, WorkgroupSize };
+use wgpu::hal::empty::Resource;
 
 /// State for a render in progress.
 pub struct Render {
@@ -28,6 +29,7 @@ struct FineResources {
     image_atlas: ResourceProxy,
 
     out_image: ImageProxy,
+    particles_buf: BufProxy,
 
     indirect_dispatch_count: BufProxy,
     #[cfg(feature = "ptcl_segmentation")]
@@ -41,16 +43,16 @@ pub fn render_full(
     shaders: &FullShaders,
     params: &RenderParams
 ) -> (Recording, ResourceProxy) {
-    render_encoding_full(scene.data(), shaders, params, None)
+   let (recording, proxy,_none) = render_encoding_full(scene.data(), shaders, params);
+   (recording, proxy)
 }
 
 pub fn render_full_with_external_particle_buffer(
     scene: &Scene,
     shaders: &FullShaders,
     params: &RenderParams,
-    particle_buffer: wgpu::BufferSlice
-) -> (Recording, ResourceProxy) {
-    render_encoding_full(scene.data(), shaders, params, Some(particle_buffer))
+) -> (Recording, ResourceProxy, ResourceProxy) {
+    render_encoding_full(scene.data(), shaders, params)
 }
 
 /// Create a single recording with both coarse and fine render stages.
@@ -61,13 +63,13 @@ pub fn render_encoding_full(
     encoding: &Encoding,
     shaders: &FullShaders,
     params: &RenderParams,
-    particle_buffer: Option<wgpu::BufferSlice>
-) -> (Recording, ResourceProxy) {
+) -> (Recording, ResourceProxy, ResourceProxy) {
     let mut render = Render::new();
-    let mut recording = render.render_encoding_coarse(encoding, shaders, params, false, particle_buffer);
+    let mut recording = render.render_encoding_coarse(encoding, shaders, params, false);
     let out_image = render.out_image();
+    let out_particles = render.particles_proxy();
     render.record_fine(shaders, &mut recording);
-    (recording, out_image.into())
+    (recording, out_image.into(), out_particles.into())
 }
 
 impl Default for Render {
@@ -94,7 +96,6 @@ impl Render {
         shaders: &FullShaders,
         params: &RenderParams,
         robust: bool,
-        particle_buffer: Option<wgpu::BufferSlice>
     ) -> Recording {
         use vello_encoding::{ RenderConfig, Resolver };
 
@@ -279,10 +280,12 @@ impl Render {
             buffer_sizes.clip_inps.size_in_bytes().into(),
             "clip_inp_buf"
         );
+
         let path_to_pattern_buf = ResourceProxy::new_buf(
             buffer_sizes.path_to_pattern.size_in_bytes().into(),
             "path_to_pattern_buf"
         );
+
         recording.dispatch(shaders.draw_leaf, wg_counts.draw_leaf, [
             config_buf,
             camera_buf,
@@ -365,38 +368,36 @@ impl Render {
             buffer_sizes.indirect_count.size_in_bytes().into(),
             "indirect_count"
         );
-        if wg_counts.use_patterns {
+        let particles_buf = BufProxy::new(65536, "particles");
+        if wg_counts.use_patterns || wg_counts.use_instance {
             recording.dispatch(shaders.pattern_setup, (1, 1, 1), [
                 config_buf,
                 bump_buf,
                 indirect_count_buf.into(),
             ]);
-            recording.dispatch_indirect(shaders.pattern, indirect_count_buf, 0, [
-                config_buf,
-                camera_buf,
-                scene_buf,
-                clip_bbox_buf,
-                path_to_pattern_buf,
-                bump_buf,
-                cubic_buf,
-            ]);
-        }
-
-        if wg_counts.use_instance {
-            recording.dispatch(shaders.pattern_setup, (1, 1, 1), [
-                config_buf,
-                bump_buf,
-                indirect_count_buf.into(),
-            ]);
-            recording.dispatch_indirect(shaders.pattern, indirect_count_buf, 0, [
-                config_buf,
-                camera_buf,
-                scene_buf,
-                clip_bbox_buf,
-                path_to_pattern_buf,
-                bump_buf,
-                cubic_buf,
-            ]);
+            if wg_counts.use_patterns {
+                recording.dispatch_indirect(shaders.pattern, indirect_count_buf, 0, [
+                    config_buf,
+                    camera_buf,
+                    scene_buf,
+                    clip_bbox_buf,
+                    path_to_pattern_buf,
+                    bump_buf,
+                    cubic_buf,
+                ]);
+            }
+            if wg_counts.use_instance {
+                recording.dispatch_indirect(shaders.particles, indirect_count_buf, 0, [
+                    config_buf,
+                    camera_buf,
+                    scene_buf,
+                    clip_bbox_buf,
+                    path_to_pattern_buf,
+                    bump_buf,
+                    cubic_buf,
+                    particles_buf.into(),
+                ]);
+            }
         }
 
         recording.free_resource(path_to_pattern_buf);
@@ -535,6 +536,7 @@ impl Render {
             info_bin_data_buf,
             image_atlas: ResourceProxy::Image(image_atlas),
             out_image,
+            particles_buf,
             indirect_dispatch_count: indirect_count_buf,
             #[cfg(feature = "ptcl_segmentation")] fine_info_buf,
             #[cfg(feature = "coarse_segmentation")] coarse_info_buf,
@@ -635,6 +637,10 @@ impl Render {
     /// map.
     pub fn out_image(&self) -> ImageProxy {
         self.fine_resources.as_ref().unwrap().out_image
+    }
+
+    pub fn particles_proxy(&self) -> BufProxy {
+        self.fine_resources.as_ref().unwrap().particles_buf
     }
 
     pub fn bump_buf(&self) -> BufProxy {

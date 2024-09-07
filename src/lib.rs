@@ -165,10 +165,13 @@ impl Renderer {
         scene: &Scene,
         texture: &TextureView,
         params: &RenderParams,
-        particle_buffer: wgpu::BufferSlice
+        particle_buffer: &wgpu::Buffer
     ) -> Result<()> {
-        let (recording, target) = render::render_full(scene, &self.shaders, params);
-        let external_resources = [ExternalResource::Image(*target.as_image().unwrap(), texture)];
+        let (recording, target, particles) = render::render_full_with_external_particle_buffer(scene, &self.shaders, params);
+        let external_resources = [
+            ExternalResource::Image(*target.as_image().unwrap(), texture),
+            ExternalResource::Buf(*particles.as_buf().unwrap(), particle_buffer)
+        ];
         self.engine.run_recording(
             device,
             queue,
@@ -304,7 +307,7 @@ impl Renderer {
     ) -> Result<Option<BumpAllocators>> {
         let mut render = Render::new();
         let encoding = scene.data();
-        let recording = render.render_encoding_coarse(encoding, &self.shaders, params, true, None);
+        let recording = render.render_encoding_coarse(encoding, &self.shaders, params, true);
         let target = render.out_image();
         let bump_buf = render.bump_buf();
         self.engine.run_recording(

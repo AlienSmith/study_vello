@@ -12,7 +12,7 @@ pub struct PatternData {
     pub start: [f32;2],
     pub box_scale : [f32;2],
     pub rotate: f32,
-    pub is_screen_space: u32,
+    pub instance_type: u32,
 }
 
 /// Affine transformation matrix.

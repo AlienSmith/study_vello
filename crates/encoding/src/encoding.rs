@@ -90,6 +90,10 @@ fn angle_to_radians(angle: f32) -> f32 {
     let angle = angle - 360.0 * (angle / 360.0).floor();
     (PI * angle) / 180.0
 }
+const PATTERN_IN_LOCAL_SPACE: u32 = 0;
+const PATTERN_IN_SCREEN_SPACE: u32 = 1;
+const PARTICLES_IN_LOCAL_SPACE: u32 = 2;
+const PARTICLES_IN_WORLD_SPACE: u32 = 3;
 
 impl Encoding {
     /// Creates a new encoding.
@@ -186,6 +190,7 @@ impl Encoding {
         self.n_path_segments += other.n_path_segments;
         self.n_clips += other.n_clips;
         self.n_patterns += other.n_patterns;
+        self.n_instance_marks += other.n_instance_marks;
         self.n_open_clips += other.n_open_clips;
         if let Some(transform) = *transform {
             let mut ignore_translate = transform;
@@ -403,13 +408,13 @@ impl Encoding {
         is_screen_space: bool
     ) {
         let radians = angle_to_radians(rotation);
-        let is_screen_space: u32 = if is_screen_space { 1 } else { 0 };
+        let is_screen_space: u32 = if is_screen_space { PATTERN_IN_SCREEN_SPACE } else { PATTERN_IN_LOCAL_SPACE };
         self.draw_tags.push(DrawTag::PATTERN);
         self.pattern_data.push(PatternData {
             start: [start.x as f32, start.y as f32],
             box_scale: [box_scale.x as f32, box_scale.y as f32],
             rotate: radians,
-            is_screen_space,
+            instance_type: is_screen_space,
         });
         self.n_patterns += 1;
         self.path_tags.push(PathTag::PATH);
@@ -429,7 +434,13 @@ impl Encoding {
     /// this only marks those path used as base of instance,
     /// the logic to got translation for instances on gpu are not here
     pub fn encode_begin_instance_mark(&mut self) {
-        self.draw_tags.push(DrawTag::INSTANCE);
+        self.draw_tags.push(DrawTag::PATTERN);
+        self.pattern_data.push(PatternData {
+            start: [0.0, 0.0],
+            box_scale: [0.0, 0.0],
+            rotate: 0.0,
+            instance_type: PARTICLES_IN_WORLD_SPACE,
+        });
         self.n_instance_marks += 1;
         self.path_tags.push(PathTag::PATH);
         self.n_paths += 1;
@@ -437,7 +448,7 @@ impl Encoding {
 
     ///Encode a end of instance command. the logic is identcial to begin.
     pub fn encode_end_instance_mark(&mut self) {
-        self.draw_tags.push(DrawTag::INSTANCE);
+        self.draw_tags.push(DrawTag::PATTERN);
         self.n_instance_marks += 1;
         self.path_tags.push(PathTag::PATH);
         self.n_paths += 1;

@@ -39,9 +39,6 @@ impl DrawTag {
     /// Begin/End pattern
     pub const PATTERN: Self = Self(0x400);
 
-    /// Begin/End instance
-    pub const INSTANCE: Self = Self(0xc00);
-
     /// supplementary path an maybe other kind of path which draws nothing by themselves
     pub const PLACE_HOLDER: Self = Self(0x1000);
 }

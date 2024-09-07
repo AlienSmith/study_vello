@@ -72,6 +72,7 @@ pub struct FullShaders {
     pub flatten: ShaderId,
     pub pattern_setup: ShaderId,
     pub pattern: ShaderId,
+    pub particles: ShaderId,
     pub binning: ShaderId,
     pub tile_alloc: ShaderId,
     pub path_coarse_counter: ShaderId,
@@ -244,6 +245,22 @@ pub fn full_shaders(
             BindType::BufReadOnly,
             BindType::Buffer,
             BindType::Buffer,
+        ]
+    )?;
+
+    let particles = engine.add_shader(
+        device,
+        "particles",
+        preprocess::preprocess(shader!("particles"), &empty, &imports).into(),
+        &[
+            BindType::Uniform,
+            BindType::Uniform,
+            BindType::BufReadOnly,
+            BindType::BufReadOnly,
+            BindType::BufReadOnly,
+            BindType::Buffer,
+            BindType::Buffer,
+            BindType::BufReadOnly,
         ]
     )?;
 
@@ -464,6 +481,7 @@ pub fn full_shaders(
         flatten,
         pattern_setup,
         pattern,
+        particles,
         binning,
         tile_alloc,
         path_coarse_counter,

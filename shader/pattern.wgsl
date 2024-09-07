@@ -95,7 +95,9 @@ fn main(
     bbox = vec4(1e9, 1e9, -1e9, -1e9);
     let pattern = read_pattern(config.pattern_base, info.pattern_ix - 1u);
     var clip_bbox = clip_bbox_buf[info.clip_ix - 1u];
-
+    if pattern.is_screen_space > PATTERN_IN_SCREEN_SPACE {
+        return;
+    }
     is_in_screen_space = pattern.is_screen_space > 0u;
         
     var center = vec2<f32>(0.5 * ( clip_bbox.x + clip_bbox.z), 0.5 * (clip_bbox.y + clip_bbox.w));

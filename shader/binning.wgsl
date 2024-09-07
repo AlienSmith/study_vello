@@ -87,8 +87,8 @@ fn main(
         let path_bbox = path_bbox_buf[draw_monoid.path_ix];
         let pb = vec4<f32>(vec4(fp_to_f(path_bbox.x0), fp_to_f(path_bbox.y0), fp_to_f(path_bbox.x1), fp_to_f(path_bbox.y1)));
         let screen_bbox = vec4<f32>(0.0,0.0,f32(config.target_width), f32(config.target_height));
-        var bbox = select(clip_bbox, bbox_intersect(clip_bbox, pb), draw_monoid.pattern_ix % 2u == 0u);
-        bbox = bbox_intersect(bbox, screen_bbox);
+        var bbox = select(screen_bbox, pb, draw_monoid.pattern_ix % 2u == 0u);
+        bbox = bbox_intersect(clip_bbox, bbox);
 
         intersected_bbox[element_ix] = bbox;
 
