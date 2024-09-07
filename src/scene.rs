@@ -59,6 +59,14 @@ impl Scene {
         self.data.encode_end_pattern();
     }
 
+    pub fn push_instance(&mut self){
+        self.data.encode_begin_instance_mark();
+    }
+
+    pub fn pop_instance(&mut self){
+        self.data.encode_end_instance_mark();
+    }
+
     pub fn push_layer_with_supplementary_path(
         &mut self,
         filter_color: (f32, f32, f32, f32),

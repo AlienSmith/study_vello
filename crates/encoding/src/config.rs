@@ -211,6 +211,7 @@ pub type WorkgroupSize = (u32, u32, u32);
 pub struct WorkgroupCounts {
     pub use_large_path_scan: bool,
     pub use_patterns: bool,
+    pub use_instance: bool,
     pub path_reduce: WorkgroupSize,
     pub path_reduce2: WorkgroupSize,
     pub path_scan1: WorkgroupSize,
@@ -241,6 +242,7 @@ impl WorkgroupCounts {
         let n_draw_objects = layout.n_draw_objects;
         let n_clips = layout.n_clips;
         let n_patterns = layout.n_patterns;
+        let n_instances = layout.n_instances;
         let path_tag_padded = align_up(n_path_tags, 4 * PATH_REDUCE_WG);
         let path_tag_wgs = path_tag_padded / (4 * PATH_REDUCE_WG);
         let use_large_path_scan = path_tag_wgs > PATH_REDUCE_WG;
@@ -259,6 +261,7 @@ impl WorkgroupCounts {
         Self {
             use_large_path_scan,
             use_patterns: n_patterns > 0,
+            use_instance: n_instances > 0,
             path_reduce: (path_tag_wgs, 1, 1),
             path_reduce2: (PATH_REDUCE_WG, 1, 1),
             path_scan1: (reduced_size / PATH_REDUCE_WG, 1, 1),

@@ -41,7 +41,16 @@ pub fn render_full(
     shaders: &FullShaders,
     params: &RenderParams
 ) -> (Recording, ResourceProxy) {
-    render_encoding_full(scene.data(), shaders, params)
+    render_encoding_full(scene.data(), shaders, params, None)
+}
+
+pub fn render_full_with_external_particle_buffer(
+    scene: &Scene,
+    shaders: &FullShaders,
+    params: &RenderParams,
+    particle_buffer: wgpu::BufferSlice
+) -> (Recording, ResourceProxy) {
+    render_encoding_full(scene.data(), shaders, params, Some(particle_buffer))
 }
 
 /// Create a single recording with both coarse and fine render stages.
@@ -51,10 +60,11 @@ pub fn render_full(
 pub fn render_encoding_full(
     encoding: &Encoding,
     shaders: &FullShaders,
-    params: &RenderParams
+    params: &RenderParams,
+    particle_buffer: Option<wgpu::BufferSlice>
 ) -> (Recording, ResourceProxy) {
     let mut render = Render::new();
-    let mut recording = render.render_encoding_coarse(encoding, shaders, params, false);
+    let mut recording = render.render_encoding_coarse(encoding, shaders, params, false, particle_buffer);
     let out_image = render.out_image();
     render.record_fine(shaders, &mut recording);
     (recording, out_image.into())
@@ -83,7 +93,8 @@ impl Render {
         encoding: &Encoding,
         shaders: &FullShaders,
         params: &RenderParams,
-        robust: bool
+        robust: bool,
+        particle_buffer: Option<wgpu::BufferSlice>
     ) -> Recording {
         use vello_encoding::{ RenderConfig, Resolver };
 
@@ -370,6 +381,24 @@ impl Render {
                 cubic_buf,
             ]);
         }
+
+        if wg_counts.use_instance {
+            recording.dispatch(shaders.pattern_setup, (1, 1, 1), [
+                config_buf,
+                bump_buf,
+                indirect_count_buf.into(),
+            ]);
+            recording.dispatch_indirect(shaders.pattern, indirect_count_buf, 0, [
+                config_buf,
+                camera_buf,
+                scene_buf,
+                clip_bbox_buf,
+                path_to_pattern_buf,
+                bump_buf,
+                cubic_buf,
+            ]);
+        }
+
         recording.free_resource(path_to_pattern_buf);
 
         recording.free_resource(path_bbox_buf);

@@ -153,6 +153,33 @@ impl Renderer {
         Ok(())
     }
 
+        /// Renders a scene to the target texture.
+    ///
+    /// The texture is assumed to be of the specified dimensions and have been created with
+    /// the [wgpu::TextureFormat::Rgba8Unorm] format and the [wgpu::TextureUsages::STORAGE_BINDING]
+    /// flag set.
+    pub fn render_to_texture_with_external_particle_buffer(
+        &mut self,
+        device: &Device,
+        queue: &Queue,
+        scene: &Scene,
+        texture: &TextureView,
+        params: &RenderParams,
+        particle_buffer: wgpu::BufferSlice
+    ) -> Result<()> {
+        let (recording, target) = render::render_full(scene, &self.shaders, params);
+        let external_resources = [ExternalResource::Image(*target.as_image().unwrap(), texture)];
+        self.engine.run_recording(
+            device,
+            queue,
+            &recording,
+            &external_resources,
+            "render_to_texture",
+            #[cfg(feature = "wgpu-profiler")] &mut self.profiler
+        )?;
+        Ok(())
+    }
+
     /// Renders a scene to the target surface.
     ///
     /// This renders to an intermediate texture and then runs a render pass to blit to the
@@ -277,7 +304,7 @@ impl Renderer {
     ) -> Result<Option<BumpAllocators>> {
         let mut render = Render::new();
         let encoding = scene.data();
-        let recording = render.render_encoding_coarse(encoding, &self.shaders, params, true);
+        let recording = render.render_encoding_coarse(encoding, &self.shaders, params, true, None);
         let target = render.out_image();
         let bump_buf = render.bump_buf();
         self.engine.run_recording(
