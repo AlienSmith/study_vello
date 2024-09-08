@@ -94,10 +94,10 @@ fn main(
         return;
     }
     let pattern = read_pattern(config.pattern_base, info.pattern_ix - 1u);
-    //var clip_bbox = clip_bbox_buf[info.clip_ix - 1u];
-    // if pattern.is_screen_space < PARTICLES_IN_LOCAL_SPACE {
-    //     return;
-    // }
+
+    if pattern.is_screen_space < PARTICLES_IN_LOCAL_SPACE {
+        return;
+    }
     let particle_index = 0u;
     let start = select(u32(particles_info[particle_index - 1u]), 0u, particle_index == 0u);
     let end = u32(particles_info[particle_index]);

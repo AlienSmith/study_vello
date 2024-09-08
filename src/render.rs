@@ -285,7 +285,7 @@ impl Render {
             buffer_sizes.path_to_pattern.size_in_bytes().into(),
             "path_to_pattern_buf"
         );
-
+        recording.clear_all(*path_to_pattern_buf.as_buf().unwrap());
         recording.dispatch(shaders.draw_leaf, wg_counts.draw_leaf, [
             config_buf,
             camera_buf,
