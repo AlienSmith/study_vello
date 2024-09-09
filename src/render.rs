@@ -7,7 +7,6 @@ use crate::{
     Scene,
 };
 use vello_encoding::{ Encoding, WorkgroupSize };
-use wgpu::hal::empty::Resource;
 
 /// State for a render in progress.
 pub struct Render {

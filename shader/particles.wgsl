@@ -31,7 +31,7 @@ var<storage, read_write> bump: BumpAllocators;
 var<storage, read_write> cubic: array<Cubic>;
 
 @group(0) @binding(7)
-var<storage> particles_info: array<f32>;
+var<storage> particles_info: array<u32>;
 
 var<private> is_in_screen_space: bool;
 var<private> bbox: vec4<f32>;
@@ -99,8 +99,8 @@ fn main(
         return;
     }
     let particle_index = 0u;
-    let start = select(u32(particles_info[particle_index - 1u]), 0u, particle_index == 0u);
-    let end = u32(particles_info[particle_index]);
+    let start = select(particles_info[particle_index - 1u], 0u, particle_index == 0u);
+    let end = particles_info[particle_index];
     let size = end - start;
 
     let cubic_ix = atomicAdd(&bump.cubics, size - 1u);
@@ -122,8 +122,8 @@ fn main(
 
     for (var ix = start; ix < end; ix++){
         let offset = PARTICLE_DATA_BASE + ix * PARTICLE_DATA_SIZE;
-        let pos_x = particles_info[offset];
-        let pos_y = particles_info[offset + 1u];
+        let pos_x = bitcast<f32>(particles_info[offset]);
+        let pos_y = bitcast<f32>(particles_info[offset + 1u]);
         let delta = vec2(pos_x, pos_y);
         let store_index = select(cubic_ix + ix - start, index, ix == end - 1u);
         let op0 = transform_apply(world_to_screen, p0 + delta);
