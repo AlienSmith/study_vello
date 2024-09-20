@@ -44,24 +44,24 @@ pub fn test_scenes() -> SceneSet {
         function: Box::new(crate::mmark::MMark::new(80_000)),
     };
     let scenes = vec![
-        scene!(multiple_mask_layer_test),
-        scene!(splash_with_lottie_tiger(), "Tiger", true),
-        scene!(splash_with_lottie_tiger1(), "Tiger1", true),
+        // scene!(multiple_mask_layer_test),
+        // scene!(splash_with_lottie_tiger(), "Tiger", true),
+        // scene!(splash_with_lottie_tiger1(), "Tiger1", true),
         scene!(pattern_test),
-        scene!(gpu_dash_test),
-        splash_scene,
-        mmark_scene,
-        scene!(funky_paths),
-        scene!(cardioid_and_friends),
-        scene!(animated_text: animated),
-        scene!(gradient_extend),
-        scene!(two_point_radial),
-        scene!(brush_transform: animated),
-        scene!(blend_grid),
-        scene!(conflation_artifacts),
-        scene!(labyrinth),
-        scene!(background_color_test: animated),
-        scene!(clip_test: animated)
+        // scene!(gpu_dash_test),
+        // splash_scene,
+        // mmark_scene,
+        // scene!(funky_paths),
+        // scene!(cardioid_and_friends),
+        // scene!(animated_text: animated),
+        // scene!(gradient_extend),
+        // scene!(two_point_radial),
+        // scene!(brush_transform: animated),
+        // scene!(blend_grid),
+        // scene!(conflation_artifacts),
+        // scene!(labyrinth),
+        // scene!(background_color_test: animated),
+        // scene!(clip_test: animated)
     ];
 
     SceneSet { scenes }

@@ -383,6 +383,7 @@ impl Render {
                     path_to_pattern_buf,
                     bump_buf,
                     cubic_buf,
+                    path_info_buf,
                 ]);
             }
             if wg_counts.use_instance {
@@ -395,6 +396,7 @@ impl Render {
                     bump_buf,
                     cubic_buf,
                     particles_buf.into(),
+                    path_info_buf,
                 ]);
             }
         }

@@ -10,6 +10,9 @@ struct Cubic {
 }
 
 struct PathInfo{
+    local_to_world_xy: vec2<f32>,
+    local_to_world_zw: vec2<f32>,
+    local_to_world_t: vec2<f32>,
     stroke: vec2<f32>,
     dash_start: u32,
     dash_size: u32,

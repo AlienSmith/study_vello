@@ -27,9 +27,13 @@ var<storage, read_write> bump: BumpAllocators;
 @group(0) @binding(6)
 var<storage, read_write> cubic: array<Cubic>;
 
+@group(0) @binding(7)
+var<storage> path_infos: array<PathInfo>;
+
 var<private> is_in_screen_space: bool;
 var<private> bbox: vec4<f32>;
 var<private> screen_to_world: Transform;
+var<private> local_to_world: Transform;
 var<private> world_to_screen: Transform;
 var<private> screen_to_pattern: Transform;
 var<private> pattern_to_screen: Transform;
@@ -65,7 +69,7 @@ fn round_up(x: f32) -> i32 {
 
 fn apply_offset(p: vec2<f32>, offset: vec2<f32>) -> vec2<f32>{
     var pattern = offset;
-    pattern += transform_apply(screen_to_world, p);
+    pattern += transform_apply(local_to_world, p);
     pattern = transform_apply(pattern_to_screen, pattern);
     return pattern;
 }
@@ -87,9 +91,11 @@ fn main(
     if info.pattern_ix == 0u {
         return;
     }
+    let path_info = path_infos[oup.path_ix];
+    local_to_world = Transform(vec4(path_info.local_to_world_xy, path_info.local_to_world_zw), path_info.local_to_world_t);
     //for non screen space pattern the matrix stores in scene buffer is not the local to world matrix
     //it is more like a child to parent matrix and the parent space need to be repeated and transformed to have pattern in world space
-    world_to_screen =Transform(camera.matrx, camera.translate);
+    world_to_screen = Transform(camera.matrx, camera.translate);
     screen_to_world = transform_inverse(world_to_screen);
 
     bbox = vec4(1e9, 1e9, -1e9, -1e9);

@@ -176,6 +176,10 @@ pub struct Cubic {
 #[derive(Copy, Clone, Pod, Zeroable, Debug, Default)]
 #[repr(C)]
 pub struct PathInfo {
+    //TODO: Only use these in pattern and particles,Text Path has more than one transform in it. 
+    pub local_to_world_xy: [f32; 2],
+    pub local_to_world_zw: [f32; 2],
+    pub local_to_world_t: [f32; 2],
     pub stroke: [f32; 2],
     pub dash_start: u32,
     pub dash_size: u32,

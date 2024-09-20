@@ -6,8 +6,10 @@
 #import transform
 #import cubic
 
+//Local(Cubics) -> Particles -> World -> Screen
+
 let PARTICLE_DATA_BASE = 256u;
-let PARTICLE_DATA_SIZE = 2u;
+let PARTICLE_DATA_SIZE = 6u;
 
 @group(0) @binding(0)
 var<uniform> config: Config;
@@ -33,12 +35,8 @@ var<storage, read_write> cubic: array<Cubic>;
 @group(0) @binding(7)
 var<storage> particles_info: array<u32>;
 
-var<private> is_in_screen_space: bool;
-var<private> bbox: vec4<f32>;
-var<private> screen_to_world: Transform;
-var<private> world_to_screen: Transform;
-var<private> screen_to_pattern: Transform;
-var<private> pattern_to_screen: Transform;
+@group(0) @binding(8)
+var<storage> path_infos: array<PathInfo>;
 
 fn read_pattern(pattern_base:u32, ix:u32) -> Pattern {
     let base = pattern_base + ix * 6u;
@@ -53,29 +51,17 @@ fn read_pattern(pattern_base:u32, ix:u32) -> Pattern {
     return Pattern(start, box_scale, c4, c5);
 }
 
-fn compare_bbox(point: vec2<f32>){
-    let p = transform_apply(screen_to_pattern, point);
-    bbox.x = min(p.x, bbox.x);
-    bbox.y = min(p.y, bbox.y);
-    bbox.z = max(p.x, bbox.z);
-    bbox.w = max(p.y, bbox.w);
-}
-
-fn round_down(x: f32) -> i32 {
-    return i32(floor(x));
-}
-
-fn round_up(x: f32) -> i32 {
-    return i32(ceil(x));
-}
-
-fn apply_offset(p: vec2<f32>, offset: vec2<f32>) -> vec2<f32>{
-    var pattern = offset;
-    pattern += transform_apply(screen_to_world, p);
-    pattern = transform_apply(pattern_to_screen, pattern);
-    return pattern;
-}
 //failing of binning won't have any effcts on pattern so we won't check it
+
+fn read_particle_transform(offset: u32) -> Transform{
+    let x = bitcast<f32>(particles_info[offset]);
+    let y = bitcast<f32>(particles_info[offset + 1u]);
+    let z = bitcast<f32>(particles_info[offset + 2u]);
+    let w = bitcast<f32>(particles_info[offset + 3u]);
+    let t_x = bitcast<f32>(particles_info[offset + 4u]);
+    let t_y = bitcast<f32>(particles_info[offset + 5u]);
+    return Transform(vec4(x,y,z,w), vec2(t_x,t_y));
+}
 
 @compute @workgroup_size(256)
 fn main(
@@ -109,27 +95,23 @@ fn main(
         return;
     }
 
-    //for non screen space pattern the matrix stores in scene buffer is not the local to world matrix
-    //it is more like a child to parent matrix and the parent space need to be repeated and transformed to have pattern in world space
-    world_to_screen = Transform(camera.matrx, camera.translate);
-    screen_to_world = transform_inverse(world_to_screen);
-
-    let p0 = transform_apply(screen_to_world, oup.p0);
-    let p1 = transform_apply(screen_to_world, oup.p1);
-    let p2 = transform_apply(screen_to_world, oup.p2);
-    let p3 = transform_apply(screen_to_world, oup.p3);
-
+    let path_info = path_infos[oup.path_ix];
+    let particles_to_world = Transform(vec4(path_info.local_to_world_xy, path_info.local_to_world_zw), path_info.local_to_world_t);
+    let world_to_screen = Transform(camera.matrx, camera.translate);
+    let particles_to_screen = transform_mul(world_to_screen, particles_to_world);
 
     for (var ix = start; ix < end; ix++){
         let offset = PARTICLE_DATA_BASE + ix * PARTICLE_DATA_SIZE;
-        let pos_x = bitcast<f32>(particles_info[offset]);
-        let pos_y = bitcast<f32>(particles_info[offset + 1u]);
-        let delta = vec2(pos_x, pos_y);
+        let local_to_particles = read_particle_transform(offset);
+        //let pos_x = bitcast<f32>(particles_info[offset + 4u]);
+        //let pos_y = bitcast<f32>(particles_info[offset + 5u]);
+        let transform = transform_mul(particles_to_screen, local_to_particles);
+        //let delta = temp.translate;
         let store_index = select(cubic_ix + ix - start, index, ix == end - 1u);
-        let op0 = transform_apply(world_to_screen, p0 + delta);
-        let op1 = transform_apply(world_to_screen, p1 + delta);
-        let op2 = transform_apply(world_to_screen, p2 + delta);
-        let op3 = transform_apply(world_to_screen, p3 + delta);
+        let op0 = transform_apply(transform, oup.p0);
+        let op1 = transform_apply(transform, oup.p1);
+        let op2 = transform_apply(transform, oup.p2);
+        let op3 = transform_apply(transform, oup.p3);
         let instance = Cubic(op0, op1, op2, op3, oup.path_ix, oup.tag_byte);
         cubic[store_index] = instance;
     }

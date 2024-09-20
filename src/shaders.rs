@@ -245,6 +245,7 @@ pub fn full_shaders(
             BindType::BufReadOnly,
             BindType::Buffer,
             BindType::Buffer,
+            BindType::BufReadOnly,
         ]
     )?;
 
@@ -260,6 +261,7 @@ pub fn full_shaders(
             BindType::BufReadOnly,
             BindType::Buffer,
             BindType::Buffer,
+            BindType::BufReadOnly,
             BindType::BufReadOnly,
         ]
     )?;

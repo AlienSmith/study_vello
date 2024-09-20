@@ -88,10 +88,15 @@ fn main(
             return;
         }
         let path_info = path_infos[tm.path_ix];
+        var transform = Transform(vec4(1.0,0.0,0.0,1.0), vec2(0.0,0.0));
         let world_to_screen = Transform(camera.matrx, camera.translate);
         let local_to_world = read_transform(config.transform_base, tm.trans_ix - 1u);
-        let transform = transform_mul(world_to_screen, local_to_world);
-    
+        let local_to_screen_transform = transform_mul(world_to_screen, local_to_world);
+
+        if dm.pattern_ix % 2u == 0u {
+            transform = local_to_screen_transform;
+        }
+
         var p0: vec2<f32> = bbox.xy + path_info.stroke;
         var p1: vec2<f32> = bbox.zw - path_info.stroke;
         var p2: vec2<f32>;
