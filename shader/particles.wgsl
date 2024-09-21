@@ -84,7 +84,7 @@ fn main(
     if pattern.is_screen_space < PARTICLES_IN_LOCAL_SPACE {
         return;
     }
-    let particle_index = 0u;
+    let particle_index = u32(pattern.rotation);
     let start = select(particles_info[particle_index - 1u], 0u, particle_index == 0u);
     let end = particles_info[particle_index];
     let size = end - start;

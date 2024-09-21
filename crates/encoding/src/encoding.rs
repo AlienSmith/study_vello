@@ -5,16 +5,19 @@ use std::f32::consts::PI;
 
 use crate::math::PatternData;
 
-use super::{ DrawColor, DrawTag, PathEncoder, PathTag, Transform };
+use super::{DrawColor, DrawTag, PathEncoder, PathTag, Transform};
 
-use peniko::{ kurbo::{ Shape, Vec2 }, BlendMode, BrushRef, Color };
+use peniko::{
+    kurbo::{Shape, Vec2},
+    BlendMode, BrushRef, Color,
+};
 
 #[cfg(feature = "full")]
-use super::{ DrawImage, DrawLinearGradient, DrawRadialGradient, Glyph, GlyphRun, Patch };
+use super::{DrawImage, DrawLinearGradient, DrawRadialGradient, Glyph, GlyphRun, Patch};
+#[cfg(feature = "full")]
+use peniko::{ColorStop, Extend, GradientKind, Image};
 #[cfg(feature = "full")]
 use skrifa::instance::NormalizedCoord;
-#[cfg(feature = "full")]
-use peniko::{ ColorStop, Extend, GradientKind, Image };
 
 //TODO move this struct to peniko
 #[derive(Clone, Copy)]
@@ -26,17 +29,17 @@ pub struct LinearColor {
 }
 impl Default for LinearColor {
     fn default() -> Self {
-        Self { r: 1.0, g: 1.0, b: 1.0, a: 1.0 }
+        Self {
+            r: 1.0,
+            g: 1.0,
+            b: 1.0,
+            a: 1.0,
+        }
     }
 }
 impl LinearColor {
     pub fn new(r: f32, g: f32, b: f32, a: f32) -> Self {
-        Self {
-            r,
-            g,
-            b,
-            a,
-        }
+        Self { r, g, b, a }
     }
 
     pub fn pack_color(&self) -> u32 {
@@ -136,50 +139,56 @@ impl Encoding {
             let glyph_runs_base = self.resources.glyph_runs.len();
             let glyphs_base = self.resources.glyphs.len();
             let coords_base = self.resources.normalized_coords.len();
-            self.resources.glyphs.extend_from_slice(&other.resources.glyphs);
-            self.resources.normalized_coords.extend_from_slice(&other.resources.normalized_coords);
-            self.resources.glyph_runs.extend(
-                other.resources.glyph_runs
-                    .iter()
-                    .cloned()
-                    .map(|mut run| {
-                        run.glyphs.start += glyphs_base;
-                        run.normalized_coords.start += coords_base;
-                        run.stream_offsets.path_tags += offsets.path_tags;
-                        run.stream_offsets.path_data += offsets.path_data;
-                        run.stream_offsets.draw_tags += offsets.draw_tags;
-                        run.stream_offsets.draw_data += offsets.draw_data;
-                        run.stream_offsets.transforms += offsets.transforms;
-                        run.stream_offsets.linewidths += offsets.linewidths;
-                        run.stream_offsets.dasharrays += offsets.dasharrays;
-                        run.stream_offsets.patterns += offsets.patterns;
-                        run
-                    })
-            );
-            self.resources.patches.extend(
-                other.resources.patches.iter().map(|patch| {
-                    match patch {
-                        Patch::Ramp { draw_data_offset: offset, stops, extend } => {
-                            let stops = stops.start + stops_base..stops.end + stops_base;
-                            Patch::Ramp {
-                                draw_data_offset: offset + offsets.draw_data,
-                                stops,
-                                extend: *extend,
-                            }
+            self.resources
+                .glyphs
+                .extend_from_slice(&other.resources.glyphs);
+            self.resources
+                .normalized_coords
+                .extend_from_slice(&other.resources.normalized_coords);
+            self.resources
+                .glyph_runs
+                .extend(other.resources.glyph_runs.iter().cloned().map(|mut run| {
+                    run.glyphs.start += glyphs_base;
+                    run.normalized_coords.start += coords_base;
+                    run.stream_offsets.path_tags += offsets.path_tags;
+                    run.stream_offsets.path_data += offsets.path_data;
+                    run.stream_offsets.draw_tags += offsets.draw_tags;
+                    run.stream_offsets.draw_data += offsets.draw_data;
+                    run.stream_offsets.transforms += offsets.transforms;
+                    run.stream_offsets.linewidths += offsets.linewidths;
+                    run.stream_offsets.dasharrays += offsets.dasharrays;
+                    run.stream_offsets.patterns += offsets.patterns;
+                    run
+                }));
+            self.resources
+                .patches
+                .extend(other.resources.patches.iter().map(|patch| match patch {
+                    Patch::Ramp {
+                        draw_data_offset: offset,
+                        stops,
+                        extend,
+                    } => {
+                        let stops = stops.start + stops_base..stops.end + stops_base;
+                        Patch::Ramp {
+                            draw_data_offset: offset + offsets.draw_data,
+                            stops,
+                            extend: *extend,
                         }
-                        Patch::GlyphRun { index } =>
-                            Patch::GlyphRun {
-                                index: index + glyph_runs_base,
-                            },
-                        Patch::Image { image, draw_data_offset } =>
-                            Patch::Image {
-                                image: image.clone(),
-                                draw_data_offset: *draw_data_offset + offsets.draw_data,
-                            },
                     }
-                })
-            );
-            self.resources.color_stops.extend_from_slice(&other.resources.color_stops);
+                    Patch::GlyphRun { index } => Patch::GlyphRun {
+                        index: index + glyph_runs_base,
+                    },
+                    Patch::Image {
+                        image,
+                        draw_data_offset,
+                    } => Patch::Image {
+                        image: image.clone(),
+                        draw_data_offset: *draw_data_offset + offsets.draw_data,
+                    },
+                }));
+            self.resources
+                .color_stops
+                .extend_from_slice(&other.resources.color_stops);
             glyph_runs_base
         };
         self.path_tags.extend_from_slice(&other.path_tags);
@@ -196,10 +205,11 @@ impl Encoding {
             let mut ignore_translate = transform;
             ignore_translate.translation = [0.0, 0.0];
             self.transforms.extend(
-                other.transforms
+                other
+                    .transforms
                     .iter()
                     .enumerate()
-                    .map(|(_, x)| { transform * *x })
+                    .map(|(_, x)| transform * *x),
             );
             #[cfg(feature = "full")]
             for run in &mut self.resources.glyph_runs[glyph_runs_base..] {
@@ -266,7 +276,7 @@ impl Encoding {
             &mut self.path_data,
             &mut self.n_path_segments,
             &mut self.n_paths,
-            is_fill
+            is_fill,
         )
     }
 
@@ -285,40 +295,50 @@ impl Encoding {
         use super::math::point_to_f32;
         match brush.into() {
             BrushRef::Solid(color) => {
-                let color = if alpha != 1.0 { color.with_alpha_factor(alpha) } else { color };
+                let color = if alpha != 1.0 {
+                    color.with_alpha_factor(alpha)
+                } else {
+                    color
+                };
                 self.encode_color(DrawColor::new(color));
             }
             #[cfg(feature = "full")]
-            BrushRef::Gradient(gradient) =>
-                match gradient.kind {
-                    GradientKind::Linear { start, end } => {
-                        self.encode_linear_gradient(
-                            DrawLinearGradient {
-                                index: 0,
-                                p0: point_to_f32(start),
-                                p1: point_to_f32(end),
-                            },
-                            gradient.stops.iter().copied(),
-                            alpha,
-                            gradient.extend
-                        );
-                    }
-                    GradientKind::Radial { start_center, start_radius, end_center, end_radius } => {
-                        self.encode_radial_gradient(
-                            DrawRadialGradient {
-                                index: 0,
-                                p0: point_to_f32(start_center),
-                                p1: point_to_f32(end_center),
-                                r0: start_radius,
-                                r1: end_radius,
-                            },
-                            gradient.stops.iter().copied(),
-                            alpha,
-                            gradient.extend
-                        );
-                    }
-                    GradientKind::Sweep { .. } => { todo!("sweep gradients aren't supported yet!") }
+            BrushRef::Gradient(gradient) => match gradient.kind {
+                GradientKind::Linear { start, end } => {
+                    self.encode_linear_gradient(
+                        DrawLinearGradient {
+                            index: 0,
+                            p0: point_to_f32(start),
+                            p1: point_to_f32(end),
+                        },
+                        gradient.stops.iter().copied(),
+                        alpha,
+                        gradient.extend,
+                    );
                 }
+                GradientKind::Radial {
+                    start_center,
+                    start_radius,
+                    end_center,
+                    end_radius,
+                } => {
+                    self.encode_radial_gradient(
+                        DrawRadialGradient {
+                            index: 0,
+                            p0: point_to_f32(start_center),
+                            p1: point_to_f32(end_center),
+                            r0: start_radius,
+                            r1: end_radius,
+                        },
+                        gradient.stops.iter().copied(),
+                        alpha,
+                        gradient.extend,
+                    );
+                }
+                GradientKind::Sweep { .. } => {
+                    todo!("sweep gradients aren't supported yet!")
+                }
+            },
             #[cfg(feature = "full")]
             BrushRef::Image(image) => {
                 #[cfg(feature = "full")]
@@ -342,14 +362,15 @@ impl Encoding {
         gradient: DrawLinearGradient,
         color_stops: impl Iterator<Item = ColorStop>,
         alpha: f32,
-        extend: Extend
+        extend: Extend,
     ) {
         match self.add_ramp(color_stops, alpha, extend) {
             RampStops::Empty => self.encode_color(DrawColor::new(Color::TRANSPARENT)),
             RampStops::One(color) => self.encode_color(DrawColor::new(color)),
             _ => {
                 self.draw_tags.push(DrawTag::LINEAR_GRADIENT);
-                self.draw_data.extend_from_slice(bytemuck::bytes_of(&gradient));
+                self.draw_data
+                    .extend_from_slice(bytemuck::bytes_of(&gradient));
             }
         }
     }
@@ -361,7 +382,7 @@ impl Encoding {
         gradient: DrawRadialGradient,
         color_stops: impl Iterator<Item = ColorStop>,
         alpha: f32,
-        extend: Extend
+        extend: Extend,
     ) {
         // Match Skia's epsilon for radii comparison
         const SKIA_EPSILON: f32 = 1.0 / ((1 << 12) as f32);
@@ -373,7 +394,8 @@ impl Encoding {
             RampStops::One(color) => self.encode_color(DrawColor::new(color)),
             _ => {
                 self.draw_tags.push(DrawTag::RADIAL_GRADIENT);
-                self.draw_data.extend_from_slice(bytemuck::bytes_of(&gradient));
+                self.draw_data
+                    .extend_from_slice(bytemuck::bytes_of(&gradient));
             }
         }
     }
@@ -388,14 +410,12 @@ impl Encoding {
             draw_data_offset: self.draw_data.len(),
         });
         self.draw_tags.push(DrawTag::IMAGE);
-        self.draw_data.extend_from_slice(
-            bytemuck::bytes_of(
-                &(DrawImage {
-                    xy: 0,
-                    width_height: (image.width << 16) | (image.height & 0xffff),
-                })
-            )
-        );
+        self.draw_data.extend_from_slice(bytemuck::bytes_of(
+            &(DrawImage {
+                xy: 0,
+                width_height: (image.width << 16) | (image.height & 0xffff),
+            }),
+        ));
     }
 
     /// Encode start of pattern
@@ -405,10 +425,14 @@ impl Encoding {
         start: Vec2,
         box_scale: Vec2,
         rotation: f32,
-        is_screen_space: bool
+        is_screen_space: bool,
     ) {
         let radians = angle_to_radians(rotation);
-        let is_screen_space: u32 = if is_screen_space { PATTERN_IN_SCREEN_SPACE } else { PATTERN_IN_LOCAL_SPACE };
+        let is_screen_space: u32 = if is_screen_space {
+            PATTERN_IN_SCREEN_SPACE
+        } else {
+            PATTERN_IN_LOCAL_SPACE
+        };
         self.draw_tags.push(DrawTag::PATTERN);
         self.pattern_data.push(PatternData {
             start: [start.x as f32, start.y as f32],
@@ -433,12 +457,12 @@ impl Encoding {
     /// we want instance to be mostly driven by other parts running on gpu.
     /// this only marks those path used as base of instance,
     /// the logic to got translation for instances on gpu are not here
-    pub fn encode_begin_instance_mark(&mut self) {
+    pub fn encode_begin_instance_mark(&mut self, index: u32) {
         self.draw_tags.push(DrawTag::PATTERN);
         self.pattern_data.push(PatternData {
             start: [0.0, 0.0],
             box_scale: [0.0, 0.0],
-            rotate: 0.0,
+            rotate: index as f32,
             instance_type: PARTICLES_IN_WORLD_SPACE,
         });
         self.n_instance_marks += 1;
@@ -458,9 +482,8 @@ impl Encoding {
     pub fn encode_begin_clip(&mut self, blend_mode: BlendMode, alpha: f32) {
         use super::DrawBeginClip;
         self.draw_tags.push(DrawTag::BEGIN_CLIP);
-        self.draw_data.extend_from_slice(
-            bytemuck::bytes_of(&DrawBeginClip::new(blend_mode, alpha))
-        );
+        self.draw_data
+            .extend_from_slice(bytemuck::bytes_of(&DrawBeginClip::new(blend_mode, alpha)));
         self.n_clips += 1;
         self.n_open_clips += 1;
     }
@@ -470,7 +493,7 @@ impl Encoding {
         &mut self,
         packed_color: u32,
         alpha: f32,
-        with_supplement: bool
+        with_supplement: bool,
     ) {
         use super::DrawBeginClip;
         if with_supplement {
@@ -478,9 +501,11 @@ impl Encoding {
         } else {
             self.draw_tags.push(DrawTag::BEGIN_CLIP);
         }
-        self.draw_data.extend_from_slice(
-            bytemuck::bytes_of(&DrawBeginClip::new_filter(packed_color, alpha))
-        );
+        self.draw_data
+            .extend_from_slice(bytemuck::bytes_of(&DrawBeginClip::new_filter(
+                packed_color,
+                alpha,
+            )));
         self.n_clips += 1;
         self.n_open_clips += 1;
     }
@@ -509,14 +534,14 @@ impl Encoding {
         &mut self,
         color_stops: impl Iterator<Item = ColorStop>,
         alpha: f32,
-        extend: Extend
+        extend: Extend,
     ) -> RampStops {
         let offset = self.draw_data.len();
         let stops_start = self.resources.color_stops.len();
         if alpha != 1.0 {
-            self.resources.color_stops.extend(
-                color_stops.map(|stop| stop.with_alpha_factor(alpha))
-            );
+            self.resources
+                .color_stops
+                .extend(color_stops.map(|stop| stop.with_alpha_factor(alpha)));
         } else {
             self.resources.color_stops.extend(color_stops);
         }

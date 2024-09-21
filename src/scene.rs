@@ -14,10 +14,10 @@
 //
 // Also licensed under MIT license, at your choice.
 
+use peniko::kurbo::{Affine, Rect, Shape, Vec2};
+use peniko::{kurbo::Stroke, BrushRef, Color, Fill, Font, Image, StyleRef};
 use skrifa::instance::NormalizedCoord;
-use peniko::kurbo::{ Affine, Rect, Shape, Vec2 };
-use peniko::{ BrushRef, Color, Fill, Font, Image, kurbo::Stroke, StyleRef };
-use vello_encoding::{ Encoding, Glyph, GlyphRun, Patch, Transform, LinearColor };
+use vello_encoding::{Encoding, Glyph, GlyphRun, LinearColor, Patch, Transform};
 
 /// Encoded definition of a scene and associated resources.
 #[derive(Default, Clone)]
@@ -50,20 +50,21 @@ impl Scene {
         start: Vec2,
         box_scale: Vec2,
         rotation: f32,
-        is_screen_space: bool
+        is_screen_space: bool,
     ) {
-        self.data.encode_begin_pattern(start, box_scale, rotation, is_screen_space);
+        self.data
+            .encode_begin_pattern(start, box_scale, rotation, is_screen_space);
     }
 
     pub fn pop_pattern(&mut self) {
         self.data.encode_end_pattern();
     }
 
-    pub fn push_instance(&mut self){
-        self.data.encode_begin_instance_mark();
+    pub fn push_instance(&mut self, index: u32) {
+        self.data.encode_begin_instance_mark(index);
     }
 
-    pub fn pop_instance(&mut self){
+    pub fn pop_instance(&mut self) {
         self.data.encode_end_instance_mark();
     }
 
@@ -71,13 +72,14 @@ impl Scene {
         &mut self,
         filter_color: (f32, f32, f32, f32),
         transform: Affine,
-        shape: &impl Shape
+        shape: &impl Shape,
     ) {
         self.push_layer_with_supplement(filter_color, transform, shape, true);
     }
 
     pub fn push_supplementary_path(&mut self, transform: Affine, shape: &impl Shape) {
-        self.data.encode_transform(Transform::from_kurbo(&transform));
+        self.data
+            .encode_transform(Transform::from_kurbo(&transform));
         if !self.data.encode_shape(shape, true) {
             // If the shape is invalid, encode a valid empty path.
             self.data.encode_shape(&Rect::new(0.0, 0.0, 0.0, 0.0), true);
@@ -91,7 +93,7 @@ impl Scene {
         &mut self,
         filter_color: (f32, f32, f32, f32),
         transform: Affine,
-        shape: &impl Shape
+        shape: &impl Shape,
     ) {
         self.push_layer_with_supplement(filter_color, transform, shape, false);
     }
@@ -101,15 +103,16 @@ impl Scene {
         filter_color: (f32, f32, f32, f32),
         transform: Affine,
         shape: &impl Shape,
-        with_supplement: bool
+        with_supplement: bool,
     ) {
         let filter_color = LinearColor::new(
             filter_color.0,
             filter_color.1,
             filter_color.2,
-            filter_color.3
+            filter_color.3,
         );
-        self.data.encode_transform(Transform::from_kurbo(&transform));
+        self.data
+            .encode_transform(Transform::from_kurbo(&transform));
         self.data.encode_linewidth(-1.0, None);
         if !self.data.encode_shape(shape, true) {
             // If the layer shape is invalid, encode a valid empty path. This suppresses
@@ -120,7 +123,7 @@ impl Scene {
         self.data.encode_begin_clip_filter(
             filter_color.pack_color(),
             filter_color.a,
-            with_supplement
+            with_supplement,
         );
     }
 
@@ -136,22 +139,22 @@ impl Scene {
         transform: Affine,
         brush: impl Into<BrushRef<'b>>,
         brush_transform: Option<Affine>,
-        shape: &impl Shape
+        shape: &impl Shape,
     ) {
-        self.data.encode_transform(Transform::from_kurbo(&transform));
+        self.data
+            .encode_transform(Transform::from_kurbo(&transform));
         self.data.encode_linewidth(
             match style {
                 Fill::NonZero => -1.0,
                 Fill::EvenOdd => -2.0,
             },
-            None
+            None,
         );
         if self.data.encode_shape(shape, true) {
             if let Some(brush_transform) = brush_transform {
-                if
-                    self.data.encode_transform(
-                        Transform::from_kurbo(&(transform * brush_transform))
-                    )
+                if self
+                    .data
+                    .encode_transform(Transform::from_kurbo(&(transform * brush_transform)))
                 {
                     self.data.swap_last_path_tags();
                 }
@@ -167,17 +170,18 @@ impl Scene {
         brush: impl Into<BrushRef<'b>>,
         brush_transform: Option<Affine>,
         shape: &impl Shape,
-        dash_array: Vec<f32>
+        dash_array: Vec<f32>,
     ) {
-        self.data.encode_transform(Transform::from_kurbo(&transform));
+        self.data
+            .encode_transform(Transform::from_kurbo(&transform));
         self.data.encode_linewidth(style.width as f32, None);
-        self.data.encode_linewidth(style.width as f32, Some(dash_array));
+        self.data
+            .encode_linewidth(style.width as f32, Some(dash_array));
         if self.data.encode_shape(shape, false) {
             if let Some(brush_transform) = brush_transform {
-                if
-                    self.data.encode_transform(
-                        Transform::from_kurbo(&(transform * brush_transform))
-                    )
+                if self
+                    .data
+                    .encode_transform(Transform::from_kurbo(&(transform * brush_transform)))
                 {
                     self.data.swap_last_path_tags();
                 }
@@ -192,16 +196,16 @@ impl Scene {
         transform: Affine,
         brush: impl Into<BrushRef<'b>>,
         brush_transform: Option<Affine>,
-        shape: &impl Shape
+        shape: &impl Shape,
     ) {
-        self.data.encode_transform(Transform::from_kurbo(&transform));
+        self.data
+            .encode_transform(Transform::from_kurbo(&transform));
         self.data.encode_linewidth(style.width as f32, None);
         if self.data.encode_shape(shape, false) {
             if let Some(brush_transform) = brush_transform {
-                if
-                    self.data.encode_transform(
-                        Transform::from_kurbo(&(transform * brush_transform))
-                    )
+                if self
+                    .data
+                    .encode_transform(Transform::from_kurbo(&(transform * brush_transform)))
                 {
                     self.data.swap_last_path_tags();
                 }
@@ -217,7 +221,7 @@ impl Scene {
             transform,
             image,
             None,
-            &Rect::new(0.0, 0.0, image.width as f64, image.height as f64)
+            &Rect::new(0.0, 0.0, image.width as f64, image.height as f64),
         );
     }
 
@@ -232,7 +236,10 @@ impl Scene {
 
     /// Appends a fragment to the scene.
     pub fn append(&mut self, fragment: &Scene, transform: Option<Affine>) {
-        self.data.append(&fragment.data, &transform.map(|xform| Transform::from_kurbo(&xform)));
+        self.data.append(
+            &fragment.data,
+            &transform.map(|xform| Transform::from_kurbo(&xform)),
+        );
     }
 }
 
@@ -306,8 +313,14 @@ impl<'a> DrawGlyphs<'a> {
 
     /// Sets the normalized design space coordinates for a variable font instance.
     pub fn normalized_coords(mut self, coords: &[NormalizedCoord]) -> Self {
-        self.encoding.resources.normalized_coords.truncate(self.run.normalized_coords.start);
-        self.encoding.resources.normalized_coords.extend_from_slice(coords);
+        self.encoding
+            .resources
+            .normalized_coords
+            .truncate(self.run.normalized_coords.start);
+        self.encoding
+            .resources
+            .normalized_coords
+            .extend_from_slice(coords);
         self.run.normalized_coords.end = self.encoding.resources.normalized_coords.len();
         self
     }
@@ -338,7 +351,9 @@ impl<'a> DrawGlyphs<'a> {
         resources.glyphs.extend(glyphs);
         self.run.glyphs.end = resources.glyphs.len();
         if self.run.glyphs.is_empty() {
-            resources.normalized_coords.truncate(self.run.normalized_coords.start);
+            resources
+                .normalized_coords
+                .truncate(self.run.normalized_coords.start);
             return;
         }
         let index = resources.glyph_runs.len();
