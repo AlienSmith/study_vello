@@ -457,12 +457,12 @@ impl Encoding {
     /// we want instance to be mostly driven by other parts running on gpu.
     /// this only marks those path used as base of instance,
     /// the logic to got translation for instances on gpu are not here
-    pub fn encode_begin_instance_mark(&mut self, index: u32) {
+    pub fn encode_begin_instance_mark(&mut self, index: u32, size: u32) {
         self.draw_tags.push(DrawTag::PATTERN);
         self.pattern_data.push(PatternData {
-            start: [0.0, 0.0],
+            start: [index as f32, size as f32],
             box_scale: [0.0, 0.0],
-            rotate: index as f32,
+            rotate: 0.0,
             instance_type: PARTICLES_IN_WORLD_SPACE,
         });
         self.n_instance_marks += 1;
@@ -478,6 +478,14 @@ impl Encoding {
         self.n_paths += 1;
     }
 
+    ///Encode a end of instance command. the logic is identcial to begin.
+    pub fn set_instance_index_in_export_buffer(&mut self, index: u32, size: u32) {
+        if let Some(item) = self.pattern_data.last_mut() {
+            item.start = [index as f32, size as f32];
+        } else {
+            panic!("set instance index on none instance scene")
+        }
+    }
     /// Encodes a begin clip command.
     pub fn encode_begin_clip(&mut self, blend_mode: BlendMode, alpha: f32) {
         use super::DrawBeginClip;

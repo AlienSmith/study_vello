@@ -60,12 +60,16 @@ impl Scene {
         self.data.encode_end_pattern();
     }
 
-    pub fn push_instance(&mut self, index: u32) {
-        self.data.encode_begin_instance_mark(index);
+    pub fn push_instance(&mut self, index: u32, size: u32) {
+        self.data.encode_begin_instance_mark(index, size);
     }
 
     pub fn pop_instance(&mut self) {
         self.data.encode_end_instance_mark();
+    }
+
+    pub fn set_instance_index_in_export_buffer(&mut self, index: u32, size: u32) {
+        self.data.set_instance_index_in_export_buffer(index, size);
     }
 
     pub fn push_layer_with_supplementary_path(

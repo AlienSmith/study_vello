@@ -80,11 +80,11 @@ fn main(
         return;
     }
     let pattern = read_pattern(config.pattern_base, info.pattern_ix - 1u);
-
-    if pattern.is_screen_space < PARTICLES_IN_LOCAL_SPACE {
+    let particle_index = u32(pattern.start.x);
+    let particle_index_size = u32(pattern.start.y);
+    if pattern.is_screen_space < PARTICLES_IN_LOCAL_SPACE || particle_index_size < 1u {
         return;
     }
-    let particle_index = u32(pattern.rotation);
     let start = select(particles_info[particle_index - 1u], 0u, particle_index == 0u);
     let end = particles_info[particle_index];
     let size = end - start;
