@@ -9,7 +9,7 @@
 //Local(Cubics) -> Particles -> World -> Screen
 
 let PARTICLE_DATA_BASE = 256u;
-let PARTICLE_DATA_SIZE = 6u;
+let PARTICLE_DATA_SIZE = 8u;
 
 @group(0) @binding(0)
 var<uniform> config: Config;
@@ -37,6 +37,10 @@ var<storage> particles_info: array<u32>;
 
 @group(0) @binding(8)
 var<storage> path_infos: array<PathInfo>;
+
+@group(0) @binding(9)
+var<storage, read_write> intersected_bbox: array<vec4<f32>>;
+
 
 fn read_pattern(pattern_base:u32, ix:u32) -> Pattern {
     let base = pattern_base + ix * 6u;
@@ -82,15 +86,24 @@ fn main(
     let pattern = read_pattern(config.pattern_base, info.pattern_ix - 1u);
     let particle_index = u32(pattern.start.x);
     let particle_index_size = u32(pattern.start.y);
-    if pattern.is_screen_space < PARTICLES_IN_LOCAL_SPACE || particle_index_size < 1u {
-        return;
-    }
     let start = select(particles_info[particle_index - 1u], 0u, particle_index == 0u);
     let end = particles_info[particle_index];
     let size = end - start;
+    
+    // particle_index_size < 1u happens when particle was added but uninitialized
+    if pattern.is_screen_space < PARTICLES_IN_LOCAL_SPACE || particle_index_size < 1u {
+        return;
+    }
+    
+    // size == 0u happens when particle was added but not shown in particles_info buffer yet
+    if size == 0u {
+        intersected_bbox[oup.path_ix] = vec4<f32>(0.0,0.0,0.0,0.0);
+        return;
+    }
 
-    let cubic_ix = atomicAdd(&bump.cubics, size - 1u);
-    if cubic_ix + size > config.cubic_size{
+    let alloc_size = size - 1u;
+    let cubic_ix = atomicAdd(&bump.cubics, alloc_size);
+    if cubic_ix + alloc_size > config.cubic_size{
         atomicOr(&bump.failed, STAGE_PATTERN);
         return;
     }
@@ -100,18 +113,27 @@ fn main(
     let world_to_screen = Transform(camera.matrx, camera.translate);
     let particles_to_screen = transform_mul(world_to_screen, particles_to_world);
 
+    let p0 = oup.p0;
+    let p1 = oup.p1;
+    let p2 = oup.p2;
+    let p3 = oup.p3;
+
     for (var ix = start; ix < end; ix++){
         let offset = PARTICLE_DATA_BASE + ix * PARTICLE_DATA_SIZE;
         let local_to_particles = read_particle_transform(offset);
+        // let index = particles_info[offset + 6u];
+        // if index != particle_index {
+        //     atomicStore(&bump.failed, 1u);
+        // }
         //let pos_x = bitcast<f32>(particles_info[offset + 4u]);
         //let pos_y = bitcast<f32>(particles_info[offset + 5u]);
         let transform = transform_mul(particles_to_screen, local_to_particles);
         //let delta = temp.translate;
         let store_index = select(cubic_ix + ix - start, index, ix == end - 1u);
-        let op0 = transform_apply(transform, oup.p0);
-        let op1 = transform_apply(transform, oup.p1);
-        let op2 = transform_apply(transform, oup.p2);
-        let op3 = transform_apply(transform, oup.p3);
+        let op0 = transform_apply(transform, p0);
+        let op1 = transform_apply(transform, p1);
+        let op2 = transform_apply(transform, p2);
+        let op3 = transform_apply(transform, p3);
         let instance = Cubic(op0, op1, op2, op3, oup.path_ix, oup.tag_byte);
         cubic[store_index] = instance;
     }
