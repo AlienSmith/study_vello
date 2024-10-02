@@ -78,10 +78,10 @@ impl ShaderInfo {
                             ..
                         } => u32::from(*size) * stride,
                         naga::TypeInner::Struct { span, .. } => *span,
-                        naga::TypeInner::Scalar { width, .. } => *width as u32,
-                        naga::TypeInner::Vector { width, .. } => *width as u32,
-                        naga::TypeInner::Matrix { width, .. } => *width as u32,
-                        naga::TypeInner::Atomic { width, .. } => *width as u32,
+                        naga::TypeInner::Scalar(scalar) => scalar.width as u32,
+                        naga::TypeInner::Vector { scalar, .. } => scalar.width as u32,
+                        naga::TypeInner::Matrix { scalar, .. } => scalar.width as u32,
+                        naga::TypeInner::Atomic(scalar) => scalar.width as u32,
                         _ => {
                             // Not a valid workgroup variable type. At least not one that is used
                             // in our shaders.
@@ -126,7 +126,7 @@ impl ShaderInfo {
         bindings.sort_by_key(|res| res.location);
         let workgroup_size = entry.workgroup_size;
         Ok(ShaderInfo {
-            source,
+            source: postprocess(&source),
             module,
             module_info,
             workgroup_size,
@@ -145,11 +145,16 @@ impl ShaderInfo {
         } else {
             Default::default()
         };
-        println!("{:?}", permutation_map);
+        //println!("{permutation_map:?}");
         let imports = preprocess::get_imports(shader_dir);
         let mut info = HashMap::default();
-        let mut defines = HashSet::default();
-        defines.insert("full".to_string());
+        let defines: HashSet<_> = if cfg!(feature = "full") {
+            vec!["full".to_string()]
+        } else {
+            vec![]
+        }
+        .into_iter()
+        .collect();
         for entry in shader_dir
             .read_dir()
             .expect("Can read shader import directory")
@@ -182,4 +187,20 @@ impl ShaderInfo {
         }
         info
     }
+}
+
+// TODO: This is a workaround for gfx-rs/wgpu#5476. Since naga can't handle the `enable` directive,
+// we allow its use in other WGSL compilers using our own "#enable" post-process directive. Remove
+// this mechanism once naga supports the directive.
+fn postprocess(wgsl: &str) -> String {
+    let mut output = String::with_capacity(wgsl.len());
+    for line in wgsl.lines() {
+        if line.starts_with("//__#enable") {
+            output.push_str(&line["//__#".len()..]);
+        } else {
+            output.push_str(line);
+        }
+        output.push('\n');
+    }
+    output
 }

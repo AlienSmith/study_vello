@@ -265,6 +265,12 @@ fn round_up(n: usize, f: usize) -> usize {
 
 #[cfg(feature = "wgpu-profiler")]
 use wgpu_profiler::GpuTimerQueryResult;
+
+#[cfg(feature = "wgpu-profiler")]
+fn profiles_are_empty(profiles: &[GpuTimerQueryResult]) -> bool {
+    profiles.iter().all(|p| p.time.is_none())
+}
+
 #[cfg(feature = "wgpu-profiler")]
 pub fn draw_gpu_profiling(
     sb: &mut Scene,
@@ -283,7 +289,7 @@ pub fn draw_gpu_profiling(
         Color::ORANGE,
         Color::WHITE,
     ];
-    if profiles.is_empty() {
+    if profiles_are_empty(profiles) {
         return;
     }
     let width = (viewport_width * 0.3).clamp(150.0, 450.0);
@@ -310,8 +316,10 @@ pub fn draw_gpu_profiling(
             match stage {
                 TraversalStage::Enter => {
                     count += 1;
-                    min = min.min(profile.time.start);
-                    max = max.max(profile.time.end);
+                    if let Some(time) = &profile.time {
+                        min = min.min(time.start);
+                        max = max.max(time.end);
+                    }
                     max_depth = max_depth.max(depth);
                     // Apply a higher depth to the children
                     depth += 1;
@@ -373,10 +381,11 @@ pub fn draw_gpu_profiling(
         profiles,
         &mut (|profile, stage| {
             if let TraversalStage::Enter = stage {
+                if let Some(time) = &profile.time {
                 let start_normalised =
-                    ((profile.time.start - min) / total_time) * timeline_range_y + timeline_start_y;
+                    ((time.start - min) / total_time) * timeline_range_y + timeline_start_y;
                 let end_normalised =
-                    ((profile.time.end - min) / total_time) * timeline_range_y + timeline_start_y;
+                    ((time.end - min) / total_time) * timeline_range_y + timeline_start_y;
 
                 let color = COLORS[cur_index % COLORS.len()];
                 let x = width * 0.01 + (depth as f64) * depth_width;
@@ -389,12 +398,12 @@ pub fn draw_gpu_profiling(
                 );
 
                 let mut text_start = start_normalised;
-                let nested = !profile.nested_queries.is_empty();
+                let nested = !profiles_are_empty(profile.nested_queries.as_slice());
                 if nested {
                     // If we have children, leave some more space for them
                     text_start -= text_height * 0.7;
                 }
-                let this_time = profile.time.end - profile.time.start;
+                let this_time = time.end - time.start;
                 // Highlight as important if more than 10% of the total time, or more than 1ms
                 let slow = this_time * 20.0 >= total_time || this_time >= 0.001;
                 let text_y = text_start
@@ -466,6 +475,7 @@ pub fn draw_gpu_profiling(
             } else {
                 depth -= 1;
             }
+        }
         })
     );
 }

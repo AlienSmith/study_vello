@@ -23,10 +23,10 @@ wgsl = []
 msl = []
 
 [dependencies]
-naga = { version = "0.13", features = ["wgsl-in", "msl-out", "validate"], optional = true }
-thiserror = { version = "1.0.40", optional = true }
+naga = { version = "0.20.0", features = ["wgsl-in", "msl-out",], optional = true }
+thiserror = { version = "1.0.58", optional = true }
 
 [build-dependencies]
-naga = { version = "0.13",  features = ["wgsl-in", "msl-out", "validate"] }
-thiserror = "1.0.40"
+naga = { version = "0.20.0",  features = ["wgsl-in", "msl-out",] }
+thiserror = "1.0.58"
 

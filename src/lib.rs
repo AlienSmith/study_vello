@@ -58,7 +58,7 @@ use wgpu_engine::{ ExternalResource, WgpuEngine };
 /// Temporary export, used in with_winit for stats
 pub use vello_encoding::BumpAllocators;
 #[cfg(feature = "wgpu")]
-use wgpu::{ Device, Queue, SurfaceTexture, TextureFormat, TextureView };
+use wgpu::{ Device, PipelineCompilationOptions, Queue, SurfaceTexture, TextureFormat, TextureView };
 #[cfg(all(feature = "wgpu", feature = "wgpu-profiler"))]
 use wgpu_profiler::{ GpuProfiler, GpuProfilerSettings };
 
@@ -550,11 +550,13 @@ impl BlitPipeline {
                 vertex: wgpu::VertexState {
                     module: &shader,
                     entry_point: "vs_main",
+                    compilation_options: PipelineCompilationOptions::default(),
                     buffers: &[],
                 },
                 fragment: Some(wgpu::FragmentState {
                     module: &shader,
                     entry_point: "fs_main",
+                    compilation_options: PipelineCompilationOptions::default(),
                     targets: &[
                         Some(wgpu::ColorTargetState {
                             format,
