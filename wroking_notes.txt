@@ -12,11 +12,10 @@ Networking
                 - add example of using webpack with "with_winit"
 	- add issue of andoird brosers of winit
 Browser support
-	- done 
-	- try with: cargo run_wasm --package with_winit
-	- try it with bevy
+	- done see webpack examples
 Partical system
-	- adding instance with standalone transform buffer as some kind of instance.  <------------------------------------working on these.
+	- added instance with standalone transform buffer as some kind of instance. 
 	- let scene buffer contain local2world matrix instead of local2screen matrix for partical
 Others
 	-pay attentions to dash implementation logic length_modifier doesn't seems right
+	-update to wgpu 20 bevy 14
