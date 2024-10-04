@@ -95,8 +95,7 @@ fn angle_to_radians(angle: f32) -> f32 {
 }
 const PATTERN_IN_LOCAL_SPACE: u32 = 0;
 const PATTERN_IN_SCREEN_SPACE: u32 = 1;
-const PARTICLES_IN_LOCAL_SPACE: u32 = 2;
-const PARTICLES_IN_WORLD_SPACE: u32 = 3;
+const PARTICLES_IN_WORLD_SPACE: u32 = 2;
 
 impl Encoding {
     /// Creates a new encoding.

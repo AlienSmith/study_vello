@@ -91,7 +91,7 @@ fn main(
     let size = end - start;
     
     // particle_index_size < 1u happens when particle was added but uninitialized
-    if pattern.is_screen_space < PARTICLES_IN_LOCAL_SPACE || particle_index_size < 1u {
+    if pattern.is_screen_space < PARTICLES_IN_WORLD_SPACE || particle_index_size < 1u {
         return;
     }
     

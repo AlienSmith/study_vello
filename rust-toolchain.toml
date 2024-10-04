@@ -1,0 +1,10 @@
+# https://rust-lang.github.io/rustup/overrides.html#the-toolchain-file
+
+[toolchain]
+channel = "1.79.0-x86_64-pc-windows-msvc"
+
+# this will auto check and update when compile
+# or use `rustup default nightly-2021-xx-xx` update
+
+# before update, please check the toolchain states in
+# https://rust-lang.github.io/rustup-components-history/
