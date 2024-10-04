@@ -96,7 +96,7 @@ fn main(
     }
     
     // size == 0u happens when particle was added but not shown in particles_info buffer yet
-    if size == 0u {
+    if end == 0u {
         intersected_bbox[oup.path_ix] = vec4<f32>(0.0,0.0,0.0,0.0);
         return;
     }
