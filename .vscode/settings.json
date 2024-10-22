@@ -21,6 +21,6 @@
   "[rust]": {
     "editor.formatOnPaste": true,
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "jinxdash.prettier-rust"
+    "editor.defaultFormatter": "rust-lang.rust-analyzer"
   }
 }

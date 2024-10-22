@@ -65,12 +65,13 @@ pub fn setup_precomp_layer(
                         .opacity
                         .as_ref()
                         .unwrap_or(&FLOAT_VALUE_ONE_HUNDRED),
+                    |x| x,
                 );
                 target.masks.push(runtime::model::Mask {
                     mode,
                     geometry,
                     opacity,
-                })
+                });
             }
         }
     }
@@ -133,12 +134,13 @@ pub fn setup_shape_layer(
                         .opacity
                         .as_ref()
                         .unwrap_or(&FLOAT_VALUE_ONE_HUNDRED),
+                    |x| x,
                 );
                 target.masks.push(runtime::model::Mask {
                     mode,
                     geometry,
                     opacity,
-                })
+                });
             }
         }
     }
@@ -191,12 +193,13 @@ pub fn setup_layer_base(
                         .opacity
                         .as_ref()
                         .unwrap_or(&FLOAT_VALUE_ONE_HUNDRED),
+                    |x| x,
                 );
                 target.masks.push(runtime::model::Mask {
                     mode,
                     geometry,
                     opacity,
-                })
+                });
             }
         }
     }

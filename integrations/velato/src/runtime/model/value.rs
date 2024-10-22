@@ -158,6 +158,21 @@ impl<T: Tween> Animated<T> {
 pub trait Tween: Clone + Default {
     fn tween(&self, other: &Self, t: f64, easing: &Easing) -> Self;
 }
+#[repr(transparent)]
+#[derive(Default, Clone, Debug)]
+pub struct RotationAngle(pub f64);
+
+impl Tween for RotationAngle {
+    fn tween(&self, other: &Self, t: f64, _easing: &Easing) -> Self {
+        let mut delta = other.0 - self.0;
+        if delta > 180.0 {
+            delta -= 360.0;
+        } else if delta < -180.0 {
+            delta += 360.0;
+        }
+        RotationAngle(self.0 + delta * t)
+    }
+}
 
 impl Tween for f64 {
     fn tween(&self, other: &Self, t: f64, _easing: &Easing) -> Self {
@@ -206,10 +221,10 @@ impl Tween for kurbo::Size {
 
 impl Tween for peniko::Color {
     fn tween(&self, other: &Self, t: f64, easing: &Easing) -> Self {
-        let r = (self.r as f64 / 255.0).tween(&(other.r as f64 / 255.0), t, easing);
-        let g = (self.g as f64 / 255.0).tween(&(other.g as f64 / 255.0), t, easing);
-        let b = (self.b as f64 / 255.0).tween(&(other.b as f64 / 255.0), t, easing);
-        let a = (self.a as f64 / 255.0).tween(&(other.a as f64 / 255.0), t, easing);
+        let r = ((self.r as f64) / 255.0).tween(&((other.r as f64) / 255.0), t, easing);
+        let g = ((self.g as f64) / 255.0).tween(&((other.g as f64) / 255.0), t, easing);
+        let b = ((self.b as f64) / 255.0).tween(&((other.b as f64) / 255.0), t, easing);
+        let a = ((self.a as f64) / 255.0).tween(&((other.a as f64) / 255.0), t, easing);
         peniko::Color::rgba(r, g, b, a)
     }
 }

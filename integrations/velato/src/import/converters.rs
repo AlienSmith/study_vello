@@ -1,35 +1,26 @@
 // Copyright 2024 the Velato Authors
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use super::builders::{ setup_layer_base, setup_precomp_layer, setup_shape_layer };
-use super::defaults::{ FLOAT_VALUE_ONE_HUNDRED, FLOAT_VALUE_ZERO, MULTIDIM_ONE, POSITION_ZERO };
-use crate::runtime::model::animated::{ self, Position };
+use super::builders::{setup_layer_base, setup_precomp_layer, setup_shape_layer};
+use super::defaults::{FLOAT_VALUE_ONE_HUNDRED, FLOAT_VALUE_ZERO, MULTIDIM_ONE, POSITION_ZERO};
+use crate::model::value::RotationAngle;
+use crate::runtime::model::animated::{self, Position};
 use crate::runtime::model::Easing;
 use crate::runtime::model::{
-    self,
-    Content,
-    Draw,
-    EasingHandle,
-    GroupTransform,
-    Layer,
-    SplineToPath,
-    Time,
-    Tween,
-    Value,
+    self, Content, Draw, EasingHandle, GroupTransform, Layer, SplineToPath, Time, Tween, Value,
 };
-use crate::runtime::{ self };
+use crate::runtime::{self};
 use crate::schema::animated_properties::keyframe_bezier_handle::{
-    KeyframeBezierHandle,
-    KeyframeComponent,
+    KeyframeBezierHandle, KeyframeComponent,
 };
 use crate::schema::animated_properties::multi_dimensional::MultiDimensional;
 use crate::schema::animated_properties::split_vector::SplitVector;
 use crate::schema::constants::gradient_type::GradientType;
 use crate::schema::helpers::int_boolean::BoolInt;
-use crate::{ schema, Composition };
+use crate::{schema, Composition};
 use std::collections::HashMap;
-use vello::kurbo::{ Point, Size, Vec2 };
-use vello::peniko::{ BlendMode, Color, Mix, kurbo::Cap, kurbo::Join };
+use vello::kurbo::{Point, Size, Vec2};
+use vello::peniko::{kurbo::Cap, kurbo::Join, BlendMode, Color, Mix};
 
 pub fn conv_animation(source: schema::Animation) -> Composition {
     let mut target = Composition {
@@ -53,11 +44,8 @@ pub fn conv_animation(source: schema::Animation) -> Composition {
                     for layer in precomp.composition.layers.iter() {
                         let index = layers.len();
                         if let Some((mut layer, id, mask_blend)) = conv_layer(layer) {
-                            if
-                                let (Some(mask_blend), Some(mask_layer)) = (
-                                    mask_blend,
-                                    mask_layer.take(),
-                                )
+                            if let (Some(mask_blend), Some(mask_layer)) =
+                                (mask_blend, mask_layer.take())
                             {
                                 layer.mask_layer = Some((mask_blend, mask_layer));
                             }
@@ -126,7 +114,10 @@ pub fn conv_layer(source: &schema::layers::AnyLayer) -> Option<(Layer, usize, Op
 
             let params = setup_precomp_layer(precomp_layer, &mut layer);
             let name = precomp_layer.precomp_id.clone();
-            let time_remap = precomp_layer.time_remap.as_ref().map(conv_scalar);
+            let time_remap = precomp_layer
+                .time_remap
+                .as_ref()
+                .map(|value| conv_scalar(value, |x| x));
             layer.content = Content::Instance { name, time_remap };
 
             params
@@ -161,15 +152,14 @@ pub fn conv_layer(source: &schema::layers::AnyLayer) -> Option<(Layer, usize, Op
 }
 
 pub fn conv_transform(
-    value: &schema::helpers::transform::Transform
+    value: &schema::helpers::transform::Transform,
 ) -> (runtime::model::Transform, Value<f64>) {
     let rotation_in = match &value.rotation {
-        Some(any_trans) =>
-            match any_trans {
-                schema::helpers::transform::AnyTransformR::Rotation(float_value) => float_value,
-                // todo: need to actually handle split rotations
-                schema::helpers::transform::AnyTransformR::SplitRotation { .. } => todo!(),
-            }
+        Some(any_trans) => match any_trans {
+            schema::helpers::transform::AnyTransformR::Rotation(float_value) => float_value,
+            // todo: need to actually handle split rotations
+            schema::helpers::transform::AnyTransformR::SplitRotation { .. } => todo!(),
+        },
         None => todo!("split rotation"),
     };
 
@@ -178,7 +168,7 @@ pub fn conv_transform(
             Position::Value(conv_pos_point(position))
         }
         schema::helpers::transform::AnyTransformP::SplitPosition(SplitVector { x, y, .. }) => {
-            Position::SplitValues((conv_scalar(x), conv_scalar(y)))
+            Position::SplitValues((conv_scalar(x, |x| x), conv_scalar(y, |x| x)))
         }
     };
 
@@ -186,24 +176,26 @@ pub fn conv_transform(
         anchor: conv_pos_point(value.anchor_point.as_ref().unwrap_or(&POSITION_ZERO)),
         position,
         scale: conv_vec2(value.scale.as_ref().unwrap_or(&MULTIDIM_ONE)),
-        rotation: conv_scalar(rotation_in),
-        skew: conv_scalar(value.skew.as_ref().unwrap_or(&FLOAT_VALUE_ZERO)),
-        skew_angle: conv_scalar(value.skew_axis.as_ref().unwrap_or(&FLOAT_VALUE_ZERO)),
+        rotation: conv_scalar(rotation_in, |x| RotationAngle(x)),
+        skew: conv_scalar(value.skew.as_ref().unwrap_or(&FLOAT_VALUE_ZERO), |x| x),
+        skew_angle: conv_scalar(value.skew_axis.as_ref().unwrap_or(&FLOAT_VALUE_ZERO), |x| x),
     };
-    let opacity = conv_scalar(value.opacity.as_ref().unwrap_or(&FLOAT_VALUE_ONE_HUNDRED));
+    let opacity = conv_scalar(
+        value.opacity.as_ref().unwrap_or(&FLOAT_VALUE_ONE_HUNDRED),
+        |x| x,
+    );
     (transform.into_model(), opacity)
 }
 
 pub fn conv_shape_transform(value: &schema::shapes::transform::TransformShape) -> GroupTransform {
     let rotation_in = match &value.transform.rotation {
-        Some(any_trans) =>
-            match any_trans {
-                schema::helpers::transform::AnyTransformR::Rotation(float_value) => float_value,
-                // todo: need to actually handle split rotations
-                schema::helpers::transform::AnyTransformR::SplitRotation { .. } => {
-                    todo!("split rotation")
-                }
+        Some(any_trans) => match any_trans {
+            schema::helpers::transform::AnyTransformR::Rotation(float_value) => float_value,
+            // todo: need to actually handle split rotations
+            schema::helpers::transform::AnyTransformR::SplitRotation { .. } => {
+                todo!("split rotation")
             }
+        },
         None => &FLOAT_VALUE_ZERO,
     };
     let position_in = match &value.transform.position {
@@ -215,15 +207,38 @@ pub fn conv_shape_transform(value: &schema::shapes::transform::TransformShape) -
     };
 
     let transform = animated::Transform {
-        anchor: conv_pos_point(value.transform.anchor_point.as_ref().unwrap_or(&POSITION_ZERO)),
+        anchor: conv_pos_point(
+            value
+                .transform
+                .anchor_point
+                .as_ref()
+                .unwrap_or(&POSITION_ZERO),
+        ),
         position: Position::Value(conv_pos_point(position_in)),
         scale: conv_vec2(value.transform.scale.as_ref().unwrap_or(&MULTIDIM_ONE)),
-        rotation: conv_scalar(rotation_in),
-        skew: conv_scalar(value.transform.skew.as_ref().unwrap_or(&FLOAT_VALUE_ZERO)),
-        skew_angle: conv_scalar(value.transform.skew_axis.as_ref().unwrap_or(&FLOAT_VALUE_ZERO)),
+        rotation: conv_scalar(rotation_in, |x| RotationAngle(x)),
+        skew: conv_scalar(
+            value.transform.skew.as_ref().unwrap_or(&FLOAT_VALUE_ZERO),
+            |x| x,
+        ),
+        skew_angle: conv_scalar(
+            value
+                .transform
+                .skew_axis
+                .as_ref()
+                .unwrap_or(&FLOAT_VALUE_ZERO),
+            |x| x,
+        ),
     };
 
-    let opacity = conv_scalar(value.transform.opacity.as_ref().unwrap_or(&FLOAT_VALUE_ONE_HUNDRED));
+    let opacity = conv_scalar(
+        value
+            .transform
+            .opacity
+            .as_ref()
+            .unwrap_or(&FLOAT_VALUE_ONE_HUNDRED),
+        |x| x,
+    );
 
     GroupTransform {
         transform: transform.into_model(),
@@ -233,7 +248,7 @@ pub fn conv_shape_transform(value: &schema::shapes::transform::TransformShape) -
 
 pub fn conv_keyframes<'a, T: Tween>(
     keyframes: impl Iterator<Item = &'a schema::animated_properties::keyframe::Keyframe>,
-    f: impl Fn(&schema::animated_properties::keyframe::Keyframe) -> T
+    f: impl Fn(&schema::animated_properties::keyframe::Keyframe) -> T,
 ) -> Value<T> {
     let mut frames = vec![];
     let mut values = vec![];
@@ -246,10 +261,9 @@ pub fn conv_keyframes<'a, T: Tween>(
         match (&handle.x_coordinate, &handle.y_coordinate) {
             (KeyframeComponent::ArrayOfValues(xarr), KeyframeComponent::ArrayOfValues(yarr)) => {
                 handles.extend(
-                    xarr
-                        .iter()
+                    xarr.iter()
                         .zip(yarr)
-                        .map(|(x, y)| EasingHandle { x: *x, y: *y })
+                        .map(|(x, y)| EasingHandle { x: *x, y: *y }),
                 );
             }
             (KeyframeComponent::ArrayOfValues(xarr), KeyframeComponent::SingleValue(y)) => {
@@ -266,7 +280,9 @@ pub fn conv_keyframes<'a, T: Tween>(
     };
 
     for keyframe in keyframes {
-        let hold = keyframe.base.hold
+        let hold = keyframe
+            .base
+            .hold
             .as_ref()
             .map(|b| b.eq(&BoolInt::True))
             .unwrap_or(false);
@@ -300,7 +316,10 @@ pub fn conv_keyframes<'a, T: Tween>(
 }
 
 fn conv_keyframe_handle(handle: &KeyframeBezierHandle) -> EasingHandle {
-    let KeyframeBezierHandle { x_coordinate, y_coordinate } = handle;
+    let KeyframeBezierHandle {
+        x_coordinate,
+        y_coordinate,
+    } = handle;
     let x = match x_coordinate {
         KeyframeComponent::ArrayOfValues(arr) => {
             assert!(arr.len() == 1, "{arr:?}");
@@ -319,36 +338,35 @@ fn conv_keyframe_handle(handle: &KeyframeBezierHandle) -> EasingHandle {
 }
 
 fn conv_gradient_colors(
-    value: &schema::animated_properties::gradient_colors::GradientColors
+    value: &schema::animated_properties::gradient_colors::GradientColors,
 ) -> runtime::model::ColorStops {
     use schema::animated_properties::animated_property::AnimatedPropertyK::*;
 
     let count = value.count;
     match &value.colors.animated_property.value {
-        Static(value) =>
-            runtime::model::ColorStops::Fixed({
-                let mut stops = runtime::model::fixed::ColorStops::new();
-                let raw = conv_stops(value, count);
-                for values in raw {
-                    stops.push(
-                        (
-                            values[0] as f32,
-                            runtime::model::fixed::Color::rgba(
-                                values[1],
-                                values[2],
-                                values[3],
-                                values[4]
-                            ),
-                        ).into()
-                    );
-                }
-                stops
-            }),
+        Static(value) => runtime::model::ColorStops::Fixed({
+            let mut stops = runtime::model::fixed::ColorStops::new();
+            let raw = conv_stops(value, count);
+            for values in raw {
+                stops.push(
+                    (
+                        values[0] as f32,
+                        runtime::model::fixed::Color::rgba(
+                            values[1], values[2], values[3], values[4],
+                        ),
+                    )
+                        .into(),
+                );
+            }
+            stops
+        }),
         AnimatedValue(animated) => {
             let mut frames = vec![];
             let mut values: Vec<Vec<f64>> = vec![];
             for value in animated {
-                let hold = value.base.hold
+                let hold = value
+                    .base
+                    .hold
                     .as_ref()
                     .map(|b| b.eq(&BoolInt::True))
                     .unwrap_or(false);
@@ -384,7 +402,10 @@ fn conv_draw(value: &schema::shapes::AnyShape) -> Option<runtime::model::Draw> {
         AnyShape::Fill(value) => {
             let color = conv_color(&value.color);
             let brush = animated::Brush::Solid(color).into_model();
-            let opacity = conv_scalar(value.opacity.as_ref().unwrap_or(&FLOAT_VALUE_ONE_HUNDRED));
+            let opacity = conv_scalar(
+                value.opacity.as_ref().unwrap_or(&FLOAT_VALUE_ONE_HUNDRED),
+                |x| x,
+            );
             Some(runtime::model::Draw {
                 stroke: None,
                 brush,
@@ -393,7 +414,7 @@ fn conv_draw(value: &schema::shapes::AnyShape) -> Option<runtime::model::Draw> {
         }
         AnyShape::Stroke(value) => {
             let stroke = animated::Stroke {
-                width: conv_scalar(&value.stroke_width),
+                width: conv_scalar(&value.stroke_width, |x| x),
                 join: match value.line_join.as_ref().unwrap_or(&LineJoin::Bevel) {
                     LineJoin::Bevel => Join::Bevel,
                     LineJoin::Round => Join::Round,
@@ -408,7 +429,7 @@ fn conv_draw(value: &schema::shapes::AnyShape) -> Option<runtime::model::Draw> {
             };
             let color = conv_color(&value.stroke_color);
             let brush = animated::Brush::Solid(color).into_model();
-            let opacity = conv_scalar(&value.opacity);
+            let opacity = conv_scalar(&value.opacity, |x| x);
             Some(runtime::model::Draw {
                 stroke: Some(stroke.into_model()),
                 brush,
@@ -434,21 +455,35 @@ fn conv_draw(value: &schema::shapes::AnyShape) -> Option<runtime::model::Draw> {
         }
         AnyShape::GradientStroke(value) => {
             let stroke = animated::Stroke {
-                width: conv_scalar(&value.base_stroke.width),
-                join: match value.base_stroke.line_join.as_ref().unwrap_or(&LineJoin::Round) {
+                width: conv_scalar(&value.base_stroke.width, |x| x),
+                join: match value
+                    .base_stroke
+                    .line_join
+                    .as_ref()
+                    .unwrap_or(&LineJoin::Round)
+                {
                     LineJoin::Bevel => Join::Bevel,
                     LineJoin::Round => Join::Round,
                     LineJoin::Miter => Join::Miter,
                 },
                 miter_limit: value.base_stroke.miter_limit,
-                cap: match value.base_stroke.line_cap.as_ref().unwrap_or(&LineCap::Round) {
+                cap: match value
+                    .base_stroke
+                    .line_cap
+                    .as_ref()
+                    .unwrap_or(&LineCap::Round)
+                {
                     LineCap::Butt => Cap::Butt,
                     LineCap::Round => Cap::Round,
                     LineCap::Square => Cap::Square,
                 },
             };
             let is_radial = matches!(
-                value.gradient.gradient_type.as_ref().unwrap_or(&GradientType::Linear),
+                value
+                    .gradient
+                    .gradient_type
+                    .as_ref()
+                    .unwrap_or(&GradientType::Linear),
                 GradientType::Radial
             );
             let start_point = conv_multi_point(&value.gradient.start_point);
@@ -524,7 +559,8 @@ fn conv_geometry(value: &schema::shapes::AnyShape) -> Option<crate::runtime::mod
             let ellipse = animated::Ellipse {
                 is_ccw: false,
                 /* todo: lottie schema does not have a field
-                 * for this (anymore?) */ position: conv_pos_point(&value.position),
+                 * for this (anymore?) */
+                position: conv_pos_point(&value.position),
                 size: conv_size(&value.size),
             };
             Some(crate::runtime::model::Geometry::Ellipse(ellipse))
@@ -533,9 +569,10 @@ fn conv_geometry(value: &schema::shapes::AnyShape) -> Option<crate::runtime::mod
             let rect = animated::Rect {
                 is_ccw: false,
                 /* todo: lottie schema does not have a field
-                 * for this (anymore?) */ position: conv_pos_point(&value.position),
+                 * for this (anymore?) */
+                position: conv_pos_point(&value.position),
                 size: conv_size(&value.size),
-                corner_radius: conv_scalar(&value.rounded_corner_radius),
+                corner_radius: conv_scalar(&value.rounded_corner_radius, |x| x),
             };
             Some(crate::runtime::model::Geometry::Rect(rect))
         }
@@ -546,7 +583,7 @@ fn conv_geometry(value: &schema::shapes::AnyShape) -> Option<crate::runtime::mod
 }
 
 pub fn conv_shape_geometry(
-    value: &schema::animated_properties::shape_property::ShapeProperty
+    value: &schema::animated_properties::shape_property::ShapeProperty,
 ) -> Option<runtime::model::Geometry> {
     use schema::animated_properties::shape_property::ShapePropertyK::*;
     let mut is_closed = false;
@@ -561,7 +598,9 @@ pub fn conv_shape_geometry(
             let mut frames = vec![];
             let mut values = vec![];
             for value in animated {
-                let hold = value.base.hold
+                let hold = value
+                    .base
+                    .hold
                     .as_ref()
                     .map(|b| b.eq(&BoolInt::True))
                     .unwrap_or(false);
@@ -575,13 +614,11 @@ pub fn conv_shape_geometry(
                 values.push(points);
                 is_closed |= is_frame_closed;
             }
-            Some(
-                runtime::model::Geometry::Spline(animated::Spline {
-                    is_closed,
-                    times: frames,
-                    values,
-                })
-            )
+            Some(runtime::model::Geometry::Spline(animated::Spline {
+                is_closed,
+                times: frames,
+                values,
+            }))
         }
     }
 }
@@ -591,10 +628,12 @@ pub fn conv_spline(value: &schema::helpers::bezier::Bezier) -> (Vec<Point>, bool
     let mut points = Vec::with_capacity(value.vertices.len() * 3);
     let is_closed = value.closed.unwrap_or(false);
 
-    for ((v, i), o) in value.vertices
+    for ((v, i), o) in value
+        .vertices
         .iter()
         .zip(value.in_tangents.iter().chain(repeat(&[0.0, 0.0])))
-        .zip(value.out_tangents.iter().chain(repeat(&[0.0, 0.0]))) {
+        .zip(value.out_tangents.iter().chain(repeat(&[0.0, 0.0])))
+    {
         points.push((v[0], v[1]).into());
         points.push((i[0], i[1]).into());
         points.push((o[0], o[1]).into());
@@ -603,7 +642,7 @@ pub fn conv_spline(value: &schema::helpers::bezier::Bezier) -> (Vec<Point>, bool
 }
 
 pub fn conv_blend_mode(
-    value: &crate::schema::constants::blend_mode::BlendMode
+    value: &crate::schema::constants::blend_mode::BlendMode,
 ) -> Option<BlendMode> {
     use crate::schema::constants::blend_mode::BlendMode::*;
 
@@ -631,17 +670,26 @@ pub fn conv_blend_mode(
     })
 }
 
-pub fn conv_scalar(float_value: &schema::animated_properties::value::FloatValue) -> Value<f64> {
+pub fn conv_scalar<T, F>(
+    float_value: &schema::animated_properties::value::FloatValue,
+    converter: F,
+) -> Value<T>
+where
+    T: Tween,
+    F: Fn(f64) -> T,
+{
     use crate::schema::animated_properties::animated_property::AnimatedPropertyK::*;
     match &float_value.animated_property.value {
-        Static(number) => Value::Fixed(*number),
+        Static(number) => Value::Fixed(converter(*number)),
         AnimatedValue(keyframes) => {
             let mut frames = vec![];
             let mut values = vec![];
             for keyframe in keyframes {
                 let start_time = keyframe.base.time;
                 let data = keyframe.value[0];
-                let hold = keyframe.base.hold
+                let hold = keyframe
+                    .base
+                    .hold
                     .as_ref()
                     .map(|b| b.eq(&BoolInt::True))
                     .unwrap_or(false);
@@ -651,7 +699,7 @@ pub fn conv_scalar(float_value: &schema::animated_properties::value::FloatValue)
                     out_tangent: keyframe.base.out_tangent.as_ref().map(conv_keyframe_handle),
                     hold,
                 });
-                values.push(data);
+                values.push(converter(data));
                 // todo: end_value deprecated but should we still push it if it
                 // exists?
             }
@@ -665,7 +713,7 @@ pub fn conv_scalar(float_value: &schema::animated_properties::value::FloatValue)
 
 pub fn conv_multi<T: Tween>(
     multidimensional: &schema::animated_properties::multi_dimensional::MultiDimensional,
-    f: impl Fn(&Vec<f64>) -> T
+    f: impl Fn(&Vec<f64>) -> T,
 ) -> Value<T> {
     use crate::schema::animated_properties::animated_property::AnimatedPropertyK::*;
 
@@ -677,7 +725,7 @@ pub fn conv_multi<T: Tween>(
 
 pub fn conv_multi_color<T: Tween>(
     color: &schema::animated_properties::color_value::ColorValue,
-    f: impl Fn(&Vec<f64>) -> T
+    f: impl Fn(&Vec<f64>) -> T,
 ) -> Value<T> {
     use crate::schema::animated_properties::animated_property::AnimatedPropertyK::*;
 
@@ -689,7 +737,7 @@ pub fn conv_multi_color<T: Tween>(
 
 pub fn conv_pos<T: Tween>(
     position: &schema::animated_properties::position::Position,
-    f: impl Fn(&Vec<f64>) -> T
+    f: impl Fn(&Vec<f64>) -> T,
 ) -> Value<T> {
     use crate::schema::animated_properties::position::PositionValueK::*;
 
@@ -698,10 +746,7 @@ pub fn conv_pos<T: Tween>(
         Animated(pos_keyframes) => {
             // TODO: Are we using PositionKeyframes here how we're supposed to?
             // there are in_tangents and out_tangents in addition to the keyframes.
-            conv_keyframes(
-                pos_keyframes.iter().map(|pk| &pk.keyframe),
-                |k| f(&k.value)
-            )
+            conv_keyframes(pos_keyframes.iter().map(|pk| &pk.keyframe), |k| f(&k.value))
         }
     }
 }
@@ -709,16 +754,22 @@ pub fn conv_pos<T: Tween>(
 #[allow(clippy::get_first)]
 pub fn conv_pos_point(value: &schema::animated_properties::position::Position) -> Value<Point> {
     conv_pos(value, |x| {
-        Point::new(x.get(0).copied().unwrap_or(0.0), x.get(1).copied().unwrap_or(0.0))
+        Point::new(
+            x.get(0).copied().unwrap_or(0.0),
+            x.get(1).copied().unwrap_or(0.0),
+        )
     })
 }
 
 #[allow(clippy::get_first)]
 pub fn conv_multi_point(
-    value: &schema::animated_properties::multi_dimensional::MultiDimensional
+    value: &schema::animated_properties::multi_dimensional::MultiDimensional,
 ) -> Value<Point> {
     conv_multi(value, |x| {
-        Point::new(x.get(0).copied().unwrap_or(0.0), x.get(1).copied().unwrap_or(0.0))
+        Point::new(
+            x.get(0).copied().unwrap_or(0.0),
+            x.get(1).copied().unwrap_or(0.0),
+        )
     })
 }
 
@@ -728,7 +779,7 @@ pub fn conv_color(value: &schema::animated_properties::color_value::ColorValue) 
         Color::rgb(
             x.get(0).copied().unwrap_or(0.0),
             x.get(1).copied().unwrap_or(0.0),
-            x.get(2).copied().unwrap_or(0.0)
+            x.get(2).copied().unwrap_or(0.0),
         )
     })
 }
@@ -736,14 +787,20 @@ pub fn conv_color(value: &schema::animated_properties::color_value::ColorValue) 
 #[allow(clippy::get_first)]
 pub fn conv_vec2(value: &MultiDimensional) -> Value<Vec2> {
     conv_multi(value, |x| {
-        Vec2::new(x.get(0).copied().unwrap_or(0.0), x.get(1).copied().unwrap_or(0.0))
+        Vec2::new(
+            x.get(0).copied().unwrap_or(0.0),
+            x.get(1).copied().unwrap_or(0.0),
+        )
     })
 }
 
 #[allow(clippy::get_first)]
 pub fn conv_size(value: &MultiDimensional) -> Value<Size> {
     conv_multi(value, |x| {
-        Size::new(x.get(0).copied().unwrap_or(0.0), x.get(1).copied().unwrap_or(0.0))
+        Size::new(
+            x.get(0).copied().unwrap_or(0.0),
+            x.get(1).copied().unwrap_or(0.0),
+        )
     })
 }
 
@@ -774,14 +831,14 @@ pub fn conv_stops(value: &[f64], count: usize) -> Vec<[f64; 5]> {
                         } else {
                             alpha_interp
                         }; // todo: this is a hack to get alpha rendering with a
-                        // falloff similar to lottiefiles'
+                           // falloff similar to lottiefiles'
 
                         let alpha_interp = if x >= a && x <= b && t >= 0.75 && x >= 0.9 {
                             alpha_b
                         } else {
                             alpha_interp
                         }; // todo: this is a hack to get alpha rendering with a
-                        // falloff similar to lottiefiles'
+                           // falloff similar to lottiefiles'
 
                         stop[4] = stop[4].min(alpha_interp);
                     }
