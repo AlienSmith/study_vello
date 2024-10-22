@@ -17,10 +17,10 @@
 use std::sync::Arc;
 
 use vello::{
-    skrifa::{ raw::FontRef, MetadataProvider },
-    glyph::{ Glyph, GlyphContext },
+    glyph::{Glyph, GlyphContext},
     kurbo::Affine,
-    peniko::{ Blob, Brush, BrushRef, Font, StyleRef },
+    peniko::{Blob, Brush, BrushRef, Font, StyleRef},
+    skrifa::{raw::FontRef, MetadataProvider},
     Scene,
 };
 
@@ -55,9 +55,19 @@ impl SimpleText {
         transform: Affine,
         glyph_transform: Option<Affine>,
         style: impl Into<StyleRef<'a>>,
-        text: &str
+        text: &str,
     ) {
-        self.add_var_run(builder, font, size, &[], brush, transform, glyph_transform, style, text);
+        self.add_var_run(
+            builder,
+            font,
+            size,
+            &[],
+            brush,
+            transform,
+            glyph_transform,
+            style,
+            text,
+        );
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -71,9 +81,13 @@ impl SimpleText {
         transform: Affine,
         glyph_transform: Option<Affine>,
         style: impl Into<StyleRef<'a>>,
-        text: &str
+        text: &str,
     ) {
-        let default_font = if variations.is_empty() { &self.roboto } else { &self.inconsolata };
+        let default_font = if variations.is_empty() {
+            &self.roboto
+        } else {
+            &self.inconsolata
+        };
         let font = font.unwrap_or(default_font);
         let font_ref = to_font_ref(font).unwrap();
         let brush = brush.into();
@@ -111,7 +125,7 @@ impl SimpleText {
                         x,
                         y: pen_y,
                     })
-                })
+                }),
             );
     }
 
@@ -122,11 +136,20 @@ impl SimpleText {
         size: f32,
         brush: Option<&Brush>,
         transform: Affine,
-        text: &str
+        text: &str,
     ) {
-        use vello::peniko::{ Color, Fill };
+        use vello::peniko::{Color, Fill};
         let brush = brush.unwrap_or(&Brush::Solid(Color::WHITE));
-        self.add_run(scene, font, size, brush, transform, None, Fill::NonZero, text);
+        self.add_run(
+            scene,
+            font,
+            size,
+            brush,
+            transform,
+            None,
+            Fill::NonZero,
+            text,
+        );
     }
 }
 

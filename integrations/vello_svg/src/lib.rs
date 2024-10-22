@@ -86,7 +86,7 @@ fn render_tree_impl<F: FnMut(&mut Scene, &usvg::Node) -> Result<(), E>, E>(
     let ts = &ts.pre_concat(view_box.to_transform(tree.size()));
     let transform = util::to_affine(ts);
     scene.push_layer(
-        (1.0,1.0,1.0,1.0),
+        (1.0, 1.0, 1.0, 1.0),
         transform,
         &vello::kurbo::Rect::new(
             view_box.rect.left().into(),
@@ -121,11 +121,7 @@ fn render_group<F: FnMut(&mut Scene, &usvg::Node) -> Result<(), E>, E>(
                     if let Some(usvg::Node::Path(clip_path)) = clip_path.root().children().first() {
                         // support clip-path with a single path
                         let local_path = util::to_bez_path(clip_path);
-                        scene.push_layer(
-                            (1.0,1.0,1.0,1.0),
-                            transform,
-                            &local_path,
-                        );
+                        scene.push_layer((1.0, 1.0, 1.0, 1.0), transform, &local_path);
                         pushed_clip = true;
                     }
                 }
@@ -228,7 +224,7 @@ fn render_group<F: FnMut(&mut Scene, &usvg::Node) -> Result<(), E>, E>(
                         let view_box_transform =
                             usvg::Transform::from_row(sx, 0.0, 0.0, sy, tx, ty);
                         scene.push_layer(
-                            (1.0,1.0,1.0,1.0),
+                            (1.0, 1.0, 1.0, 1.0),
                             transform,
                             &vello::kurbo::Rect::new(
                                 view_box.rect.left().into(),

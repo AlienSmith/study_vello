@@ -34,7 +34,8 @@ pub struct Composition {
 #[derive(Error, Debug)]
 #[non_exhaustive]
 pub enum VelatoError {
-    #[error("Error parsing lottie: {0}")] Json(#[from] serde_json::Error),
+    #[error("Error parsing lottie: {0}")]
+    Json(#[from] serde_json::Error),
 }
 
 impl Composition {

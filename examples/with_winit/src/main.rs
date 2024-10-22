@@ -12,8 +12,6 @@ fn print() {
     let clip_index = value & 0xfff;
     println!(
         "tile_index:{}, begin_clip_count:{}, clip_index:{}",
-        tile_index,
-        begin_clip_count,
-        clip_index
+        tile_index, begin_clip_count, clip_index
     );
 }

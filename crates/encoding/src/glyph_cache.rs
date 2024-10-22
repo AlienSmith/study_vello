@@ -3,11 +3,11 @@
 
 use std::collections::HashMap;
 
-use super::{ Encoding, StreamOffsets };
+use super::{Encoding, StreamOffsets};
 
-use skrifa::{ instance::NormalizedCoord, outline::OutlinePen, GlyphId, OutlineGlyphCollection };
+use skrifa::{instance::NormalizedCoord, outline::OutlinePen, GlyphId, OutlineGlyphCollection};
 
-use peniko::{ kurbo::BezPath, Fill, Style };
+use peniko::{kurbo::BezPath, Fill, Style};
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Default, Debug)]
 pub struct GlyphKey {
@@ -36,7 +36,7 @@ impl GlyphCache {
         key: GlyphKey,
         style: &Style,
         font_size: f32,
-        coords: &[NormalizedCoord]
+        coords: &[NormalizedCoord],
     ) -> Option<CachedRange> {
         let size = skrifa::instance::Size::new(font_size);
         let is_fill = matches!(style, Style::Fill(_));
@@ -109,11 +109,16 @@ impl OutlinePen for BezPathPen {
     }
 
     fn quad_to(&mut self, cx0: f32, cy0: f32, x: f32, y: f32) {
-        self.0.quad_to((cx0 as f64, cy0 as f64), (x as f64, y as f64));
+        self.0
+            .quad_to((cx0 as f64, cy0 as f64), (x as f64, y as f64));
     }
 
     fn curve_to(&mut self, cx0: f32, cy0: f32, cx1: f32, cy1: f32, x: f32, y: f32) {
-        self.0.curve_to((cx0 as f64, cy0 as f64), (cx1 as f64, cy1 as f64), (x as f64, y as f64));
+        self.0.curve_to(
+            (cx0 as f64, cy0 as f64),
+            (cx1 as f64, cy1 as f64),
+            (x as f64, y as f64),
+        );
     }
 
     fn close(&mut self) {

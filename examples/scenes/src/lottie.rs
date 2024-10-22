@@ -3,15 +3,18 @@
 
 use crate::SceneParams;
 #[cfg(not(target_arch = "wasm32"))]
-use crate::{ ExampleScene, SceneSet };
+use crate::{ExampleScene, SceneSet};
 #[cfg(not(target_arch = "wasm32"))]
-use anyhow::{ Ok, Result };
+use anyhow::{Ok, Result};
 use instant::Instant;
 use std::sync::Arc;
 #[cfg(not(target_arch = "wasm32"))]
-use std::{ fs::read_dir, path::{ Path, PathBuf } };
+use std::{
+    fs::read_dir,
+    path::{Path, PathBuf},
+};
 use velato::Composition;
-use vello::kurbo::{ Affine, Vec2 };
+use vello::kurbo::{Affine, Vec2};
 use vello::Scene;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -21,7 +24,9 @@ pub fn scene_from_lottie_files(files: &[PathBuf]) -> Result<SceneSet> {
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn default_lottie_scene(command: impl FnOnce() -> clap::Command) -> Result<SceneSet> {
-    let assets_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../assets/").canonicalize()?;
+    let assets_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../assets/")
+        .canonicalize()?;
     let mut has_empty_directory = false;
     let result = scene_from_files_inner(&[assets_dir.join("google_fonts/Tiger.json")], || {
         has_empty_directory = true;
@@ -37,7 +42,7 @@ pub fn default_lottie_scene(command: impl FnOnce() -> clap::Command) -> Result<S
 #[cfg(not(target_arch = "wasm32"))]
 fn scene_from_files_inner(
     files: &[PathBuf],
-    mut empty_dir: impl FnMut()
+    mut empty_dir: impl FnMut(),
 ) -> std::result::Result<SceneSet, anyhow::Error> {
     let mut scenes = Vec::new();
     for path in files {
@@ -72,13 +77,10 @@ fn example_scene_of(file: PathBuf) -> ExampleScene {
         .map(|it| it.to_string_lossy().to_string())
         .unwrap_or_else(|| "unknown".to_string());
     ExampleScene {
-        function: Box::new(
-            lottie_function_of(name.clone(), move || {
-                std::fs
-                    ::read_to_string(&file)
-                    .unwrap_or_else(|e| panic!("failed to read lottie file {file:?}: {e}"))
-            })
-        ),
+        function: Box::new(lottie_function_of(name.clone(), move || {
+            std::fs::read_to_string(&file)
+                .unwrap_or_else(|e| panic!("failed to read lottie file {file:?}: {e}"))
+        })),
         config: crate::SceneConfig {
             animated: true,
             name,
@@ -88,21 +90,19 @@ fn example_scene_of(file: PathBuf) -> ExampleScene {
 
 pub fn lottie_function_of<R: AsRef<str>>(
     name: String,
-    contents: impl (FnOnce() -> R) + Send + 'static
+    contents: impl (FnOnce() -> R) + Send + 'static,
 ) -> impl FnMut(&mut Scene, &mut SceneParams) {
     let start = Instant::now();
     let lottie = Arc::new(
-        velato::Composition
-            ::from_slice(contents().as_ref())
-            .unwrap_or_else(|e| panic!("failed to parse lottie file {name}: {e}"))
+        velato::Composition::from_slice(contents().as_ref())
+            .unwrap_or_else(|e| panic!("failed to parse lottie file {name}: {e}")),
     );
     eprintln!("Parsed lottie {name} in {:?}", start.elapsed());
     fn render_lottie_contents(lottie: &Composition, start: &Instant) -> (Scene, Vec2) {
         let mut new_scene = Scene::new();
-        let frame =
-            ((start.elapsed().as_secs_f64() * lottie.frame_rate) %
-                (lottie.frames.end - lottie.frames.start)) +
-            lottie.frames.start;
+        let frame = ((start.elapsed().as_secs_f64() * lottie.frame_rate)
+            % (lottie.frames.end - lottie.frames.start))
+            + lottie.frames.start;
         velato::Renderer::new().render(lottie, frame, Affine::IDENTITY, 1.0, &mut new_scene);
         let resolution = Vec2::new(lottie.width as f64, lottie.height as f64);
         (new_scene, resolution)

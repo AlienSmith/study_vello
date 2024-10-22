@@ -1,25 +1,13 @@
 // Copyright 2023 The Vello authors
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use crate::{ clip::PatternInp, math, path::PathInfo };
+use crate::{clip::PatternInp, math, path::PathInfo};
 
 use super::{
-    BinHeader,
-    Clip,
-    ClipBbox,
-    ClipBic,
-    ClipElement,
-    Cubic,
-    DrawBbox,
-    DrawMonoid,
-    Layout,
-    Path,
-    PathBbox,
-    PathMonoid,
-    PathSegment,
-    Tile,
+    BinHeader, Clip, ClipBbox, ClipBic, ClipElement, Cubic, DrawBbox, DrawMonoid, Layout, Path,
+    PathBbox, PathMonoid, PathSegment, Tile,
 };
-use bytemuck::{ Pod, Zeroable };
+use bytemuck::{Pod, Zeroable};
 use std::mem;
 
 const TILE_WIDTH: u32 = 16;
@@ -123,7 +111,11 @@ pub struct TransformUniform {
 
 impl Default for TransformUniform {
     fn default() -> Self {
-        Self { matrix: [1.0, 0.0, 0.0, 1.0], translation: [0.0, 0.0], padding: Default::default() }
+        Self {
+            matrix: [1.0, 0.0, 0.0, 1.0],
+            translation: [0.0, 0.0],
+            padding: Default::default(),
+        }
     }
 }
 
@@ -146,19 +138,15 @@ impl RenderConfig {
         width: u32,
         height: u32,
         base_color: &peniko::Color,
-        camera_transform: math::Transform
+        camera_transform: math::Transform,
     ) -> Self {
         let new_width = next_multiple_of(width, TILE_WIDTH);
         let new_height = next_multiple_of(height, TILE_HEIGHT);
         let width_in_tiles = new_width / TILE_WIDTH;
         let height_in_tiles = new_height / TILE_HEIGHT;
         let n_path_tags = layout.path_tags_size();
-        let workgroup_counts = WorkgroupCounts::new(
-            layout,
-            width_in_tiles,
-            height_in_tiles,
-            n_path_tags
-        );
+        let workgroup_counts =
+            WorkgroupCounts::new(layout, width_in_tiles, height_in_tiles, n_path_tags);
         let tile_counts = width_in_tiles * height_in_tiles;
         let buffer_sizes = BufferSizes::new(
             tile_counts,
@@ -166,7 +154,7 @@ impl RenderConfig {
             &workgroup_counts,
             n_path_tags,
             width_in_tiles,
-            height_in_tiles
+            height_in_tiles,
         );
         let transform = TransformUniform {
             matrix: camera_transform.matrix,
@@ -236,7 +224,7 @@ impl WorkgroupCounts {
         layout: &Layout,
         width_in_tiles: u32,
         height_in_tiles: u32,
-        n_path_tags: u32
+        n_path_tags: u32,
     ) -> Self {
         let n_paths = layout.n_paths;
         let n_draw_objects = layout.n_draw_objects;
@@ -299,11 +287,7 @@ impl<T: Sized> BufferSize<T> {
             //
             // Note: not using `Ord::max` here because it doesn't support const eval yet (except
             // in nightly)
-            len: if len > 0 {
-                len
-            } else {
-                1
-            },
+            len: if len > 0 { len } else { 1 },
             _phantom: std::marker::PhantomData,
         }
     }
@@ -393,7 +377,7 @@ impl BufferSizes {
         workgroups: &WorkgroupCounts,
         n_path_tags: u32,
         _width_in_tiles: u32,
-        _height_in_tiles: u32
+        _height_in_tiles: u32,
     ) -> Self {
         let n_paths = layout.n_paths;
         let n_draw_objects = layout.n_draw_objects;
@@ -438,16 +422,14 @@ impl BufferSizes {
         let partition_count = (n_draw_objects + 255) / 256;
         //one for ptcl segments one for clips
         #[cfg(feature = "coarse_segmentation")]
-        let coarse_counter = BufferSize::new(
-            partition_count * _width_in_tiles * _height_in_tiles * 3
-        );
+        let coarse_counter =
+            BufferSize::new(partition_count * _width_in_tiles * _height_in_tiles * 3);
 
         //one for relative ptcl segments offset one for absolute ptcl segments offset consider combine them
         //two for 4 potentially unclosed clip_ix
         #[cfg(feature = "coarse_segmentation")]
-        let coarse_index = BufferSize::new(
-            partition_count * _width_in_tiles * _height_in_tiles * 3
-        );
+        let coarse_index =
+            BufferSize::new(partition_count * _width_in_tiles * _height_in_tiles * 3);
 
         //path index of unclosed clips this could be dynamic sized use the max number valid
         //TODO use dynamic size
@@ -482,18 +464,24 @@ impl BufferSizes {
             draw_bboxes,
             bump_alloc,
             indirect_count,
-            #[cfg(feature = "ptcl_segmentation")] fine_slice,
+            #[cfg(feature = "ptcl_segmentation")]
+            fine_slice,
             bin_headers,
             paths,
             bin_data,
             tiles,
             segments,
             ptcl,
-            #[cfg(feature = "coarse_segmentation")] coarse_counter,
-            #[cfg(feature = "coarse_segmentation")] coarse_index,
-            #[cfg(feature = "coarse_segmentation")] indirect_clip_index,
-            #[cfg(feature = "ptcl_segmentation")] fine_index,
-            #[cfg(feature = "ptcl_segmentation")] layer_info,
+            #[cfg(feature = "coarse_segmentation")]
+            coarse_counter,
+            #[cfg(feature = "coarse_segmentation")]
+            coarse_index,
+            #[cfg(feature = "coarse_segmentation")]
+            indirect_clip_index,
+            #[cfg(feature = "ptcl_segmentation")]
+            fine_index,
+            #[cfg(feature = "ptcl_segmentation")]
+            layer_info,
         }
     }
 }

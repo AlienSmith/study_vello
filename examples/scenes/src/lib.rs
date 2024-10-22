@@ -1,25 +1,25 @@
 #[cfg(not(target_arch = "wasm32"))]
 pub mod download;
 mod images;
+mod lottie;
 mod mmark;
 mod simple_text;
 mod svg;
-mod lottie;
 mod test_scenes;
 use std::path::PathBuf;
 
-use anyhow::{ anyhow, Result };
-use clap::{ Args, Subcommand };
+use anyhow::{anyhow, Result};
+use clap::{Args, Subcommand};
 #[cfg(not(target_arch = "wasm32"))]
 use download::Download;
 pub use images::ImageCache;
-pub use simple_text::SimpleText;
-pub use svg::{ default_scene, scene_from_files };
 #[cfg(not(target_arch = "wasm32"))]
-pub use lottie::{ default_lottie_scene, scene_from_lottie_files };
+pub use lottie::{default_lottie_scene, scene_from_lottie_files};
+pub use simple_text::SimpleText;
+pub use svg::{default_scene, scene_from_files};
 pub use test_scenes::test_scenes;
 
-use vello::{ kurbo::Vec2, peniko::Color, Scene };
+use vello::{kurbo::Vec2, peniko::Color, Scene};
 
 pub struct SceneParams<'a> {
     pub time: f64,
@@ -90,7 +90,7 @@ enum Command {
 impl Arguments {
     pub fn select_scene_set(
         &self,
-        #[allow(unused)] command: impl FnOnce() -> clap::Command
+        #[allow(unused)] command: impl FnOnce() -> clap::Command,
     ) -> Result<Option<SceneSet>> {
         if let Some(command) = &self.command {
             #[cfg(not(target_arch = "wasm32"))]

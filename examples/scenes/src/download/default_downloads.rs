@@ -1,7 +1,7 @@
 // This content cannot be formatted by rustfmt because of the long strings, so it's in its own file
-use super::{BuiltinAssetsProps, AssetsDownload};
+use super::{AssetsDownload, BuiltinAssetsProps};
 
-pub(super) fn default_downloads() -> Vec<AssetsDownload>{
+pub(super) fn default_downloads() -> Vec<AssetsDownload> {
     let mut svgs = default_downloads_svg();
     let mut lottie = default_downloads_lottie();
     svgs.append(&mut lottie);
@@ -66,7 +66,7 @@ macro_rules! google_noto_asset {
                 info: "https://googlefonts.github.io/noto-emoji-animation/",
                 license: "CC BY 4.0",
             }),
-            extension: "json".to_string()
+            extension: "json".to_string(),
         }
     };
 }

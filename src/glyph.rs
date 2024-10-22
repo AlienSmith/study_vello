@@ -17,18 +17,17 @@
 //! Support for glyph rendering.
 
 use crate::Scene;
+use ::peniko::{kurbo::Affine, Brush, Color, Fill, Style};
+use ::vello_encoding::Encoding;
+pub use skrifa;
 use skrifa::{
-    instance::{ NormalizedCoord, Size },
+    instance::{NormalizedCoord, Size},
     outline::OutlinePen,
     raw::FontRef,
     setting::Setting,
-    GlyphId,
-    OutlineGlyphCollection,
+    GlyphId, OutlineGlyphCollection,
 };
-use ::peniko::{ kurbo::Affine, Brush, Color, Fill, Style };
-use ::vello_encoding::Encoding;
-pub use skrifa;
-use skrifa::{ outline::DrawSettings, MetadataProvider };
+use skrifa::{outline::DrawSettings, MetadataProvider};
 
 pub use vello_encoding::Glyph;
 
@@ -51,10 +50,11 @@ impl GlyphContext {
         font: &FontRef<'a>,
         ppem: f32,
         _hint: bool,
-        variations: V
-    )
-        -> GlyphProvider<'a>
-        where V: IntoIterator, V::Item: Into<Setting<f32>>
+        variations: V,
+    ) -> GlyphProvider<'a>
+    where
+        V: IntoIterator,
+        V::Item: Into<Setting<f32>>,
     {
         let outlines = font.outline_glyphs();
         let size = Size::new(ppem);
@@ -96,7 +96,7 @@ impl<'a> GlyphProvider<'a> {
             Affine::IDENTITY,
             brush.unwrap_or(&Brush::Solid(Color::rgb8(255, 255, 255))),
             None,
-            &path.0
+            &path.0,
         );
         Some(scene)
     }
@@ -132,11 +132,16 @@ impl OutlinePen for BezPathPen {
     }
 
     fn quad_to(&mut self, cx0: f32, cy0: f32, x: f32, y: f32) {
-        self.0.quad_to((cx0 as f64, cy0 as f64), (x as f64, y as f64));
+        self.0
+            .quad_to((cx0 as f64, cy0 as f64), (x as f64, y as f64));
     }
 
     fn curve_to(&mut self, cx0: f32, cy0: f32, cx1: f32, cy1: f32, x: f32, y: f32) {
-        self.0.curve_to((cx0 as f64, cy0 as f64), (cx1 as f64, cy1 as f64), (x as f64, y as f64));
+        self.0.curve_to(
+            (cx0 as f64, cy0 as f64),
+            (cx1 as f64, cy1 as f64),
+            (x as f64, y as f64),
+        );
     }
 
     fn close(&mut self) {

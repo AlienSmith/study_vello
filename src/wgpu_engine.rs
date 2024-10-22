@@ -215,7 +215,7 @@ impl WgpuEngine {
             device.create_command_encoder(&CommandEncoderDescriptor { label: Some(label) });
         #[cfg(feature = "wgpu-profiler")]
         let query = profiler.begin_query(label, &mut encoder, device);
-    
+
         for command in &recording.commands {
             match command {
                 Command::Upload(buf_proxy, bytes) => {
@@ -351,12 +351,12 @@ impl WgpuEngine {
                         #[cfg(feature = "wgpu-profiler")]
                         let query = profiler
                             .begin_query(shader.label, &mut cpass, device)
-                            .with_parent(Some(&query)); cpass.set_pipeline(&shader.pipeline);
+                            .with_parent(Some(&query));
+                        cpass.set_pipeline(&shader.pipeline);
                         cpass.set_bind_group(0, &bind_group, &[]);
                         cpass.dispatch_workgroups(wg_size.0, wg_size.1, wg_size.2);
                         #[cfg(feature = "wgpu-profiler")]
                         profiler.end_query(&mut cpass, query);
-                    
                     }
                 }
                 Command::DispatchIndirect(shader_id, proxy, offset, bindings) => {
@@ -406,7 +406,6 @@ impl WgpuEngine {
                         #[cfg(feature = "wgpu-profiler")]
                         #[cfg(feature = "wgpu-profiler")]
                         profiler.end_query(&mut cpass, query);
-                  
                     }
                 }
                 Command::Download(proxy) => {

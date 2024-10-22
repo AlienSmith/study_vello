@@ -4,8 +4,8 @@
 use super::model::*;
 use super::Composition;
 use std::ops::Range;
-use vello::kurbo::{ self, Affine, PathEl, Rect };
-use vello::peniko::{ self, Fill, Mix };
+use vello::kurbo::{self, Affine, PathEl, Rect};
+use vello::peniko::{self, Fill, Mix};
 
 pub trait RenderSink {
     fn push_layer(
@@ -13,7 +13,7 @@ pub trait RenderSink {
         blend: impl Into<peniko::BlendMode>,
         alpha: f64,
         transform: Affine,
-        shape: &impl kurbo::Shape
+        shape: &impl kurbo::Shape,
     );
 
     fn push_layer_with_supplement(
@@ -21,7 +21,7 @@ pub trait RenderSink {
         blend: impl Into<peniko::BlendMode>,
         alpha: f64,
         transform: Affine,
-        shape: &impl kurbo::Shape
+        shape: &impl kurbo::Shape,
     );
 
     fn push_supplementary_path(&mut self, transform: Affine, shape: &impl kurbo::Shape);
@@ -33,7 +33,7 @@ pub trait RenderSink {
         stroke: Option<&fixed::Stroke>,
         transform: Affine,
         brush: &fixed::Brush,
-        shape: &impl kurbo::Shape
+        shape: &impl kurbo::Shape,
     );
 }
 
@@ -43,7 +43,7 @@ impl RenderSink for vello::Scene {
         _blend: impl Into<peniko::BlendMode>,
         alpha: f64,
         transform: Affine,
-        shape: &impl kurbo::Shape
+        shape: &impl kurbo::Shape,
     ) {
         self.push_layer((1.0, 1.0, 1.0, alpha as f32), transform, shape);
     }
@@ -57,7 +57,7 @@ impl RenderSink for vello::Scene {
         stroke: Option<&fixed::Stroke>,
         transform: Affine,
         brush: &fixed::Brush,
-        shape: &impl kurbo::Shape
+        shape: &impl kurbo::Shape,
     ) {
         if let Some(stroke) = stroke {
             self.stroke(stroke, transform, brush, None, shape);
@@ -71,7 +71,7 @@ impl RenderSink for vello::Scene {
         _blend: impl Into<peniko::BlendMode>,
         alpha: f64,
         transform: Affine,
-        shape: &impl kurbo::Shape
+        shape: &impl kurbo::Shape,
     ) {
         self.push_layer_with_supplementary_path((1.0, 1.0, 1.0, alpha as f32), transform, shape);
     }
@@ -101,14 +101,22 @@ impl Renderer {
         frame: f64,
         transform: Affine,
         alpha: f64,
-        sink: &mut impl RenderSink
+        sink: &mut impl RenderSink,
     ) {
         self.batch.clear();
         for layer in animation.layers.iter().rev() {
             if layer.is_mask {
                 continue;
             }
-            self.render_layer(animation, &animation.layers, layer, transform, alpha, frame, sink);
+            self.render_layer(
+                animation,
+                &animation.layers,
+                layer,
+                transform,
+                alpha,
+                frame,
+                sink,
+            );
         }
     }
 
@@ -121,7 +129,7 @@ impl Renderer {
         transform: Affine,
         alpha: f64,
         frame: f64,
-        sink: &mut impl RenderSink
+        sink: &mut impl RenderSink,
     ) {
         if !layer.frames.contains(&frame) {
             return;
@@ -132,12 +140,8 @@ impl Renderer {
         if let Some((_mode, mask_index)) = layer.mask_layer {
             if let Some(layer) = layer_set.get(mask_index) {
                 if let Content::Shape(shapes) = &layer.content {
-                    let transform = self.compute_transform(
-                        layer_set,
-                        layer,
-                        parent_transform,
-                        frame
-                    );
+                    let transform =
+                        self.compute_transform(layer_set, layer, parent_transform, frame);
                     self.render_shapes(shapes, transform, alpha, frame);
                     self.batch.push_layer(sink, Affine::IDENTITY, &full_rect);
                     self.batch.clear();
@@ -153,7 +157,10 @@ impl Renderer {
         }
         match &layer.content {
             Content::None | Content::Anchor => {}
-            Content::Instance { name, time_remap: _ } => {
+            Content::Instance {
+                name,
+                time_remap: _,
+            } => {
                 // TODO: Use time_remap
                 // let frame = time_remap
                 //     .as_ref()
@@ -173,7 +180,7 @@ impl Renderer {
                             transform,
                             alpha,
                             frame + frame_delta,
-                            sink
+                            sink,
                         );
                     }
                 }
@@ -199,18 +206,20 @@ impl Renderer {
         for shape in shapes {
             match shape {
                 Shape::Group(shapes, group_transform) => {
-                    let (group_transform, group_alpha) = if
-                        let Some(GroupTransform { transform, opacity }) = group_transform
-                    {
-                        (transform.evaluate(frame).into_owned(), opacity.evaluate(frame) / 100.0)
-                    } else {
-                        (Affine::IDENTITY, 1.0)
-                    };
+                    let (group_transform, group_alpha) =
+                        if let Some(GroupTransform { transform, opacity }) = group_transform {
+                            (
+                                transform.evaluate(frame).into_owned(),
+                                opacity.evaluate(frame) / 100.0,
+                            )
+                        } else {
+                            (Affine::IDENTITY, 1.0)
+                        };
                     self.render_shapes(
                         shapes,
                         transform * group_transform,
                         alpha * group_alpha,
-                        frame
+                        frame,
                     );
                 }
                 Shape::Geometry(geometry) => {
@@ -221,7 +230,8 @@ impl Renderer {
                 }
                 Shape::Repeater(repeater) => {
                     let repeater = repeater.evaluate(frame);
-                    self.batch.repeat(repeater.as_ref(), geometry_start, draw_start);
+                    self.batch
+                        .repeat(repeater.as_ref(), geometry_start, draw_start);
                 }
             }
         }
@@ -235,7 +245,7 @@ impl Renderer {
         layer_set: &[Layer],
         layer: &Layer,
         global_transform: Affine,
-        frame: f64
+        frame: f64,
     ) -> Affine {
         let mut transform = layer.transform.evaluate(frame).into_owned();
         let mut parent_index = layer.parent;
@@ -270,7 +280,10 @@ struct DrawData {
 impl DrawData {
     fn new(draw: &Draw, alpha: f64, geometry: Range<usize>, frame: f64) -> Self {
         Self {
-            stroke: draw.stroke.as_ref().map(|stroke| stroke.evaluate(frame).into_owned()),
+            stroke: draw
+                .stroke
+                .as_ref()
+                .map(|stroke| stroke.evaluate(frame).into_owned()),
             brush: draw.brush.evaluate(1.0, frame).into_owned(),
             alpha: (alpha * draw.opacity.evaluate(frame)) / 100.0,
             geometry,
@@ -303,9 +316,8 @@ impl Batch {
         // conditions:
         // 1. The previous geometry has not yet been referenced by a draw
         // 2. The geometries have the same transform
-        if
-            self.drawn_geometry < self.geometries.len() &&
-            self.geometries.last().map(|last| last.transform) == Some(transform)
+        if self.drawn_geometry < self.geometries.len()
+            && self.geometries.last().map(|last| last.transform) == Some(transform)
         {
             geometry.evaluate(frame, &mut self.elements);
             self.geometries.last_mut().unwrap().elements.end = self.elements.len();
@@ -321,14 +333,20 @@ impl Batch {
     }
 
     fn push_draw(&mut self, draw: &Draw, alpha: f64, geometry_start: usize, frame: f64) {
-        self.draws.push(DrawData::new(draw, alpha, geometry_start..self.geometries.len(), frame));
+        self.draws.push(DrawData::new(
+            draw,
+            alpha,
+            geometry_start..self.geometries.len(),
+            frame,
+        ));
         self.drawn_geometry = self.geometries.len();
     }
 
     fn repeat(&mut self, repeater: &fixed::Repeater, geometry_start: usize, draw_start: usize) {
         // First move the relevant ranges of geometries and draws into side
         // buffers
-        self.repeat_geometries.extend(self.geometries.drain(geometry_start..));
+        self.repeat_geometries
+            .extend(self.geometries.drain(geometry_start..));
         self.repeat_draws.extend(self.draws.drain(draw_start..));
         // Next, repeat the geometries and apply the offset transform
         for geometry in self.repeat_geometries.iter() {

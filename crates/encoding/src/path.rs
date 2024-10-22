@@ -1,7 +1,7 @@
 // Copyright 2022 The Vello authors
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use bytemuck::{ Pod, Zeroable };
+use bytemuck::{Pod, Zeroable};
 use peniko::kurbo::Shape;
 
 use super::Monoid;
@@ -176,7 +176,7 @@ pub struct Cubic {
 #[derive(Copy, Clone, Pod, Zeroable, Debug, Default)]
 #[repr(C)]
 pub struct PathInfo {
-    //TODO: Only use these in pattern and particles,Text Path has more than one transform in it. 
+    //TODO: Only use these in pattern and particles,Text Path has more than one transform in it.
     pub local_to_world_xy: [f32; 2],
     pub local_to_world_zw: [f32; 2],
     pub local_to_world_t: [f32; 2],
@@ -255,7 +255,7 @@ impl<'a> PathEncoder<'a> {
         data: &'a mut Vec<u8>,
         n_segments: &'a mut u32,
         n_paths: &'a mut u32,
-        is_fill: bool
+        is_fill: bool,
     ) -> Self {
         Self {
             tags,
@@ -384,15 +384,14 @@ impl<'a> PathEncoder<'a> {
                 PathEl::QuadTo(p0, p1) => {
                     self.quad_to(p0.x as f32, p0.y as f32, p1.x as f32, p1.y as f32);
                 }
-                PathEl::CurveTo(p0, p1, p2) =>
-                    self.cubic_to(
-                        p0.x as f32,
-                        p0.y as f32,
-                        p1.x as f32,
-                        p1.y as f32,
-                        p2.x as f32,
-                        p2.y as f32
-                    ),
+                PathEl::CurveTo(p0, p1, p2) => self.cubic_to(
+                    p0.x as f32,
+                    p0.y as f32,
+                    p1.x as f32,
+                    p1.y as f32,
+                    p2.x as f32,
+                    p2.y as f32,
+                ),
                 PathEl::ClosePath => self.close(),
             }
         }

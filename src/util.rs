@@ -21,7 +21,7 @@ use std::future::Future;
 use super::Result;
 
 use wgpu::{
-    Adapter, Device, Instance, Queue, Surface, SurfaceConfiguration, SurfaceTarget, TextureFormat
+    Adapter, Device, Instance, Queue, Surface, SurfaceConfiguration, SurfaceTarget, TextureFormat,
 };
 
 /// Simple render context that maintains wgpu state for rendering the pipeline.

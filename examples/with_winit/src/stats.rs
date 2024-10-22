@@ -16,10 +16,9 @@
 use scenes::SimpleText;
 use std::collections::VecDeque;
 use vello::{
-    kurbo::{ Affine, PathEl, Rect, Stroke },
-    peniko::{ Brush, Color, Fill },
-    BumpAllocators,
-    Scene,
+    kurbo::{Affine, PathEl, Rect, Stroke},
+    peniko::{Brush, Color, Fill},
+    BumpAllocators, Scene,
 };
 
 const SLIDING_WINDOW_SIZE: usize = 100;
@@ -42,9 +41,9 @@ impl Snapshot {
         viewport_height: f64,
         samples: T,
         bump: Option<BumpAllocators>,
-        vsync: bool
-    )
-        where T: Iterator<Item = &'a u64>
+        vsync: bool,
+    ) where
+        T: Iterator<Item = &'a u64>,
     {
         let width = (viewport_width * 0.4).clamp(200.0, 600.0);
         let height = width * 0.7;
@@ -58,7 +57,7 @@ impl Snapshot {
             offset,
             &Brush::Solid(Color::rgba8(0, 0, 0, 200)),
             None,
-            &Rect::new(0.0, 0.0, width, height)
+            &Rect::new(0.0, 0.0, width, height),
         );
 
         let mut labels = vec![
@@ -66,7 +65,7 @@ impl Snapshot {
             format!("Frame Time (min): {:.2} ms", self.frame_time_min_ms),
             format!("Frame Time (max): {:.2} ms", self.frame_time_max_ms),
             format!("VSync: {}", if vsync { "on" } else { "off" }),
-            format!("Resolution: {viewport_width}x{viewport_height}")
+            format!("Resolution: {viewport_width}x{viewport_height}"),
         ];
         if let Some(bump) = &bump {
             if bump.failed >= 1 {
@@ -92,7 +91,7 @@ impl Snapshot {
                 text_size,
                 Some(&Brush::Solid(Color::WHITE)),
                 offset * Affine::translate((left_margin, ((i + 1) as f64) * text_height)),
-                label
+                label,
             );
         }
         text.add(
@@ -101,7 +100,7 @@ impl Snapshot {
             text_size,
             Some(&Brush::Solid(Color::WHITE)),
             offset * Affine::translate((width * 0.67, text_height)),
-            &format!("FPS: {:.2}", self.fps)
+            &format!("FPS: {:.2}", self.fps),
         );
 
         // Plot the samples with a bar graph
@@ -143,15 +142,13 @@ impl Snapshot {
             };
             sb.fill(
                 Fill::NonZero,
-                t *
-                    Affine::translate((
-                        left_margin_padding,
-                        ((1 + labels.len()) as f64) * text_height,
-                    )) *
-                    s,
+                t * Affine::translate((
+                    left_margin_padding,
+                    ((1 + labels.len()) as f64) * text_height,
+                )) * s,
                 color,
                 None,
-                &bar
+                &bar,
             );
         }
         // Draw horizontal lines to mark 8.33ms, 16.33ms, and 33.33ms
@@ -169,19 +166,19 @@ impl Snapshot {
                 None,
                 thres_text_height as f32,
                 Some(&Brush::Solid(Color::WHITE)),
-                offset *
-                    Affine::translate((
+                offset
+                    * Affine::translate((
                         left_margin,
                         (2.0 - y) * graph_max_height + thres_text_height_2,
                     )),
-                &format!("{}", t)
+                &format!("{}", t),
             );
             sb.stroke(
                 &Stroke::new(graph_max_height * 0.01),
                 offset * Affine::translate((left_margin_padding, (1.0 - y) * graph_max_height)),
                 Color::WHITE,
                 None,
-                &marker
+                &marker,
             );
         }
     }
@@ -277,7 +274,7 @@ pub fn draw_gpu_profiling(
     text: &mut SimpleText,
     viewport_width: f64,
     viewport_height: f64,
-    profiles: &[GpuTimerQueryResult]
+    profiles: &[GpuTimerQueryResult],
 ) {
     const COLORS: &[Color] = &[
         Color::AQUA,
@@ -302,7 +299,7 @@ pub fn draw_gpu_profiling(
         offset,
         &Brush::Solid(Color::rgba8(0, 0, 0, 200)),
         None,
-        &Rect::new(0.0, 0.0, width, height)
+        &Rect::new(0.0, 0.0, width, height),
     );
     // Find the range of the samples, so we can normalise them
     let mut min = f64::MAX;
@@ -328,12 +325,15 @@ pub fn draw_gpu_profiling(
                     depth -= 1;
                 }
             }
-        })
+        }),
     );
     let total_time = max - min;
     {
         let labels = [
-            format!("GPU Time: {:.2?}", instant::Duration::from_secs_f64(total_time)),
+            format!(
+                "GPU Time: {:.2?}",
+                instant::Duration::from_secs_f64(total_time)
+            ),
             "Press P to save a trace".to_string(),
         ];
 
@@ -348,7 +348,7 @@ pub fn draw_gpu_profiling(
                 text_size,
                 Some(&Brush::Solid(Color::WHITE)),
                 offset * Affine::translate((left_margin, ((i + 1) as f64) * text_height)),
-                label
+                label,
             );
         }
 
@@ -360,7 +360,7 @@ pub fn draw_gpu_profiling(
                 text_size,
                 Some(&Brush::Solid(Color::WHITE)),
                 offset * Affine::translate((left_margin, ((i + 1) as f64) * text_height)),
-                label
+                label,
             );
         }
     }
@@ -382,101 +382,101 @@ pub fn draw_gpu_profiling(
         &mut (|profile, stage| {
             if let TraversalStage::Enter = stage {
                 if let Some(time) = &profile.time {
-                let start_normalised =
-                    ((time.start - min) / total_time) * timeline_range_y + timeline_start_y;
-                let end_normalised =
-                    ((time.end - min) / total_time) * timeline_range_y + timeline_start_y;
+                    let start_normalised =
+                        ((time.start - min) / total_time) * timeline_range_y + timeline_start_y;
+                    let end_normalised =
+                        ((time.end - min) / total_time) * timeline_range_y + timeline_start_y;
 
-                let color = COLORS[cur_index % COLORS.len()];
-                let x = width * 0.01 + (depth as f64) * depth_width;
-                sb.fill(
-                    Fill::NonZero,
-                    offset,
-                    &Brush::Solid(color),
-                    None,
-                    &Rect::new(x, start_normalised, x + depth_size, end_normalised)
-                );
-
-                let mut text_start = start_normalised;
-                let nested = !profiles_are_empty(profile.nested_queries.as_slice());
-                if nested {
-                    // If we have children, leave some more space for them
-                    text_start -= text_height * 0.7;
-                }
-                let this_time = time.end - time.start;
-                // Highlight as important if more than 10% of the total time, or more than 1ms
-                let slow = this_time * 20.0 >= total_time || this_time >= 0.001;
-                let text_y = text_start
-                    // Ensure that we don't overlap the previous item
-                    .max(cur_text_y)
-                    // Ensure that all remaining items can fit
-                    .min(timeline_range_end - ((count - cur_index) as f64) * text_height);
-                let (text_height, text_color) = if slow {
-                    (text_height, Color::WHITE)
-                } else {
-                    (text_height * 0.6, Color::LIGHT_GRAY)
-                };
-                let text_size = (text_height * 0.9) as f32;
-                // Text is specified by the baseline, but the y positions all refer to the top of the text
-                cur_text_y = text_y + text_height;
-                let label = {
-                    // Sometimes, the duration turns out to be negative
-                    // We have not yet debugged this, but display the absolute value in that case
-                    // see https://github.com/linebender/vello/pull/475 for more
-                    if this_time < 0.0 {
-                        format!(
-                            "-{:.2?}(!!) - {:.30}",
-                            instant::Duration::from_secs_f64(this_time.abs()),
-                            profile.label
-                        )
-                    } else {
-                        format!(
-                            "{:.2?} - {:.30}",
-                            instant::Duration::from_secs_f64(this_time),
-                            profile.label
-                        )
-                    }
-                };
-                sb.fill(
-                    Fill::NonZero,
-                    offset,
-                    &Brush::Solid(color),
-                    None,
-                    &Rect::new(
-                        width * 0.31,
-                        cur_text_y - (text_size as f64) * 0.7,
-                        width * 0.34,
-                        cur_text_y
-                    )
-                );
-                text.add(
-                    sb,
-                    None,
-                    text_size,
-                    Some(&Brush::Solid(text_color)),
-                    offset * Affine::translate((left_margin, cur_text_y)),
-                    &label
-                );
-                if !nested && slow {
-                    sb.stroke(
-                        &Stroke::new(2.0),
+                    let color = COLORS[cur_index % COLORS.len()];
+                    let x = width * 0.01 + (depth as f64) * depth_width;
+                    sb.fill(
+                        Fill::NonZero,
                         offset,
                         &Brush::Solid(color),
                         None,
-                        &vello::kurbo::Line::new(
-                            (x + depth_size, (end_normalised + start_normalised) / 2.0),
-                            (width * 0.31, cur_text_y - (text_size as f64) * 0.35)
-                        )
+                        &Rect::new(x, start_normalised, x + depth_size, end_normalised),
                     );
+
+                    let mut text_start = start_normalised;
+                    let nested = !profiles_are_empty(profile.nested_queries.as_slice());
+                    if nested {
+                        // If we have children, leave some more space for them
+                        text_start -= text_height * 0.7;
+                    }
+                    let this_time = time.end - time.start;
+                    // Highlight as important if more than 10% of the total time, or more than 1ms
+                    let slow = this_time * 20.0 >= total_time || this_time >= 0.001;
+                    let text_y = text_start
+                        // Ensure that we don't overlap the previous item
+                        .max(cur_text_y)
+                        // Ensure that all remaining items can fit
+                        .min(timeline_range_end - ((count - cur_index) as f64) * text_height);
+                    let (text_height, text_color) = if slow {
+                        (text_height, Color::WHITE)
+                    } else {
+                        (text_height * 0.6, Color::LIGHT_GRAY)
+                    };
+                    let text_size = (text_height * 0.9) as f32;
+                    // Text is specified by the baseline, but the y positions all refer to the top of the text
+                    cur_text_y = text_y + text_height;
+                    let label = {
+                        // Sometimes, the duration turns out to be negative
+                        // We have not yet debugged this, but display the absolute value in that case
+                        // see https://github.com/linebender/vello/pull/475 for more
+                        if this_time < 0.0 {
+                            format!(
+                                "-{:.2?}(!!) - {:.30}",
+                                instant::Duration::from_secs_f64(this_time.abs()),
+                                profile.label
+                            )
+                        } else {
+                            format!(
+                                "{:.2?} - {:.30}",
+                                instant::Duration::from_secs_f64(this_time),
+                                profile.label
+                            )
+                        }
+                    };
+                    sb.fill(
+                        Fill::NonZero,
+                        offset,
+                        &Brush::Solid(color),
+                        None,
+                        &Rect::new(
+                            width * 0.31,
+                            cur_text_y - (text_size as f64) * 0.7,
+                            width * 0.34,
+                            cur_text_y,
+                        ),
+                    );
+                    text.add(
+                        sb,
+                        None,
+                        text_size,
+                        Some(&Brush::Solid(text_color)),
+                        offset * Affine::translate((left_margin, cur_text_y)),
+                        &label,
+                    );
+                    if !nested && slow {
+                        sb.stroke(
+                            &Stroke::new(2.0),
+                            offset,
+                            &Brush::Solid(color),
+                            None,
+                            &vello::kurbo::Line::new(
+                                (x + depth_size, (end_normalised + start_normalised) / 2.0),
+                                (width * 0.31, cur_text_y - (text_size as f64) * 0.35),
+                            ),
+                        );
+                    }
+                    cur_index += 1;
+                    // Higher depth applies only to the children
+                    depth += 1;
+                } else {
+                    depth -= 1;
                 }
-                cur_index += 1;
-                // Higher depth applies only to the children
-                depth += 1;
-            } else {
-                depth -= 1;
             }
-        }
-        })
+        }),
     );
 }
 
@@ -488,7 +488,7 @@ enum TraversalStage {
 #[cfg(feature = "wgpu-profiler")]
 fn traverse_profiling(
     profiles: &[GpuTimerQueryResult],
-    callback: &mut impl FnMut(&GpuTimerQueryResult, TraversalStage)
+    callback: &mut impl FnMut(&GpuTimerQueryResult, TraversalStage),
 ) {
     for profile in profiles {
         callback(profile, TraversalStage::Enter);

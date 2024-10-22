@@ -1,8 +1,8 @@
 // Copyright 2022 The Vello authors
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use bytemuck::{ Pod, Zeroable };
-use peniko::{ BlendMode, Color };
+use bytemuck::{Pod, Zeroable};
+use peniko::{BlendMode, Color};
 
 use super::Monoid;
 

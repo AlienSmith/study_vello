@@ -13,28 +13,28 @@
 // limitations under the License.
 //
 // Also licensed under MIT license, at your choice.
+use anyhow::Result;
+use clap::{CommandFactory, Parser};
 #[cfg(feature = "wgpu-profiler")]
 use instant::Duration;
 use instant::Instant;
-use winit::dpi::PhysicalSize;
-use winit::keyboard::{ Key, NamedKey };
+use scenes::{ImageCache, SceneParams, SceneSet, SimpleText};
 use std::collections::HashSet;
 use std::sync::Arc;
-use anyhow::Result;
-use clap::{ CommandFactory, Parser };
-use scenes::{ ImageCache, SceneParams, SceneSet, SimpleText };
+use winit::dpi::PhysicalSize;
+use winit::keyboard::{Key, NamedKey};
 
 use vello::util::RenderSurface;
 use vello::{
-    kurbo::{ Affine, Vec2 },
+    kurbo::{Affine, Vec2},
     util::RenderContext,
-    Renderer,
-    Scene,
-    BumpAllocators,
-    RendererOptions,
+    BumpAllocators, Renderer, RendererOptions, Scene,
 };
 
-use winit::{ event_loop::{ EventLoop, EventLoopBuilder }, window::Window };
+use winit::{
+    event_loop::{EventLoop, EventLoopBuilder},
+    window::Window,
+};
 
 #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
 mod hot_reload;
@@ -66,7 +66,7 @@ struct RenderState<'s> {
 /// A function extracted to fix rustfmt
 fn store_profiling(
     renderer: &Renderer,
-    profile_stored: &Option<Vec<wgpu_profiler::GpuTimerQueryResult>>
+    profile_stored: &Option<Vec<wgpu_profiler::GpuTimerQueryResult>>,
 ) {
     if let Some(profile_result) = &renderer.profile_result.as_ref().or(profile_stored.as_ref()) {
         // There can be empty results if the required features aren't supported
@@ -89,9 +89,9 @@ fn run(
     args: Args,
     mut scenes: SceneSet,
     render_cx: RenderContext,
-    #[cfg(target_arch = "wasm32")] render_state: RenderState
+    #[cfg(target_arch = "wasm32")] render_state: RenderState,
 ) {
-    use winit::{ event::*, event_loop::ControlFlow };
+    use winit::{event::*, event_loop::ControlFlow};
     let mut renderers: Vec<Option<Renderer>> = vec![];
     #[cfg(not(target_arch = "wasm32"))]
     let mut render_cx = render_cx;
@@ -113,8 +113,9 @@ fn run(
                     surface_format: Some(render_state.surface.format),
                     timestamp_period: render_cx.devices[id].queue.get_timestamp_period(),
                     use_cpu: use_cpu,
-                })
-            ).expect("Could create renderer")
+                }),
+            )
+            .expect("Could create renderer"),
         );
         Some(render_state)
     };
@@ -614,7 +615,7 @@ fn run(
 
 fn create_window(
     event_loop: &winit::event_loop::EventLoopWindowTarget<UserEvent>,
-    default_size: PhysicalSize<u32>
+    default_size: PhysicalSize<u32>,
 ) -> Arc<Window> {
     use winit::window::WindowBuilder;
     Arc::new(
@@ -623,7 +624,7 @@ fn create_window(
             .with_resizable(true)
             .with_title("Vello demo")
             .build(event_loop)
-            .unwrap()
+            .unwrap(),
     )
 }
 
@@ -649,7 +650,7 @@ fn display_error_message() -> Option<()> {
         <p><a href="https://caniuse.com/webgpu">WebGPU</a>
         is not enabled. Make sure your browser is updated to
         <a href="https://chromiumdash.appspot.com/schedule">Chrome M113</a> or
-        another browser compatible with WebGPU.</p>"#
+        another browser compatible with WebGPU.</p>"#,
     );
     Some(())
 }
@@ -691,8 +692,7 @@ pub fn main() -> Result<()> {
             console::log_1(&format!("Width {}, Height {}", size.width, size.height).into());
             canvas.set_width(size.width);
             canvas.set_height(size.height);
-            web_sys
-                ::window()
+            web_sys::window()
                 .and_then(|win| win.document())
                 .and_then(|doc| doc.body())
                 .and_then(|body| body.append_child(canvas.as_ref()).ok())
@@ -700,14 +700,19 @@ pub fn main() -> Result<()> {
             _ = web_sys::HtmlElement::from(canvas).focus();
             wasm_bindgen_futures::spawn_local(async move {
                 let size = window.inner_size();
-                let surface = render_cx.create_surface(
-                    &window,
-                    size.width,
-                    size.height,
-                    wgpu::PresentMode::AutoNoVsync
-                ).await;
+                let surface = render_cx
+                    .create_surface(
+                        &window,
+                        size.width,
+                        size.height,
+                        wgpu::PresentMode::AutoNoVsync,
+                    )
+                    .await;
                 if let Ok(surface) = surface {
-                    let render_state = RenderState { window: window.clone(), surface };
+                    let render_state = RenderState {
+                        window: window.clone(),
+                        surface,
+                    };
                     // No error handling here; if the event loop has finished, we don't need to send them the surface
                     run(event_loop, args, scenes, render_cx, render_state);
                 } else {
@@ -739,12 +744,15 @@ fn android_main(app: AndroidApp) {
     use winit::platform::android::EventLoopBuilderExtAndroid;
 
     android_logger::init_once(
-        android_logger::Config::default().with_max_level(log::LevelFilter::Warn)
+        android_logger::Config::default().with_max_level(log::LevelFilter::Warn),
     );
 
-    let event_loop = EventLoopBuilder::with_user_event().with_android_app(app).build();
+    let event_loop = EventLoopBuilder::with_user_event()
+        .with_android_app(app)
+        .build();
     let args = Args::parse();
-    let scenes = args.args
+    let scenes = args
+        .args
         .select_scene_set(|| Args::command())
         .unwrap()
         .unwrap();
